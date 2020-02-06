@@ -435,11 +435,6 @@ namespace Datadog.Trace
             return new Statsd(statsdUdp, new RandomGenerator(), new StopWatchFactory(), prefix: string.Empty, constantTags);
         }
 
-        private void InitializeLibLogScopeEventSubscriber(IScopeManager scopeManager)
-        {
-            new LibLogScopeEventSubscriber(scopeManager);
-        }
-
         private void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             _agentWriter.FlushAndCloseAsync().Wait();
