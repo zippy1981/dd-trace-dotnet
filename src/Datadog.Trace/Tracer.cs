@@ -34,6 +34,7 @@ namespace Datadog.Trace
         private readonly IScopeManager _scopeManager;
         private readonly IAgentWriter _agentWriter;
         private readonly Timer _heartbeatTimer;
+        private readonly LibLogScopeEventSubscriber _libLogScopeEventSubscriber;
 
         static Tracer()
         {
@@ -123,7 +124,8 @@ namespace Datadog.Trace
             // LibLog logging context when a scope is activated/closed
             if (Settings.LogsInjectionEnabled && _scopeManager is INotifySpanEvent spanEventSource)
             {
-                LibLogScopeEventSubscriber.Instance.UpdateSubscription(spanEventSource);
+                _libLogScopeEventSubscriber = new LibLogScopeEventSubscriber();
+                _libLogScopeEventSubscriber.UpdateSubscription(spanEventSource);
             }
         }
 

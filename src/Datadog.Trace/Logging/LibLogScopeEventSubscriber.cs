@@ -11,7 +11,7 @@ namespace Datadog.Trace.Logging
     /// </summary>
     internal class LibLogScopeEventSubscriber : IDisposable
     {
-        private static readonly ILogProvider _logProvider;
+        private readonly ILogProvider _logProvider;
 
         // Each mapped context sets a key-value pair into the logging context
         // Disposing the returned context unsets the key-value pair
@@ -27,13 +27,10 @@ namespace Datadog.Trace.Logging
         private INotifySpanEvent _spanEventSource;
         private bool _safeToAddToMdc = true;
 
-        static LibLogScopeEventSubscriber()
+        public LibLogScopeEventSubscriber()
         {
-            Instance = new LibLogScopeEventSubscriber();
             _logProvider = LogProvider.CurrentLogProvider ?? LogProvider.ResolveLogProvider();
         }
-
-        public static LibLogScopeEventSubscriber Instance { get; }
 
         // IMPORTANT: For all logging frameworks, do not set any default values for
         //            "dd.trace_id" and "dd.span_id" when initializing the subscriber
