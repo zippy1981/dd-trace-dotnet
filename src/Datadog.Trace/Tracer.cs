@@ -121,9 +121,9 @@ namespace Datadog.Trace
 
             // If configured, add/remove the correlation identifiers into the
             // LibLog logging context when a scope is activated/closed
-            if (Settings.LogsInjectionEnabled)
+            if (Settings.LogsInjectionEnabled && _scopeManager is INotifySpanEvent spanEventSource)
             {
-                InitializeLibLogScopeEventSubscriber(_scopeManager);
+                LibLogScopeEventSubscriber.Instance.UpdateSubscription(spanEventSource);
             }
         }
 

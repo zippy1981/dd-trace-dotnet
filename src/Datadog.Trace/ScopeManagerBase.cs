@@ -3,7 +3,7 @@ using Datadog.Trace.Logging;
 
 namespace Datadog.Trace
 {
-    internal abstract class ScopeManagerBase : IScopeManager
+    internal abstract class ScopeManagerBase : IScopeManager, INotifySpanEvent
     {
         private static readonly Vendors.Serilog.ILogger Log = DatadogLogging.GetLogger(typeof(ScopeManagerBase));
 

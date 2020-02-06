@@ -13,7 +13,7 @@ namespace Datadog.Trace.OpenTracing
         private readonly Dictionary<string, ICodec> _codecs;
 
         public OpenTracingTracer(IDatadogTracer datadogTracer)
-            : this(datadogTracer, new global::OpenTracing.Util.AsyncLocalScopeManager())
+            : this(datadogTracer, new OpenTracingScopeManager(new global::OpenTracing.Util.AsyncLocalScopeManager()))
         {
         }
 

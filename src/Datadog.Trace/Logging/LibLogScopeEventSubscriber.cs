@@ -11,8 +11,7 @@ namespace Datadog.Trace.Logging
     /// </summary>
     internal class LibLogScopeEventSubscriber : IDisposable
     {
-        private readonly IScopeManager _scopeManager;
-        private readonly ILogProvider _logProvider;
+        private static readonly ILogProvider _logProvider;
 
         // Each mapped context sets a key-value pair into the logging context
         // Disposing the returned context unsets the key-value pair
@@ -25,7 +24,16 @@ namespace Datadog.Trace.Logging
         //            it is only valid to add the properties once and unset them once.
         private readonly ConcurrentStack<IDisposable> _contextDisposalStack = new ConcurrentStack<IDisposable>();
 
+        private INotifySpanEvent _spanEventSource;
         private bool _safeToAddToMdc = true;
+
+        static LibLogScopeEventSubscriber()
+        {
+            Instance = new LibLogScopeEventSubscriber();
+            _logProvider = LogProvider.CurrentLogProvider ?? LogProvider.ResolveLogProvider();
+        }
+
+        public static LibLogScopeEventSubscriber Instance { get; }
 
         // IMPORTANT: For all logging frameworks, do not set any default values for
         //            "dd.trace_id" and "dd.span_id" when initializing the subscriber
@@ -39,61 +47,71 @@ namespace Datadog.Trace.Logging
         //            but the target AppDomain is unable to de-serialize the object --
         //            this can easily happen if the target AppDomain cannot find/load the
         //            logging framework assemblies.
-        public LibLogScopeEventSubscriber(IScopeManager scopeManager)
+        public void UpdateSubscription(INotifySpanEvent spanEventSource)
         {
-            _scopeManager = scopeManager;
+            RemoveSubscription();
 
-            _logProvider = LogProvider.CurrentLogProvider ?? LogProvider.ResolveLogProvider();
+            _spanEventSource = spanEventSource;
+
             if (_logProvider is SerilogLogProvider)
             {
                 // Do not set default values for Serilog because it is unsafe to set
                 // except at the application startup, but this would require auto-instrumentation
-                _scopeManager.SpanOpened += StackOnSpanOpened;
-                _scopeManager.SpanClosed += StackOnSpanClosed;
+                _spanEventSource.SpanOpened += StackOnSpanOpened;
+                _spanEventSource.SpanClosed += StackOnSpanClosed;
             }
             else
             {
-                _scopeManager.SpanActivated += MapOnSpanActivated;
-                _scopeManager.TraceEnded += MapOnTraceEnded;
+                _spanEventSource.SpanActivated += MapOnSpanActivated;
+                _spanEventSource.TraceEnded += MapOnTraceEnded;
             }
-        }
-
-        public void StackOnSpanOpened(object sender, SpanEventArgs spanEventArgs)
-        {
-            SetCorrelationIdentifierContext(spanEventArgs.Span.TraceId, spanEventArgs.Span.SpanId);
-        }
-
-        public void StackOnSpanClosed(object sender, SpanEventArgs spanEventArgs)
-        {
-            RemoveLastCorrelationIdentifierContext();
-        }
-
-        public void MapOnSpanActivated(object sender, SpanEventArgs spanEventArgs)
-        {
-            RemoveAllCorrelationIdentifierContexts();
-            SetCorrelationIdentifierContext(spanEventArgs.Span.TraceId, spanEventArgs.Span.SpanId);
-        }
-
-        public void MapOnTraceEnded(object sender, SpanEventArgs spanEventArgs)
-        {
-            RemoveAllCorrelationIdentifierContexts();
-            SetDefaultValues();
         }
 
         public void Dispose()
         {
-            if (_logProvider is SerilogLogProvider)
-            {
-                _scopeManager.SpanOpened -= StackOnSpanOpened;
-                _scopeManager.SpanClosed -= StackOnSpanClosed;
-            }
-            else
-            {
-                _scopeManager.SpanActivated -= MapOnSpanActivated;
-                _scopeManager.TraceEnded -= MapOnTraceEnded;
-            }
-
             RemoveAllCorrelationIdentifierContexts();
+            RemoveSubscription();
+        }
+
+        private void RemoveSubscription()
+        {
+            if (_spanEventSource != null)
+            {
+                if (_logProvider is SerilogLogProvider)
+                {
+                    _spanEventSource.SpanOpened -= StackOnSpanOpened;
+                    _spanEventSource.SpanClosed -= StackOnSpanClosed;
+                }
+                else
+                {
+                    _spanEventSource.SpanActivated -= MapOnSpanActivated;
+                    _spanEventSource.TraceEnded -= MapOnTraceEnded;
+                }
+
+                _spanEventSource = null;
+            }
+        }
+
+        private void StackOnSpanOpened(object sender, SpanEventArgs spanEventArgs)
+        {
+            SetCorrelationIdentifierContext(spanEventArgs.Span.TraceId, spanEventArgs.Span.SpanId);
+        }
+
+        private void StackOnSpanClosed(object sender, SpanEventArgs spanEventArgs)
+        {
+            RemoveLastCorrelationIdentifierContext();
+        }
+
+        private void MapOnSpanActivated(object sender, SpanEventArgs spanEventArgs)
+        {
+            RemoveAllCorrelationIdentifierContexts();
+            SetCorrelationIdentifierContext(spanEventArgs.Span.TraceId, spanEventArgs.Span.SpanId);
+        }
+
+        private void MapOnTraceEnded(object sender, SpanEventArgs spanEventArgs)
+        {
+            RemoveAllCorrelationIdentifierContexts();
+            SetDefaultValues();
         }
 
         private void SetDefaultValues()
