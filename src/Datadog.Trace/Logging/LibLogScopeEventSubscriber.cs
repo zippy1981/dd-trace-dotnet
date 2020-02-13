@@ -11,8 +11,6 @@ namespace Datadog.Trace.Logging
     /// </summary>
     internal class LibLogScopeEventSubscriber : IDisposable
     {
-        private readonly ILogProvider _logProvider;
-
         // Each mapped context sets a key-value pair into the logging context
         // Disposing the returned context unsets the key-value pair
         // Keep a stack to retain the history of our correlation identifier properties
@@ -22,8 +20,9 @@ namespace Datadog.Trace.Logging
         //            are maintained in a stack, as opposed to a map, and must be closed
         //            in reverse-order of opening. When operating on the stack-based model,
         //            it is only valid to add the properties once and unset them once.
-        private readonly ConcurrentStack<IDisposable> _contextDisposalStack = new ConcurrentStack<IDisposable>();
+        private static readonly ConcurrentStack<IDisposable> _contextDisposalStack = new ConcurrentStack<IDisposable>();
 
+        private readonly ILogProvider _logProvider;
         private INotifySpanEvent _spanEventSource;
         private bool _safeToAddToMdc = true;
 

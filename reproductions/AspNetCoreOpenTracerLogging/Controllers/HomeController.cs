@@ -22,9 +22,12 @@ namespace AspNetCoreOpenTracerLogging.Controllers
         public IActionResult Index()
         {
             OpenTracing.ITracer _tracer = OpenTracing.Util.GlobalTracer.Instance;
-            using (var scope = _tracer.BuildSpan(nameof(Index)).StartActive(true))
+            using (var scope = _tracer.BuildSpan("Index parent").StartActive(true))
             {
-                _logger.LogInformation("Hello, this is the index!");
+                using (var childScope = _tracer.BuildSpan("Index child").StartActive(true))
+                {
+                    _logger.LogInformation("Hello, this is the index!");
+                }
             }
             return View();
         }

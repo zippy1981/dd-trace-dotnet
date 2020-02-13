@@ -10,19 +10,22 @@ namespace Datadog.Trace.OpenTracing
     {
         private static readonly Vendors.Serilog.ILogger Log = DatadogLogging.For<OpenTracingTracer>();
 
+        private readonly LibLogScopeEventSubscriber _libLogScopeEventSubscriber;
+
         private readonly Dictionary<string, ICodec> _codecs;
 
         public OpenTracingTracer(IDatadogTracer datadogTracer)
-            : this(datadogTracer, new OpenTracingScopeManager(new global::OpenTracing.Util.AsyncLocalScopeManager()))
-        {
-        }
-
-        public OpenTracingTracer(IDatadogTracer datadogTracer, global::OpenTracing.IScopeManager scopeManager)
         {
             DatadogTracer = datadogTracer;
             DefaultServiceName = datadogTracer.DefaultServiceName;
-            ScopeManager = scopeManager;
+            ScopeManager = new OpenTracingScopeManager(new global::OpenTracing.Util.AsyncLocalScopeManager());
             _codecs = new Dictionary<string, ICodec> { { BuiltinFormats.HttpHeaders.ToString(), new HttpHeadersCodec() } };
+
+            if (datadogTracer.Settings.LogsInjectionEnabled && ScopeManager is INotifySpanEvent spanEventSource)
+            {
+                _libLogScopeEventSubscriber = new LibLogScopeEventSubscriber();
+                _libLogScopeEventSubscriber.UpdateSubscription(spanEventSource);
+            }
         }
 
         public IDatadogTracer DatadogTracer { get; }
