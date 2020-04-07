@@ -59,41 +59,33 @@ namespace Datadog.MockTraceAgent
 
         public event EventHandler<EventArgs<IList<IList<MockSpan>>>> RequestDeserialized;
 
-        public IImmutableList<MockSpan> Spans { get; private set; } = ImmutableList<MockSpan>.Empty;
-
-        protected virtual void OnRequestReceived(HttpListenerContext context)
-        {
-            RequestReceived?.Invoke(this, new EventArgs<HttpListenerContext>(context));
-        }
-
-        protected virtual void OnRequestDeserialized(IList<IList<MockSpan>> traces)
-        {
-            RequestDeserialized?.Invoke(this, new EventArgs<IList<IList<MockSpan>>>(traces));
-        }
-
         private void HandleHttpRequests()
         {
             while (_listener.IsListening)
             {
                 try
                 {
-                    var ctx = _listener.GetContext();
-                    OnRequestReceived(ctx);
+                    var context = _listener.GetContext();
 
-                    var spans = MessagePackSerializer.Deserialize<IList<IList<MockSpan>>>(ctx.Request.InputStream);
-                    OnRequestDeserialized(spans);
+                    var requestReceivedHandler = RequestReceived;
 
-                    lock (this)
+                    if (requestReceivedHandler != null)
                     {
-                        // we only need to lock when replacing the span collection,
-                        // not when reading it because it is immutable
-                        Spans = Spans.AddRange(spans.SelectMany(trace => trace));
+                        requestReceivedHandler(this, new EventArgs<HttpListenerContext>(context));
                     }
 
-                    ctx.Response.ContentType = "application/json";
+                    var onRequestDeserializedHandler = RequestDeserialized;
+
+                    if (onRequestDeserializedHandler != null)
+                    {
+                        var traces = MessagePackSerializer.Deserialize<IList<IList<MockSpan>>>(context.Request.InputStream);
+                        onRequestDeserializedHandler(this, new EventArgs<IList<IList<MockSpan>>>(traces));
+                    }
+
+                    context.Response.ContentType = "application/json";
                     var buffer = Encoding.UTF8.GetBytes("{}");
-                    ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
-                    ctx.Response.Close();
+                    context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                    context.Response.Close();
                 }
                 catch (HttpListenerException)
                 {
