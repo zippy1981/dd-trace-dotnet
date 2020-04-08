@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Datadog.MockTraceAgent
 {
@@ -11,15 +12,11 @@ namespace Datadog.MockTraceAgent
             using (var agent = new TraceAgent())
             {
                 agent.RequestDeserialized += TracesReceived;
+                agent.Start(8126);
 
-                int port = agent.Start();
-
-                Console.WriteLine($"Listening on http://localhost:{port}");
-                Console.WriteLine("Press ENTER or CTRL+C to exit.");
-                Console.ReadLine();
+                Console.WriteLine($"Listening on http://localhost:{8126}");
+                Console.WriteLine("Press CTRL+C to exit.");
             }
-
-            Environment.Exit(0);
         }
 
         private static void TracesReceived(object sender, EventArgs<IList<IList<MockSpan>>> traces)

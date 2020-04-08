@@ -30,8 +30,9 @@ namespace http_requests
             foreach (string url in Urls)
             {
                 Console.WriteLine($"Sending {RequestsPerSecond} requests per second to {url}.");
-                var callbackArgs = new HttpRequestGenerator(url);
-                Task task = callbackArgs.StartAsync(RequestsPerSecond);
+
+                var requestGenerator = new HttpRequestGenerator(url);
+                Task task = requestGenerator.StartAsync(RequestsPerSecond);
                 tasks.Add(task);
             }
 
