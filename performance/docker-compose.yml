@@ -8,6 +8,10 @@ services:
     - DD_APM_ENABLED=true
     - DD_APM_NON_LOCAL_TRAFFIC=true
     - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+#  mock-agent:
+#    image: mock-agent
+#    build:
+#      context: ../tools/Datadog.MockTraceAgent
   app-none:
     depends_on:
     - datadog-agent
