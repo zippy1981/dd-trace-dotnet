@@ -386,9 +386,9 @@ namespace Datadog.Trace
         /// Flushes any pending traces to the Agent.
         /// </summary>
         /// <returns>A <see cref="Task"/> that represents the flush operation and can be awaited.</returns>
-        public async Task FlushAsync()
+        public Task FlushAsync()
         {
-            await _agentWriter.FlushAndCloseAsync();
+            return _agentWriter.FlushTracesAsync();
         }
 
         internal void StartDiagnosticObserversInternal()
