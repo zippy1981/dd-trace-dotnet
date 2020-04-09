@@ -13,7 +13,7 @@ namespace http_requests
     {
         [Argument(0, "urls", "List of target URLs")]
         [Required(AllowEmptyStrings = false)]
-        public string[] Urls { get; }
+        public string[]? Urls { get; }
 
         [Option("--rps", "Requests per second", CommandOptionType.SingleValue)]
         [Required]
@@ -22,8 +22,15 @@ namespace http_requests
         public static Task<int> Main(string[] args)
             => CommandLineApplication.ExecuteAsync<Program>(args);
 
-        private async Task OnExecuteAsync()
+        private Task OnExecuteAsync()
         {
+            if (Urls == null || Urls.Length == 0)
+            {
+                // this should never happen since CommandLineApplication validates inputs
+                Console.WriteLine("No urls specified.");
+                return Task.CompletedTask;
+            }
+
             Console.WriteLine("Press CTRL+C to exit...");
             var tasks = new List<Task>(Urls.Length);
 
@@ -36,7 +43,7 @@ namespace http_requests
                 tasks.Add(task);
             }
 
-            await Task.WhenAll(tasks);
+            return Task.WhenAll(tasks);
         }
 
         public class HttpRequestGenerator
@@ -83,7 +90,7 @@ namespace http_requests
 
                     if (timeLeft > TimeSpan.Zero)
                     {
-                        Thread.Sleep(timeLeft);
+                        await Task.Delay(timeLeft);
                     }
                 }
             }
