@@ -110,7 +110,9 @@ services:
     depends_on:
     - app-none
     - app-nuget
+    - app-nuget-more-spans
     - app-project
+    - app-project-more-spans
     image: http-requests
     build:
       context: http-requests/
