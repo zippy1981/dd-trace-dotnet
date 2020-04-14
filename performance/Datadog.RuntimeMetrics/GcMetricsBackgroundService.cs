@@ -113,8 +113,8 @@ namespace Datadog.RuntimeMetrics
 
         protected override void Dispose(bool disposing)
         {
-            _process?.Dispose();
             base.Dispose(disposing);
+            _process?.Dispose();
         }
     }
 }

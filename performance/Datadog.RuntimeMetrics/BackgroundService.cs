@@ -73,6 +73,12 @@ namespace Datadog.RuntimeMetrics
         {
             if (disposing)
             {
+                if (_executingTask != null && !_executingTask.IsCompleted)
+                {
+                    _stoppingCts?.Cancel();
+                    _executingTask.Wait(5000);
+                }
+
                 _executingTask?.Dispose();
                 _stoppingCts?.Dispose();
             }
