@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Datadog.RuntimeMetrics;
@@ -72,7 +73,7 @@ namespace AspNetCore31
             int maxSpans = Configuration.GetValue("DD_MAX_MANUAL_SPANS", 0);
             int maxTags = Configuration.GetValue("DD_MAX_TAGS", 0);
             string tracerVersion = Configuration["DD_TRACER_VERSION"];
-            string messagePackVersion = typeof(MessagePack.IFormatterResolver).Assembly.GetName().Version?.ToString() ?? "none";
+            string messagePackVersion = Type.GetType("MessagePack.IFormatterResolver, MessagePack")?.Assembly.GetName().Version?.ToString() ?? "none";
 
             var tags = new List<string>(6);
             tags.Add($"service_name:{this.GetType().Namespace}");
