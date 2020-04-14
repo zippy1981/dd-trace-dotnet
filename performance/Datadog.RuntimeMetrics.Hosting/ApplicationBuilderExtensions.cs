@@ -11,39 +11,55 @@ namespace Datadog.RuntimeMetrics.Hosting
         /// <summary>
         /// Adds Datadog tracing middleware.
         /// </summary>
-        public static IApplicationBuilder UseDatadogTracing(this IApplicationBuilder app, Tracer tracer, int manualSpanCount)
+        public static IApplicationBuilder UseDatadogTracing(this IApplicationBuilder app, Tracer tracer, int maxSpans, int maxTags)
         {
+            if(maxSpans == 0)
+            {
+                // noop
+                return app;
+            }
+
+            var random = new Random();
+
             app.Use(async (context, next) =>
                     {
+                        int spanCount = random.Next(0, maxSpans);
+
+                        if (spanCount == 0)
+                        {
+                            // noop
+                            await next.Invoke();
+                            return;
+                        }
+
                         HttpRequest request = context.Request;
                         string httpMethod = request.Method?.ToUpperInvariant() ?? "UNKNOWN";
                         string url = GetUrl(request);
                         string resourceUrl = new Uri(url).AbsolutePath.ToLowerInvariant();
                         string resourceName = $"{httpMethod} {resourceUrl}";
 
-                        using Scope? middlewareScope = manualSpanCount > 1 ?
-                                                           tracer.StartActive("middleware") :
-                                                           null;
-                        if (middlewareScope != null)
+                        using Scope middlewareScope = tracer.StartActive("middleware");
+                        Span middlewareSpan = middlewareScope.Span;
+                        middlewareSpan.Type = SpanTypes.Web;
+                        middlewareSpan.ResourceName = resourceName.Trim();
+                        middlewareSpan.SetTag(Tags.SpanKind, SpanKinds.Server);
+                        middlewareSpan.SetTag(Tags.HttpMethod, httpMethod);
+                        middlewareSpan.SetTag(Tags.HttpRequestHeadersHost, request.Host.Value);
+                        middlewareSpan.SetTag(Tags.HttpUrl, url);
+                        middlewareSpan.SetTag(Tags.Language, "dotnet");
+
+                        // we already created 1 span, so count to spanCount - 1
+                        for (int spanIndex = 0; spanIndex < spanCount - 1; spanIndex++)
                         {
-                            Span middlewareSpan = middlewareScope.Span;
-                            middlewareSpan.Type = SpanTypes.Web;
-                            middlewareSpan.ResourceName = resourceName.Trim();
-                            middlewareSpan.SetTag(Tags.SpanKind, SpanKinds.Server);
-                            middlewareSpan.SetTag(Tags.HttpMethod, httpMethod);
-                            middlewareSpan.SetTag(Tags.HttpRequestHeadersHost, request.Host.Value);
-                            middlewareSpan.SetTag(Tags.HttpUrl, url);
-                            middlewareSpan.SetTag(Tags.Language, "dotnet");
+                            using Scope innerScope = tracer.StartActive("manual");
+                            Span innerSpan = innerScope.Span;
+                            innerSpan.Type = SpanTypes.Custom;
 
+                            int tagCount = random.Next(0, maxTags);
 
-                            // we have already created 2 spans, so count to manualSpanCount - 2
-                            for (int i = 0; i < manualSpanCount - 2; i++)
+                            for (int tagIndex = 0; tagIndex < tagCount; tagIndex++)
                             {
-                                using Scope innerScope = tracer.StartActive("manual");
-                                Span innerSpan = innerScope.Span;
-                                innerSpan.Type = SpanTypes.Custom;
-                                innerSpan.SetTag("tag1", "value1");
-                                innerSpan.SetTag("tag2", "value2");
+                                innerSpan.SetTag($"tag{tagIndex}", tagIndex.ToString());
                             }
                         }
 

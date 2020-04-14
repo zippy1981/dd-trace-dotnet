@@ -24,45 +24,29 @@ services:
     environment:
     - DD_AGENT_HOST=datadog-agent
     - DD_SERVICE_NAME=app-none
-    - DD_TRACER_VERSION=project
     ports:
     - "127.0.0.1:60000:80"
   app-nuget:
     depends_on:
     - datadog-agent
-    image: app-manual-${TRACER_NUGET_VERSION}
+    image: app-manual-${TRACER_VERSION}
     build:
       context: ../
       dockerfile: performance/AspNetCore31/Dockerfile
       args:
-      - DD_TRACER_VERSION=${TRACER_NUGET_VERSION}
+      - DD_TRACER_VERSION=${TRACER_VERSION}
     environment:
     - DD_AGENT_HOST=datadog-agent
-    - DD_SERVICE_NAME=app-manual-1-${TRACER_NUGET_VERSION}
-    - DD_TRACER_VERSION=${TRACER_NUGET_VERSION}
-    - DD_MANUAL_SPAN_COUNT=1
-    ports:
-    - "127.0.0.1:60001:80"
-  app-nuget-more-spans:
-    depends_on:
-    - datadog-agent
-    image: app-manual-${TRACER_NUGET_VERSION}
-    build:
-      context: ../
-      dockerfile: performance/AspNetCore31/Dockerfile
-      args:
-      - DD_TRACER_VERSION=${TRACER_NUGET_VERSION}
-    environment:
-    - DD_AGENT_HOST=datadog-agent
-    - DD_SERVICE_NAME=app-manual-${MANUAL_SPAN_COUNT}-${TRACER_NUGET_VERSION}
-    - DD_TRACER_VERSION=${TRACER_NUGET_VERSION}
-    - DD_MANUAL_SPAN_COUNT=${MANUAL_SPAN_COUNT}
+    - DD_SERVICE_NAME=app-manual-${TRACER_VERSION}
+    - DD_TRACER_VERSION=${TRACER_VERSION}
+    - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
+    - DD_MAX_TAGS=${MAX_TAGS}
     ports:
     - "127.0.0.1:60002:80"
-  app-project:
+  app-branch:
     depends_on:
     - datadog-agent
-    image: app-manual-latest
+    image: app-manual-branch
     build:
       context: ../
       dockerfile: performance/AspNetCore31/Dockerfile
@@ -70,25 +54,10 @@ services:
       - DD_TRACER_VERSION=project
     environment:
     - DD_AGENT_HOST=datadog-agent
-    - DD_SERVICE_NAME=app-manual-1-latest
+    - DD_SERVICE_NAME=app-manual-branch
     - DD_TRACER_VERSION=project
-    - DD_MANUAL_SPAN_COUNT=1
-    ports:
-    - "127.0.0.1:60003:80"
-  app-project-more-spans:
-    depends_on:
-    - datadog-agent
-    image: app-manual-latest
-    build:
-      context: ../
-      dockerfile: performance/AspNetCore31/Dockerfile
-      args:
-      - DD_TRACER_VERSION=project
-    environment:
-    - DD_AGENT_HOST=datadog-agent
-    - DD_SERVICE_NAME=app-manual-${MANUAL_SPAN_COUNT}-latest
-    - DD_TRACER_VERSION=project
-    - DD_MANUAL_SPAN_COUNT=${MANUAL_SPAN_COUNT}
+    - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
+    - DD_MAX_TAGS=${MAX_TAGS}
     ports:
     - "127.0.0.1:60004:80"
 #  app-profiler:
@@ -101,19 +70,29 @@ services:
 #    environment:
 #    - DD_SERVICE_NAME=app-with-profiler
 #    - DD_AGENT_HOST=datadog-agent
-#    - DD_TRACER_VERSION=${TRACER_NUGET_VERSION}
-#    - DD_MANUAL_SPAN_COUNT=${MANUAL_SPAN_COUNT}
+#    - DD_TRACER_VERSION=${TRACER_VERSION}
+#    - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
 #    - CORECLR_ENABLE_PROFILING=1
 #    ports:
 #    - "127.0.0.1:60005:80"
-  http-requests:
+  http-requests-none:
     depends_on:
     - app-none
-    - app-nuget
-    - app-nuget-more-spans
-    - app-project
-    - app-project-more-spans
     image: http-requests
     build:
       context: http-requests/
-    command: "dotnet http-requests.dll http://app-none:80 http://app-nuget:80 http://app-nuget-more-spans:80 http://app-project:80 http://app-project-more-spans:80 --rps ${RPS}"
+    command: "dotnet http-requests.dll http://app-none:80 --rps ${REQUESTS_PER_SECOND}"
+  http-requests-nuget:
+    depends_on:
+    - app-nuget
+    image: http-requests
+    build:
+      context: http-requests/
+    command: "dotnet http-requests.dll http://app-nuget:80 --rps ${REQUESTS_PER_SECOND}"
+  http-requests-branch:
+    depends_on:
+    - app-branch
+    image: http-requests
+    build:
+      context: http-requests/
+    command: "dotnet http-requests.dll http://app-branch:80 --rps ${REQUESTS_PER_SECOND}"
