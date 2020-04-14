@@ -41,6 +41,7 @@ services:
     - DD_TRACER_VERSION=${TRACER_VERSION}
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
+    - DD_MESSAGE_PACK_VERSION=MsgPack_Cli
     ports:
     - "127.0.0.1:60001:80"
   app-branch:
