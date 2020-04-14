@@ -52,12 +52,14 @@ services:
       dockerfile: performance/AspNetCore31/Dockerfile
       args:
       - DD_TRACER_VERSION=project
+      - DD_MESSAGE_PACK_VERSION=1.9
     environment:
     - DD_AGENT_HOST=datadog-agent
     - DD_SERVICE_NAME=app-manual-branch
     - DD_TRACER_VERSION=project
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
+    - DD_MESSAGE_PACK_VERSION=1.9
     ports:
     - "127.0.0.1:60002:80"
   app-branch-messagepack21:
@@ -76,6 +78,7 @@ services:
     - DD_TRACER_VERSION=project
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
+    - DD_MESSAGE_PACK_VERSION=2.1
     ports:
     - "127.0.0.1:60003:80"
 #  app-profiler:
