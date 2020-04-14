@@ -72,7 +72,7 @@ services:
       - DD_MESSAGE_PACK_VERSION=2.1
     environment:
     - DD_AGENT_HOST=datadog-agent
-    - DD_SERVICE_NAME=app-manual-branch
+    - DD_SERVICE_NAME=app-manual-branch-messagepack21
     - DD_TRACER_VERSION=project
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
