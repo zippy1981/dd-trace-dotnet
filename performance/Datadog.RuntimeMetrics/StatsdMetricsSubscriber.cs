@@ -41,7 +41,7 @@ namespace Datadog.RuntimeMetrics
 
             foreach (MetricValue payload in payloads)
             {
-                commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0}:{1}|{2}", payload.Metric.Name, payload.Value, payload.Metric.Type);
+                commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0}:{1}|{2}", payload.Metric.Name, payload.Value, payload.Metric.Type.Code);
 
                 if (_sampleRate != null)
                 {
