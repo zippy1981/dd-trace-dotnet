@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- NuGet -->
@@ -29,10 +29,25 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Abstractions" Version="2.0.0" PrivateAssets="All" />
   </ItemGroup>
 
+  <!-- MessagePack
+  <PropertyGroup>
+    <!- - force MessagePack 1.9 when targeting net45, default to MessagePack 1.9 otherwise - ->
+    <DefineConstants Condition="'$(MessagePackVersion)' == '1.9' OR '$(MessagePackVersion)' == '' OR '$(TargetFramework)' == 'net45'">$(DefineConstants);MESSAGEPACK_1_9</DefineConstants>
+    <DefineConstants Condition="'$(MessagePackVersion)' == '2.1' AND '$(TargetFramework)' != 'net45'">$(DefineConstants);MESSAGEPACK_2_1</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MessagePackVersion)' == '1.9' OR '$(MessagePackVersion)' == '' OR '$(TargetFramework)' == 'net45'">
+    <PackageReference Include="MessagePack" Version="1.9.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(MessagePackVersion)' == '2.1' AND '$(TargetFramework)' != 'net45'">
+    <PackageReference Include="MessagePack" Version="2.1.115" />
+  </ItemGroup>
+  -->
+
   <ItemGroup>
     <PackageReference Include="LibLog" Version="5.0.6" PrivateAssets="All" />
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
-    <PackageReference Include="MsgPack.Cli" Version="1.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="4.4.1" />
     <PackageReference Include="System.Runtime.InteropServices.RuntimeInformation" Version="4.3.0" />
