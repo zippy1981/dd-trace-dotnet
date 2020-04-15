@@ -87,15 +87,14 @@ namespace Datadog.RuntimeMetrics
 
         private void ProcessAllocationEvent(EventWrittenEventArgs eventData)
         {
-            var tags = new[]
-                       {
-                           $"type-name:{(string)eventData.Payload[5]}"
-                       };
+            string typeName = ((string)eventData.Payload[5])
+                             .Replace("[]", "_array_")
+                             .Replace("<>", "_generic_")
+                             .Replace("<", "_of_")
+                             .Replace(">", "");
 
-            var metrics = new[]
-                          {
-                              new MetricValue(Metric.AllocatedBytes, (ulong)eventData.Payload[3], tags)
-                          };
+            var tags = new[] { $"type_name:{typeName}" };
+            var metrics = new[] { new MetricValue(Metric.AllocatedBytes, (ulong)eventData.Payload[3], tags) };
 
             _observers.OnNext(metrics);
         }
