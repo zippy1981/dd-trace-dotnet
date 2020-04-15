@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 // EventSource:
 // Microsoft-Windows-DotNETRuntime 5e5bb766-bbfc-5662-0548-1d44fad9bb56
@@ -87,11 +89,15 @@ namespace Datadog.RuntimeMetrics
 
         private void ProcessAllocationEvent(EventWrittenEventArgs eventData)
         {
-            string typeName = ((string)eventData.Payload[5])
-                             .Replace("[]", "_array_")
-                             .Replace("<>", "_generic_")
-                             .Replace("<", "_of_")
-                             .Replace(">", "");
+            var typeName = (string)eventData.Payload[5];
+
+            if (typeName.Contains("["))
+            {
+                // array types or generic type (or both), remove invalid characters:
+                // "System.Object[]" => "System.Object.array"
+                // "System.Collections.Generic.Dictionary`2[System.Int64,System.String]" => "System.Collections.Generic.Dictionary_of_System.Int64_System.String_"
+                typeName = Regex.Replace(typeName.Replace("[]", ".array"), @"(?:`\d+)?\[(?:([^\[\]\,]+),?)+\]", m => $"_of_{string.Join("_", m.Groups[1].Captures.Cast<Capture>().Select(c => c.Value))}_");
+            }
 
             var tags = new[] { $"type_name:{typeName}" };
             var metrics = new[] { new MetricValue(Metric.AllocatedBytes, (ulong)eventData.Payload[3], tags) };
