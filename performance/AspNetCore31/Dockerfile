@@ -13,7 +13,7 @@ COPY performance/Datadog.RuntimeMetrics.Hosting/*.csproj performance/Datadog.Run
 COPY performance/AspNetCore31/*.csproj performance/AspNetCore31/
 
 ARG DD_TRACER_VERSION
-RUN dotnet restore performance/AspNetCore31/ -p:DatadogTracerVersion=$DD_TRACER_VERSION -p:MessagePackVersion=$DD_MESSAGE_PACK_VERSION
+RUN dotnet restore performance/AspNetCore31/ -p:DatadogTracerVersion=$DD_TRACER_VERSION
 
 # copy everything else and build app
 COPY src/Datadog.Trace/ src/Datadog.Trace/
@@ -26,7 +26,7 @@ COPY GlobalSuppressions.cs GlobalSuppressions.cs
 COPY src/GlobalSuppressions.cs src/GlobalSuppressions.cs
 
 ARG DD_TRACER_VERSION
-RUN dotnet publish performance/AspNetCore31/ -c release -o /app -p:DatadogTracerVersion=$DD_TRACER_VERSION -p:MessagePackVersion=$DD_MESSAGE_PACK_VERSION --no-restore
+RUN dotnet publish performance/AspNetCore31/ -c release -o /app -p:DatadogTracerVersion=$DD_TRACER_VERSION --no-restore
 
 # final stage/image
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1

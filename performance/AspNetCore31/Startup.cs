@@ -93,9 +93,6 @@ namespace AspNetCore31
             {
                 tags.Add("tracer_mode:manual");
                 tags.Add($"tracer_version:{tracerVersion}");
-
-                string messagePackVersion = Configuration["DD_MESSAGE_PACK_VERSION"];
-                tags.Add($"messagepack_version:{messagePackVersion}");
             }
 
             return tags;
