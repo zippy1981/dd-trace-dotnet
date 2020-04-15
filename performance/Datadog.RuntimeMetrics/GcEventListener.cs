@@ -35,7 +35,7 @@ namespace Datadog.RuntimeMetrics
 
         public void DisableEvents()
         {
-            _eventsEnabled = true;
+            _eventsEnabled = false;
 
             if (_eventSource != null)
             {
