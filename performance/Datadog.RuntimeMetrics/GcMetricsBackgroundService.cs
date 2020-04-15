@@ -111,9 +111,9 @@ namespace Datadog.RuntimeMetrics
             return new DisposableCollection(listenerSubscription, serviceSubscription);
         }
 
-        protected override void Dispose(bool disposing)
+        public override void Dispose()
         {
-            base.Dispose(disposing);
+            base.Dispose();
             _process?.Dispose();
         }
     }
