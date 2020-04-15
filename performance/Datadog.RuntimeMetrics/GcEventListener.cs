@@ -19,6 +19,7 @@ namespace Datadog.RuntimeMetrics
         private const int GC_KEYWORD = 0x0000001;
 
         private readonly ObserverCollection<IEnumerable<MetricValue>> _observers = new ObserverCollection<IEnumerable<MetricValue>>();
+        private readonly Dictionary<string, string[]> _typeNamesTags = new Dictionary<string, string[]>();
 
         private bool _eventsEnabled;
         private EventSource? _eventSource;
@@ -89,19 +90,37 @@ namespace Datadog.RuntimeMetrics
 
         private void ProcessAllocationEvent(EventWrittenEventArgs eventData)
         {
-            var typeName = (string)eventData.Payload[5];
+            var payloadTypeName = (string)eventData.Payload[5] ?? "";
 
-            if (typeName.Contains("["))
+            if (!_typeNamesTags.TryGetValue(payloadTypeName, out string[] typeNameTag))
             {
-                // array types or generic type (or both), remove invalid characters:
-                // "System.Object[]" => "System.Object.array"
-                // "System.Collections.Generic.Dictionary`2[System.Int64,System.String]" => "System.Collections.Generic.Dictionary_of_System.Int64_System.String_"
-                typeName = Regex.Replace(typeName.Replace("[]", ".array"), @"(?:`\d+)?\[(?:([^\[\]\,]+),?)+\]", m => $"_of_{string.Join("_", m.Groups[1].Captures.Cast<Capture>().Select(c => c.Value))}_");
+                var typeName = payloadTypeName;
+
+                if (typeName.Contains("["))
+                {
+                    // array types
+                    typeName = typeName.Replace("[]", ".array");
+
+                    if (typeName.Contains("["))
+                    {
+                        // generic types, remove invalid characters:
+                        // "System.Object[]" => "System.Object.array"
+                        // "System.Collections.Generic.Dictionary`2[System.Int64,System.String]" => "System.Collections.Generic.Dictionary_of_System.Int64_System.String_"
+                        typeName = Regex.Replace(typeName.Replace("[]", ".array"), @"(?:`\d+)?\[(?:([^\[\]\,]+),?)+\]", m => $"_of_{string.Join("_", m.Groups[1].Captures.Cast<Capture>().Select(c => c.Value))}_");
+                    }
+                }
+
+                // remove any remaining invalid characters
+                typeName = Regex.Replace(typeName, @"[^a-zA-Z0-9_\.]", "_");
+
+                // create array with tag
+                typeNameTag = new[] { $"type_name:{typeName}" };
+
+                // cache the type name tag
+                _typeNamesTags[payloadTypeName] = typeNameTag;
             }
 
-            var tags = new[] { $"type_name:{typeName}" };
-            var metrics = new[] { new MetricValue(Metric.AllocatedBytes, (ulong)eventData.Payload[3], tags) };
-
+            var metrics = new[] { new MetricValue(Metric.AllocatedBytes, (ulong)eventData.Payload[3], typeNameTag) };
             _observers.OnNext(metrics);
         }
 
