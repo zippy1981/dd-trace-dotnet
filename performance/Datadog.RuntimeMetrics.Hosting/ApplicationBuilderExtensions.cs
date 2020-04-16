@@ -75,17 +75,9 @@ namespace Datadog.RuntimeMetrics.Hosting
 
         private static string GetUrl(HttpRequest request)
         {
-            if (request.Host.HasValue)
-            {
-                return $"{request.Scheme}://{request.Host.Value}{request.PathBase.Value}{request.Path.Value}";
-            }
-
             // HTTP 1.0 requests are not required to provide a Host to be valid
-            // Since this is just for display, we can provide a string that is
-            // not an actual Uri with only the fields that are specified.
-            // request.GetDisplayUrl(), used above, will throw an exception
-            // if request.Host is null.
-            return $"{request.Scheme}://UNKNOWN_HOST{request.PathBase.Value}{request.Path.Value}";
+            var host = request.Host.HasValue ? request.Host.Value : "UNKNOWN_HOST";
+            return $"{request.Scheme}://{host}{request.PathBase.Value}{request.Path.Value}";
         }
     }
 }
