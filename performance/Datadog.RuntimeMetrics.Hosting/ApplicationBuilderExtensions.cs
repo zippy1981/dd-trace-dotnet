@@ -23,21 +23,13 @@ namespace Datadog.RuntimeMetrics.Hosting
 
             app.Use(async (context, next) =>
                     {
-                        int spanCount = random.Next(0, maxSpans);
-
-                        if (spanCount == 0)
-                        {
-                            // noop
-                            await next.Invoke();
-                            return;
-                        }
-
                         HttpRequest request = context.Request;
                         string httpMethod = request.Method?.ToUpperInvariant() ?? "UNKNOWN";
                         string url = GetUrl(request);
                         string resourceUrl = new Uri(url).AbsolutePath.ToLowerInvariant();
                         string resourceName = $"{httpMethod} {resourceUrl}";
 
+                        // always create at least 1 span
                         using Scope middlewareScope = tracer.StartActive("middleware");
                         Span middlewareSpan = middlewareScope.Span;
                         middlewareSpan.Type = SpanTypes.Web;
@@ -48,7 +40,9 @@ namespace Datadog.RuntimeMetrics.Hosting
                         middlewareSpan.SetTag(Tags.HttpUrl, url);
                         middlewareSpan.SetTag(Tags.Language, "dotnet");
 
-                        // we already created 1 span, so count to spanCount - 1
+                        // we already created 1 span, so create up to maxSpans - 1 additional spans
+                        int spanCount = random.Next(0, maxSpans - 1);
+
                         for (int spanIndex = 0; spanIndex < spanCount - 1; spanIndex++)
                         {
                             using Scope innerScope = tracer.StartActive("manual");
