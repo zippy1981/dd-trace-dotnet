@@ -1,2 +1,7 @@
-// https://github.com/sebastienros/memoryleak/blob/master/src/MemoryLeak/MemoryLeak/Controllers/DiagnosticsController.cs
-// https://github.com/dotnet/runtime/blob/master/src/libraries/Microsoft.Extensions.Hosting.Abstractions/src/BackgroundService.cs
+https://github.com/dotnet/coreclr/blob/master/src/vm/ClrEtwAll.man
+https://github.com/dotnet/runtime/blob/master/src/libraries/Microsoft.Extensions.Hosting.Abstractions/src/BackgroundService.cs
+https://github.com/sebastienros/memoryleak/blob/master/src/MemoryLeak/MemoryLeak/Controllers/DiagnosticsController.cs
+https://github.com/chrisnas/ClrEvents
+
+https://stebet.net/monitoring-gc-and-memory-allocations-with-net-core-2-2-and-application-insights/
+https://medium.com/criteo-labs/c-in-process-clr-event-listeners-with-net-core-2-2-ef4075c14e87
