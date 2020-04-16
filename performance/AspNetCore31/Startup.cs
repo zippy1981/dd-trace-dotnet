@@ -72,21 +72,21 @@ namespace AspNetCore31
             int maxSpans = Configuration.GetValue("DD_MAX_MANUAL_SPANS", 0);
             int maxTags = Configuration.GetValue("DD_MAX_TAGS", 0);
             string tracerVersion = Configuration["DD_TRACER_VERSION"];
-            string[] tags = new string[5];
 
-            tags[0] = "service_name:AspNetCore31";
-            tags[1] = $"max_spans:{maxSpans}";
-            tags[2] = $"max_tags:{maxTags}";
+            var tags = new List<string>();
+            tags.Add($"service_name:{this.GetType().Namespace}");
+            tags.Add($"max_spans:{maxSpans}");
+            tags.Add($"max_tags:{maxTags}");
 
             if (maxSpans == 0)
             {
-                tags[3] = "tracer_mode:none";
-                tags[4] = "tracer_version:none";
+                tags.Add("tracer_mode:none");
+                tags.Add("tracer_version:none");
             }
             else
             {
-                tags[3] = "tracer_mode:manual";
-                tags[4] = $"tracer_version:{tracerVersion}";
+                tags.Add("tracer_mode:manual");
+                tags.Add($"tracer_version:{tracerVersion}");
             }
 
             return tags;
