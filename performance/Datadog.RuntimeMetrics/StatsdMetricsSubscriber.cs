@@ -11,7 +11,7 @@ namespace Datadog.RuntimeMetrics
     {
         private readonly IStatsdUDP _statsdUdp;
         private readonly double? _sampleRate;
-        private readonly string[]? _tags;
+        private readonly string[] _tags;
 
         public StatsdMetricsSubscriber(IStatsdUDP statsd, StatsdMetricsOptions options)
         {
@@ -41,16 +41,16 @@ namespace Datadog.RuntimeMetrics
 
             foreach (MetricValue payload in payloads)
             {
-                commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0}:{1}|{2}", payload.Metric.Name, payload.Value, payload.Metric.Type);
+                commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0}:{1}|{2}", payload.Metric.Name, payload.Value, payload.Metric.Type.Code);
 
                 if (_sampleRate != null)
                 {
                     commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "|@{0}", _sampleRate);
                 }
 
-                if (_tags?.Length > 0)
+                if (_tags.Length > 0 || payload.Tags.Length > 0)
                 {
-                    string joinedTags = string.Join(",", _tags);
+                    string joinedTags = string.Join(",", _tags.Concat(payload.Tags));
                     commandBuilder.AppendFormat(CultureInfo.InvariantCulture, "|#{0}", joinedTags);
                 }
 
