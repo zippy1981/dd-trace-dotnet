@@ -42,7 +42,7 @@ services:
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
     ports:
-    - "127.0.0.1:60002:80"
+    - "127.0.0.1:60001:80"
   app-branch:
     depends_on:
     - datadog-agent
@@ -59,7 +59,7 @@ services:
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
     ports:
-    - "127.0.0.1:60004:80"
+    - "127.0.0.1:60002:80"
 #  app-profiler:
 #    depends_on:
 #    - datadog-agent
