@@ -83,7 +83,8 @@ namespace http_requests
                     }
                     catch (Exception ex)
                     {
-                        Environment.FailFast(null, ex);
+                        Console.WriteLine(ex.Message);
+                        Environment.Exit(1);
                     }
 
                     TimeSpan timeLeft = period - stopwatch.Elapsed;
