@@ -55,7 +55,7 @@ services:
     environment:
     - DD_AGENT_HOST=datadog-agent
     - DD_SERVICE_NAME=app-manual-branch
-    - DD_TRACER_VERSION=project
+    - DD_TRACER_VERSION=branch
     - DD_MAX_MANUAL_SPANS=${MAX_MANUAL_SPANS}
     - DD_MAX_TAGS=${MAX_TAGS}
     ports:
