@@ -70,8 +70,8 @@ namespace Datadog.MockTraceAgent
                 }
                 catch (HttpListenerException)
                 {
-                    // listener was stopped,
-                    // ignore to let the loop end and the method return
+                    // listener was stopped
+                    return;
                 }
             }
         }

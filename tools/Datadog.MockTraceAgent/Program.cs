@@ -16,6 +16,8 @@ namespace Datadog.MockTraceAgent
 
                 Console.WriteLine($"Listening on http://localhost:{8126}");
                 Console.WriteLine("Press CTRL+C to exit.");
+
+                Thread.Sleep(-1);
             }
         }
 
