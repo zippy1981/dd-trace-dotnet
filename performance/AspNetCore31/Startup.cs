@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Datadog.RuntimeMetrics;
@@ -62,6 +63,11 @@ namespace AspNetCore31
 
             app.Run(async context =>
                     {
+                        if (context.Request.Path == "/gc")
+                        {
+                            GC.Collect();
+                        }
+
                         context.Response.ContentType = "text/plain";
                         await context.Response.WriteAsync("Hello, world!");
                     });
