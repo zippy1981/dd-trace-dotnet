@@ -20,7 +20,7 @@ namespace Datadog.RuntimeMetrics
         {
             Metric = metric;
             Value = value;
-            Tags = tags;
+            Tags = tags ?? Empty;
         }
     }
 }
