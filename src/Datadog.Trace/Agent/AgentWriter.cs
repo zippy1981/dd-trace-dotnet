@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.DogStatsd;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Vendors.StatsdClient;
@@ -72,7 +73,7 @@ namespace Datadog.Trace.Agent
             }
         }
 
-        private async Task FlushTracesAsync()
+        public async Task FlushTracesAsync()
         {
             var traces = _tracesBuffer.Pop();
 
@@ -94,26 +95,31 @@ namespace Datadog.Trace.Agent
 
         private async Task FlushTracesTaskLoopAsync()
         {
-            while (true)
-            {
-                try
-                {
-                    await Task.WhenAny(Task.Delay(TimeSpan.FromSeconds(1)), _processExit.Task)
-                              .ConfigureAwait(false);
+            bool autoflush = Environment.GetEnvironmentVariable("DD_DOTNET_TRACER_AUTOFLUSH")?.ToBoolean() ?? true;
 
-                    if (_processExit.Task.IsCompleted)
-                    {
-                        await FlushTracesAsync().ConfigureAwait(false);
-                        return;
-                    }
-                    else
-                    {
-                        await FlushTracesAsync().ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
+            if (autoflush)
+            {
+                while (true)
                 {
-                    Log.Error(ex, "An unhandled error occurred during the flushing task");
+                    try
+                    {
+                        await Task.WhenAny(Task.Delay(TimeSpan.FromSeconds(1)), _processExit.Task)
+                                  .ConfigureAwait(false);
+
+                        if (_processExit.Task.IsCompleted)
+                        {
+                            await FlushTracesAsync().ConfigureAwait(false);
+                            return;
+                        }
+                        else
+                        {
+                            await FlushTracesAsync().ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "An unhandled error occurred during the flushing task");
+                    }
                 }
             }
         }
