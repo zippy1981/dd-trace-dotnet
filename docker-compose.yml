@@ -1,5 +1,14 @@
 version: '3'
 services:
+  datadog-agent:
+    image: datadog/agent:7
+    #ports:
+    #- "127.0.0.1:8126:8126"
+    environment:
+    - DD_API_KEY=${DD_API_KEY}
+    - DD_APM_ENABLED=true
+    - DD_APM_NON_LOCAL_TRAFFIC=true
+
   servicestackredis:
     image: redis:4-alpine
     command: redis-server --bind 0.0.0.0
@@ -196,6 +205,19 @@ services:
     environment:
     - POSTGRES_HOST=postgres
     depends_on:
+    - postgres
+
+  npgsql-test:
+    build:
+      context: ./reproductions/NpgsqlTest
+    volumes:
+    - ./reproductions/NpgsqlTest/logs:/var/log/datadog/dotnet
+    environment:
+    - DD_ENV=${DD_ENV}
+    - DD_AGENT_HOST=datadog-agent
+    - POSTGRES_HOST=postgres
+    depends_on:
+    - datadog-agent
     - postgres
 
   Samples.MySql:
