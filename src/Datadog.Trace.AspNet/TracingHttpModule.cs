@@ -143,7 +143,8 @@ namespace Datadog.Trace.AspNet
                                          $"&{CorrelationIdentifier.VersionKey}={CorrelationIdentifier.Version}" +
                                          $"&{CorrelationIdentifier.EnvKey}={CorrelationIdentifier.Env}" +
                                          $"&{CorrelationIdentifier.TraceIdKey}={CorrelationIdentifier.TraceId}" +
-                                         $"&{CorrelationIdentifier.SpanIdKey}={CorrelationIdentifier.SpanId}");
+                                         $"&{CorrelationIdentifier.SpanIdKey}={CorrelationIdentifier.SpanId}" +
+                                         "&"); // Conclude the string with a '&' in case other logs are appended this way
                 }
 
                 // Decorate the incoming HTTP Request with distributed tracing headers
