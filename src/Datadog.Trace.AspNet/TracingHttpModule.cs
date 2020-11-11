@@ -136,6 +136,16 @@ namespace Datadog.Trace.AspNet
 
                 httpContext.Items[_httpContextScopeKey] = scope;
 
+                if (tracer.Settings.LogsInjectionEnabled)
+                {
+                    var response = httpContext.Response;
+                    response.AppendToLog($"&{CorrelationIdentifier.ServiceKey}={CorrelationIdentifier.Service}" +
+                                         $"&{CorrelationIdentifier.VersionKey}={CorrelationIdentifier.Version}" +
+                                         $"&{CorrelationIdentifier.EnvKey}={CorrelationIdentifier.Env}" +
+                                         $"&{CorrelationIdentifier.TraceIdKey}={CorrelationIdentifier.TraceId}" +
+                                         $"&{CorrelationIdentifier.SpanIdKey}={CorrelationIdentifier.SpanId}");
+                }
+
                 // Decorate the incoming HTTP Request with distributed tracing headers
                 // in case the next processor cannot access the stored Scope
                 // (e.g. WCF being hosted in IIS)
