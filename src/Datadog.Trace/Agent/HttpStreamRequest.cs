@@ -17,6 +17,9 @@ namespace Datadog.Trace.Agent
             _uri = uri;
             _requestStream = requestStream;
             _responseStream = responseStream;
+
+            _headers.Add(AgentHttpHeaderNames.Language, ".NET");
+            _headers.Add(AgentHttpHeaderNames.TracerVersion, TracerConstants.AssemblyVersion);
         }
 
         public void AddHeader(string name, string value)
