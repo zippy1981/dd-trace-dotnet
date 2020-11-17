@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -25,9 +25,9 @@ namespace HttpOverStream.Cli
             // send request, get response
             var client = new HttpClient();
             HttpRequest request = CreateRequest(uri);
-            HttpResponse response = client.Send(request, stream);
+            HttpResponse response = client.Send(request, stream, stream);
 
-            if(response == null)
+            if (response == null)
             {
                 Console.WriteLine("[client] Response == null");
                 return;

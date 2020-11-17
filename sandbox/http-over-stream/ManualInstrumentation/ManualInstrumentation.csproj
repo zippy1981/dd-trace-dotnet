@@ -2,13 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net45;netcoreapp3.1</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Datadog.Trace\Datadog.Trace.csproj" />
-    <ProjectReference Include="..\HttpOverStream\HttpOverStream.csproj" />
   </ItemGroup>
 
 </Project>

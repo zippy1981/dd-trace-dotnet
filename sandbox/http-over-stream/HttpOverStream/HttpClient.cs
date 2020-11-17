@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 
@@ -8,17 +8,17 @@ namespace HttpOverStream
     {
         private const string CrLf = "\r\n";
 
-        public HttpResponse Send(HttpRequest request, Stream stream)
+        public HttpResponse Send(HttpRequest request, Stream requestStream, Stream responseStream)
         {
             // TODO: support async and cancellation
-            SendRequest(request, stream);
-            return stream.CanRead ? ReadResponse(stream) : null;
+            SendRequest(request, requestStream);
+            return requestStream.CanRead ? ReadResponse(responseStream) : null;
         }
 
-        private static void SendRequest(HttpRequest request, Stream stream)
+        private static void SendRequest(HttpRequest request, Stream requestStream)
         {
             // optimization opportunity: cache the ascii-encoded bytes of commonly-used headers
-            using (var writer = new StreamWriter(stream, Encoding.ASCII, bufferSize: 2048, leaveOpen: true))
+            using (var writer = new StreamWriter(requestStream, Encoding.ASCII, bufferSize: 2048, leaveOpen: true))
             {
                 writer.Write($"{request.Verb} {request.Path} HTTP/1.1{CrLf}");
 
@@ -36,11 +36,11 @@ namespace HttpOverStream
                 writer.Write(CrLf);
             }
 
-            request.Content.WriteTo(stream);
-            stream.Flush();
+            request.Content.WriteTo(requestStream);
+            requestStream.Flush();
         }
 
-        private static HttpResponse ReadResponse(Stream stream)
+        private static HttpResponse ReadResponse(Stream responseStream)
         {
             /*
             const string filname = "C:\\temp\\response.http";
@@ -59,7 +59,7 @@ namespace HttpOverStream
             int statusCode = 0;
             string responseMessage = null;
 
-            using (var reader = new StreamReader(stream, Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 2048, leaveOpen: true))
+            using (var reader = new StreamReader(responseStream, Encoding.ASCII, detectEncodingFromByteOrderMarks: false, bufferSize: 2048, leaveOpen: true))
             {
                 string line = reader.ReadLine();
 
@@ -86,7 +86,7 @@ namespace HttpOverStream
                 }
             }
 
-            return new HttpResponse(statusCode, responseMessage, headers, new StreamContent(stream));
+            return new HttpResponse(statusCode, responseMessage, headers, new StreamContent(responseStream));
         }
     }
 }
