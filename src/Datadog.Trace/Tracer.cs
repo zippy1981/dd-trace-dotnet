@@ -118,8 +118,11 @@ namespace Datadog.Trace
                     }
                 });
 
+            var streamFactory = new TcpStreamFactory(Settings.AgentUri.Host, Settings.AgentUri.Port);
+            IApiRequestFactory apiRequestFactory = new HttpStreamRequestFactory(streamFactory);
+
             // fall back to default implementations of each dependency if not provided
-            _agentWriter = agentWriter ?? new AgentWriter(new Api(Settings.AgentUri, apiRequestFactory: null, Statsd), Statsd);
+            _agentWriter = agentWriter ?? new AgentWriter(new Api(Settings.AgentUri, apiRequestFactory, Statsd), Statsd);
 
             _scopeManager = scopeManager ?? new AsyncLocalScopeManager();
             Sampler = sampler ?? new RuleBasedSampler(new RateLimiter(Settings.MaxTracesSubmittedPerSecond));

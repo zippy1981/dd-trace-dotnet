@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Datadog.Trace;
 
@@ -34,6 +35,10 @@ namespace ManualInstrumentation
 
                 Thread.Sleep(50);
             }
+
+            Thread.Sleep(2000);
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
         }
     }
 
