@@ -60,7 +60,7 @@ namespace Datadog.Trace.Agent
 
             if (response.ContentLength != null && response.ContentLength != responseContentStream.Length)
             {
-                throw new InvalidOperationException("Content length from http headers does not match content's actual length.");
+                throw new Exception("Content length from http headers does not match content's actual length.");
             }
 
             return new HttpStreamResponse(response.StatusCode, responseContentStream.Length, response.GetContentEncoding(), responseContentStream);
