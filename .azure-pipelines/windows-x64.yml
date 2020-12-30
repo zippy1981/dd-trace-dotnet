@@ -111,6 +111,10 @@ stages:
         command: restore
         projects: |
           **/*.csproj
+          !src/Datadog.Trace.Tools.Runner/*.csproj
+          !test/test-applications/regression/**/ExpenseItDemo*.csproj
+          !test/test-applications/regression/**/EntityFramework6x*.csproj
+          !test/test-applications/regression/**/StackExchange.Redis.AssemblyConflict.LegacyProject.csproj
         restoreDirectory: $(nugetManagedCacheFolder)
         verbosityRestore: Normal
 
