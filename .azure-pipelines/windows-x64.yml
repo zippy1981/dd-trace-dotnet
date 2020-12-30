@@ -298,6 +298,14 @@ stages:
     - checkout: none
 
   - job: windows_iis
+
+
+
+# managed benchmark tests stage
+- stage: managed_benchmark_tests
+  dependsOn: managed_build
+  jobs:
+  - job: benchmarks
     pool:
       vmImage: windows-2019
     steps:
