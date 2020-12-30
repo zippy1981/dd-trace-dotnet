@@ -44,14 +44,14 @@ stages:
       matrix:
         x64:
           buildPlatform: x64
-          enable32bit: false
         x86:
           buildPlatform: x86
-          enable32bit: true
     pool:
       vmImage: windows-2019
     variables:
-      msiOutputDirectory: src/WindowsInstaller/bin/$(buildConfiguration)/$(buildPlatform)/en-us
+      tracerHomeName: windows-tracer-home
+      tracerHome: $(System.DefaultWorkingDirectory)/src/bin/$(tracerHomeName)
+      msiHome: $(System.DefaultWorkingDirectory)/src/bin/msi
 
     steps:
 
@@ -152,7 +152,7 @@ stages:
         solution: Datadog.Trace.proj
         platform: $(buildPlatform)
         configuration: $(buildConfiguration)
-        msbuildArguments: /t:BuildCpp;BuildCppTests;msi;BuildFrameworkReproductions /p:RunWixToolsOutOfProc=true /p:TracerHomeDirectory=$(publishOutput)
+        msbuildArguments: /t:BuildCpp;BuildCppTests;msi;BuildFrameworkReproductions /p:Platform=All;ZipHomeDirectory=true;TracerHomeDirectory=$(tracerHome);RunWixToolsOutOfProc=true;MsiOutputPath=$(msiHome)
         maximumCpuCount: true
 
     - task: DotNetCoreCLI@2
@@ -165,7 +165,7 @@ stages:
           !test/test-applications/regression/**/ExpenseItDemo*.csproj
           !test/test-applications/regression/**/EntityFramework6x*.csproj
           !test/test-applications/regression/**/StackExchange.Redis.AssemblyConflict.LegacyProject.csproj
-        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(publishOutput) /nowarn:netsdk1138
+        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) /nowarn:netsdk1138
 
     - task: DotNetCoreCLI@2
       displayName: Build Samples
@@ -174,7 +174,7 @@ stages:
         projects: |
           test/test-applications/integrations/**/*.csproj
           !test/test-applications/integrations/dependency-libs/**/*.csproj
-        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(publishOutput) -p:BuildInParallel=false /nowarn:netsdk1138
+        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) -p:BuildInParallel=false /nowarn:netsdk1138
 
     - publish: $(System.DefaultWorkingDirectory)
       artifact: source-native-restore
