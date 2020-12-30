@@ -195,7 +195,7 @@ stages:
         arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) -p:BuildInParallel=false /nowarn:netsdk1138
 
     - publish: $(System.DefaultWorkingDirectory)
-      artifact: source-build
+      artifact: source-build-$(buildPlatform)
       condition: succeededOrFailed()
 
 
