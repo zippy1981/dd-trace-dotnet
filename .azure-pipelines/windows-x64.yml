@@ -169,7 +169,7 @@ stages:
           !test/test-applications/regression/**/ExpenseItDemo*.csproj
           !test/test-applications/regression/**/EntityFramework6x*.csproj
           !test/test-applications/regression/**/StackExchange.Redis.AssemblyConflict.LegacyProject.csproj
-        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) /nowarn:netsdk1138
+        arguments: --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) /nowarn:netsdk1138
 
     - task: DotNetCoreCLI@2
       displayName: Build Samples
@@ -178,7 +178,7 @@ stages:
         projects: |
           test/test-applications/integrations/**/*.csproj
           !test/test-applications/integrations/dependency-libs/**/*.csproj
-        arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) -p:BuildInParallel=false /nowarn:netsdk1138
+        arguments: --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) -p:BuildInParallel=false /nowarn:netsdk1138
 
     - publish: $(System.DefaultWorkingDirectory)
       artifact: source-build-$(buildPlatform)
