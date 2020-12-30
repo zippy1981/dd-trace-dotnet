@@ -230,8 +230,6 @@ stages:
 - stage: managed_unit_tests 
   dependsOn: managed_build
   jobs:
-
-  # managed test
   - job: unit_tests
     pool:
       vmImage: windows-2019
@@ -285,3 +283,23 @@ stages:
         projects: test/**/*.Tests.csproj
       env:
         DD_SERVICE_NAME: dd-tracer-dotnet
+
+
+
+# managed integration tests stage
+- stage: managed_integration_tests
+  dependsOn: managed_build
+  jobs:
+  - job: windows
+    pool:
+      vmImage: windows-2019
+    steps:
+
+    - checkout: none
+
+  - job: windows_iis
+    pool:
+      vmImage: windows-2019
+    steps:
+
+    - checkout: none
