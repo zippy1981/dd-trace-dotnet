@@ -57,27 +57,19 @@ stages:
 
     - task: Cache@2
       inputs:
-        key: 'nuget_native | "$(Agent.OS)" | "$(buildPlatform)" | src/**/*.csproj'
-        restoreKeys: |
-          nuget_native | "$(Agent.OS)"
-          nuget_native
+        key: 'nuget_native | "$(Agent.OS)" | "$(buildPlatform)" | **/*.csproj | Datadog.Trace.sln '
         path: $(nugetNativeCacheFolder)
       displayName: Native Nuget Cache
 
     - task: Cache@2
       inputs:
-        key: 'nuget_managed | "$(Agent.OS)" | "$(buildPlatform)" | src/**/*.csproj'
-        restoreKeys: |
-          nuget_managed | "$(Agent.OS)"
-          nuget_managed
+        key: 'nuget_managed | "$(Agent.OS)" | "$(buildPlatform)" | **/*.csproj'
         path: $(nugetManagedCacheFolder)
       displayName: Managed Nuget Cache
 
     - task: Cache@2
       inputs:
         key: 'dotnet_cache | "$(Agent.OS)"'
-        restoreKeys: |
-          dotnet_cache
         path: $(dotnetCache)
       displayName: Dotnet Cache
 
@@ -138,8 +130,8 @@ stages:
     - task: NuGetCommand@2
       displayName: Nuget Restore
       inputs:
-        restoreSolution: Datadog.Trace.Native.sln
-        verbosityRestore: Detailed
+        restoreSolution: Datadog.Trace.sln
+        verbosityRestore: Normal
 
     - task: MSBuild@1
       displayName: MsBuild BuildCppTests
