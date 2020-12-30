@@ -147,12 +147,30 @@ stages:
         verbosityRestore: Detailed
 
     - task: MSBuild@1
-      displayName: MsBuild
+      displayName: MsBuild BuildCppTests
       inputs:
         solution: Datadog.Trace.proj
         platform: $(buildPlatform)
         configuration: $(buildConfiguration)
-        msbuildArguments: /t:BuildCpp;BuildCppTests;msi;BuildFrameworkReproductions /p:Platform=All;ZipHomeDirectory=true;TracerHomeDirectory=$(tracerHome);RunWixToolsOutOfProc=true;MsiOutputPath=$(msiHome)
+        msbuildArguments: /t:BuildCpp;BuildCppTests /p:Platform=All
+        maximumCpuCount: true
+
+    - task: MSBuild@1
+      displayName: MsBuild MSI
+      inputs:
+        solution: Datadog.Trace.proj
+        platform: $(buildPlatform)
+        configuration: $(buildConfiguration)
+        msbuildArguments: /t:msi /p:Platform=All;ZipHomeDirectory=true;TracerHomeDirectory=$(tracerHome);RunWixToolsOutOfProc=true;MsiOutputPath=$(msiHome)
+        maximumCpuCount: true
+
+    - task: MSBuild@1
+      displayName: MsBuild Framework Reproductions
+      inputs:
+        solution: Datadog.Trace.proj
+        platform: $(buildPlatform)
+        configuration: $(buildConfiguration)
+        msbuildArguments: /t:BuildFrameworkReproductions
         maximumCpuCount: true
 
     - task: DotNetCoreCLI@2
@@ -177,7 +195,8 @@ stages:
         arguments: --no-restore --configuration $(buildConfiguration) -p:Platform=$(buildPlatform) -p:ManagedProfilerOutputDirectory=$(tracerHome) -p:BuildInParallel=false /nowarn:netsdk1138
 
     - publish: $(System.DefaultWorkingDirectory)
-      artifact: source-native-restore
+      artifact: source-build
+      condition: succeededOrFailed()
 
 
 
