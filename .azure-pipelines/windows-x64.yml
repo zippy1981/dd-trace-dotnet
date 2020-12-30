@@ -57,7 +57,7 @@ stages:
 
     - task: Cache@2
       inputs:
-        key: 'nuget_native | "$(Agent.OS)" | src/**/*.csproj'
+        key: 'nuget_native | "$(Agent.OS)" | "$(buildPlatform)" | src/**/*.csproj'
         restoreKeys: |
           nuget_native | "$(Agent.OS)"
           nuget_native
@@ -66,7 +66,7 @@ stages:
 
     - task: Cache@2
       inputs:
-        key: 'nuget_managed | "$(Agent.OS)" | src/**/*.csproj'
+        key: 'nuget_managed | "$(Agent.OS)" | "$(buildPlatform)" | src/**/*.csproj'
         restoreKeys: |
           nuget_managed | "$(Agent.OS)"
           nuget_managed
@@ -110,16 +110,7 @@ stages:
       inputs:
         command: restore
         projects: |
-          src/**/*.csproj
-          test/**/*.Tests.csproj
-          benchmarks/**/*.csproj
-          test/test-applications/regression/**/*.csproj
-          test/*.IntegrationTests/*.IntegrationTests.csproj
-          !test/test-applications/regression/**/ExpenseItDemo*.csproj
-          !test/test-applications/regression/**/EntityFramework6x*.csproj
-          !test/test-applications/regression/**/StackExchange.Redis.AssemblyConflict.LegacyProject.csproj
-          test/test-applications/integrations/**/*.csproj
-          !test/test-applications/integrations/dependency-libs/**/*.csproj
+          **/*.csproj
         restoreDirectory: $(nugetManagedCacheFolder)
         verbosityRestore: Normal
 
@@ -159,7 +150,6 @@ stages:
       displayName: MsBuild MSI
       inputs:
         solution: Datadog.Trace.proj
-        platform: $(buildPlatform)
         configuration: $(buildConfiguration)
         msbuildArguments: /t:msi /p:Platform=All;ZipHomeDirectory=true;TracerHomeDirectory=$(tracerHome);RunWixToolsOutOfProc=true;MsiOutputPath=$(msiHome)
         maximumCpuCount: true
