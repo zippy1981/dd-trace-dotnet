@@ -117,6 +117,35 @@ stages:
 
 
 
+- stage: native_unit_tests
+  dependsOn: native_build
+  jobs:
+  - job: unit_tests
+    pool:
+      vmImage: windows-2019
+    steps:
+
+    - checkout: none
+
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        artifact: source-native-restore
+        path: $(System.DefaultWorkingDirectory)
+
+    - script: Datadog.Trace.ClrProfiler.Native.Tests.exe --gtest_output=xml
+      displayName: run tests
+      workingDirectory: $(System.DefaultWorkingDirectory)/test/Datadog.Trace.ClrProfiler.Native.Tests/bin/$(buildConfiguration)/$(buildPlatform)
+
+    - task: PublishTestResults@2
+      displayName: publish test results
+      inputs:
+        testResultsFiles: test/**/test*.xml
+        buildPlatform: $(buildPlatform)
+        buildConfiguration: $(buildConfiguration)
+      condition: succeededOrFailed()
+
+
+
 # managed build stage
 - stage: managed_build
   dependsOn: []
