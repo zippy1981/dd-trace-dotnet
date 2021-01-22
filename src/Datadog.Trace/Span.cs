@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Text;
-using Datadog.Trace.Abstractions;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Tagging;
@@ -15,7 +14,7 @@ namespace Datadog.Trace
     /// tracks the duration of an operation as well as associated metadata in
     /// the form of a resource name, a service name, and user defined tags.
     /// </summary>
-    public class Span : IDisposable, ISpan
+    public class Span : ISpan, IDisposable
     {
         private static readonly Vendors.Serilog.ILogger Log = DatadogLogging.For<Span>();
         private static readonly bool IsLogLevelDebugEnabled = Log.IsEnabled(LogEventLevel.Debug);
@@ -82,9 +81,14 @@ namespace Datadog.Trace
         /// </summary>
         public ulong SpanId => Context.SpanId;
 
-        internal ITags Tags { get; set; }
+        /// <summary>
+        /// Gets the span context which is propagated across process boundaries.
+        /// </summary>
+        ISpanContext ISpan.Context => Context;
 
-        internal SpanContext Context { get; }
+        internal ISpanContext Context { get; }
+
+        internal ITags Tags { get; set; }
 
         internal DateTimeOffset StartTime { get; private set; }
 
@@ -312,6 +316,29 @@ namespace Datadog.Trace
             }
         }
 
+        /// <summary>
+        /// Gets the value of the specified metric.
+        /// </summary>
+        /// <param name="key">The metric name.</param>
+        /// <returns>The value of the metric, or null if not found.</returns>
+        double? ISpan.GetMetric(string key)
+        {
+            return Tags.GetMetric(key);
+        }
+
+        /// <summary>
+        /// Sets the value of the specified metric.
+        /// </summary>
+        /// <param name="key">The metric name.</param>
+        /// <param name="value">The metric's new value.</param>
+        /// <returns>This span.</returns>
+        ISpan ISpan.SetMetric(string key, double? value)
+        {
+            Tags.SetMetric(key, value);
+
+            return this;
+        }
+
         internal void Finish(TimeSpan duration)
         {
             var shouldCloseSpan = false;
@@ -349,11 +376,6 @@ namespace Datadog.Trace
                         Tags);
                 }
             }
-        }
-
-        internal double? GetMetric(string key)
-        {
-            return Tags.GetMetric(key);
         }
 
         internal Span SetMetric(string key, double? value)

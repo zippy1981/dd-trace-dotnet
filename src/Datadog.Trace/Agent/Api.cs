@@ -34,7 +34,7 @@ namespace Datadog.Trace.Agent
             _apiRequestFactory = apiRequestFactory ?? CreateRequestFactory();
         }
 
-        public async Task<bool> SendTracesAsync(Span[][] traces)
+        public async Task<bool> SendTracesAsync(ISpan[][] traces)
         {
             // retry up to 5 times with exponential back-off
             var retryLimit = 5;
@@ -141,7 +141,7 @@ namespace Datadog.Trace.Agent
 #endif
         }
 
-        private async Task<bool> SendTracesAsync(Span[][] traces, IApiRequest request, bool finalTry)
+        private async Task<bool> SendTracesAsync(ISpan[][] traces, IApiRequest request, bool finalTry)
         {
             IApiResponse response = null;
 
