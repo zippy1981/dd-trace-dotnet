@@ -13,7 +13,7 @@ namespace Datadog.Trace
 
         private readonly DateTimeOffset _utcStart = DateTimeOffset.UtcNow;
         private readonly long _timestamp = Stopwatch.GetTimestamp();
-        private readonly List<Span> _spans = new List<Span>();
+        private readonly List<ISpan> _spans = new();
 
         private int _openSpans;
         private SamplingPriority? _samplingPriority;
@@ -24,7 +24,7 @@ namespace Datadog.Trace
             Tracer = tracer;
         }
 
-        public Span RootSpan { get; private set; }
+        public ISpan RootSpan { get; private set; }
 
         public DateTimeOffset UtcNow => _utcStart.Add(Elapsed);
 
@@ -49,7 +49,7 @@ namespace Datadog.Trace
 
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
-        public void AddSpan(Span span)
+        public void AddSpan(ISpan span)
         {
             lock (_spans)
             {
@@ -83,7 +83,7 @@ namespace Datadog.Trace
             }
         }
 
-        public void CloseSpan(Span span)
+        public void CloseSpan(ISpan span)
         {
             if (span == RootSpan)
             {
@@ -100,7 +100,7 @@ namespace Datadog.Trace
                 }
             }
 
-            Span[] spansToWrite = null;
+            ISpan[] spansToWrite = null;
 
             lock (_spans)
             {
@@ -136,7 +136,7 @@ namespace Datadog.Trace
             return Elapsed + (_utcStart - date);
         }
 
-        private void DecorateRootSpan(Span span)
+        private void DecorateRootSpan(ISpan span)
         {
             if (AzureAppServices.Metadata.IsRelevant)
             {

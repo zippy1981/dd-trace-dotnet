@@ -5,6 +5,7 @@
       "src\\Datadog.Trace.AspNet\\Datadog.Trace.AspNet.csproj",
       "src\\Datadog.Trace.ClrProfiler.Managed.Core\\Datadog.Trace.ClrProfiler.Managed.Core.csproj",
       "src\\Datadog.Trace.ClrProfiler.Managed\\Datadog.Trace.ClrProfiler.Managed.csproj",
+      "src\\Datadog.Trace.Core\\Datadog.Trace.Core.csproj",
       "src\\Datadog.Trace.OpenTracing\\Datadog.Trace.OpenTracing.csproj",
       "src\\Datadog.Trace\\Datadog.Trace.csproj"
     ]

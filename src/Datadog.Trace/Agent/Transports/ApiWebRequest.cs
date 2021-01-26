@@ -25,7 +25,7 @@ namespace Datadog.Trace.Agent.Transports
             _request.Headers.Add(name, value);
         }
 
-        public async Task<IApiResponse> PostAsync(Span[][] traces, FormatterResolverWrapper formatterResolver)
+        public async Task<IApiResponse> PostAsync(ISpan[][] traces, FormatterResolverWrapper formatterResolver)
         {
             _request.Method = "POST";
 

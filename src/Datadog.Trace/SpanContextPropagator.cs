@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Datadog.Trace.Headers;
 using Datadog.Trace.Logging;
 
@@ -15,13 +14,6 @@ namespace Datadog.Trace
 
         private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
         private static readonly Vendors.Serilog.ILogger Log = DatadogLogging.For<SpanContextPropagator>();
-
-        private static readonly int[] SamplingPriorities;
-
-        static SpanContextPropagator()
-        {
-            SamplingPriorities = Enum.GetValues(typeof(SamplingPriority)).Cast<int>().ToArray();
-        }
 
         private SpanContextPropagator()
         {

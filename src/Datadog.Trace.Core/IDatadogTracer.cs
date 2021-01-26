@@ -1,5 +1,4 @@
 using System;
-using Datadog.Trace.Configuration;
 using Datadog.Trace.Sampling;
 
 namespace Datadog.Trace

@@ -21,22 +21,27 @@ namespace Datadog.Trace
 
         private readonly object _lock = new object();
 
-        internal Span(SpanContext context, DateTimeOffset? start)
-            : this(context, start, null)
+        private ISpanContext _spanContext;
+        private ITraceContext _traceContext;
+
+        internal Span(ISpanContext spanContext, ITraceContext traceContext, DateTimeOffset? start)
+            : this(spanContext, traceContext, start, tags: null)
         {
         }
 
-        internal Span(SpanContext context, DateTimeOffset? start, ITags tags)
+        internal Span(ISpanContext spanContext, ITraceContext traceContext, DateTimeOffset? start, ITags tags)
         {
+            _spanContext = spanContext;
+            _traceContext = traceContext;
+
             Tags = tags ?? new CommonTags();
-            Context = context;
-            ServiceName = context.ServiceName;
-            StartTime = start ?? Context.TraceContext.UtcNow;
+            ServiceName = spanContext.ServiceName;
+            StartTime = start ?? traceContext.UtcNow;
 
             Log.Debug(
                 "Span started: [s_id: {0}, p_id: {1}, t_id: {2}]",
                 SpanId,
-                Context.ParentId,
+                spanContext.Parent.SpanId,
                 TraceId);
         }
 
@@ -67,26 +72,29 @@ namespace Datadog.Trace
         /// </summary>
         public string ServiceName
         {
-            get => Context.ServiceName;
-            set => Context.ServiceName = value;
+            get => _spanContext.ServiceName;
+            set => _spanContext.ServiceName = value;
         }
 
         /// <summary>
         /// Gets the trace's unique identifier.
         /// </summary>
-        public ulong TraceId => Context.TraceId;
+        public ulong TraceId => _spanContext.TraceId;
 
         /// <summary>
         /// Gets the span's unique identifier.
         /// </summary>
-        public ulong SpanId => Context.SpanId;
+        public ulong SpanId => _spanContext.SpanId;
 
         /// <summary>
-        /// Gets the span context which is propagated across process boundaries.
+        /// Gets the span context.
         /// </summary>
-        ISpanContext ISpan.Context => Context;
+        ISpanContext ISpan.Context => _spanContext;
 
-        internal ISpanContext Context { get; }
+        /// <summary>
+        /// Gets the trace context.
+        /// </summary>
+        ITraceContext ISpan.TraceContext => _traceContext;
 
         internal ITags Tags { get; set; }
 
@@ -95,8 +103,6 @@ namespace Datadog.Trace
         internal TimeSpan Duration { get; private set; }
 
         internal bool IsFinished { get; private set; }
-
-        internal bool IsRootSpan => Context?.TraceContext?.RootSpan == this;
 
         /// <summary>
         /// Returns a <see cref="string" /> that represents this instance.
@@ -107,9 +113,9 @@ namespace Datadog.Trace
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"TraceId: {Context.TraceId}");
-            sb.AppendLine($"ParentId: {Context.ParentId}");
-            sb.AppendLine($"SpanId: {Context.SpanId}");
+            sb.AppendLine($"TraceId: {_spanContext.TraceId}");
+            sb.AppendLine($"ParentId: {_spanContext.ParentId}");
+            sb.AppendLine($"SpanId: {_spanContext.SpanId}");
             sb.AppendLine($"ServiceName: {ServiceName}");
             sb.AppendLine($"OperationName: {OperationName}");
             sb.AppendLine($"Resource: {ResourceName}");

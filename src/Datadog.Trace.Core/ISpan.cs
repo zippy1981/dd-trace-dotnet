@@ -6,6 +6,8 @@ namespace Datadog.Trace
     {
         ISpanContext Context { get; }
 
+        ITraceContext TraceContext { get; }
+
         string ServiceName { get; set; }
 
         string OperationName { get; set; }

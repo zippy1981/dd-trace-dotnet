@@ -17,7 +17,7 @@ namespace Datadog.Trace.Agent.MessagePack
         /// </summary>
         /// <param name="traces">The value to serialize into the content stream as MessagePack.</param>
         /// <param name="resolver">The <see cref="IFormatterResolver"/> to use when serializing <paramref name="traces"/>.</param>
-        public TracesMessagePackContent(Span[][] traces, FormatterResolverWrapper resolver)
+        public TracesMessagePackContent(ISpan[][] traces, FormatterResolverWrapper resolver)
         {
             Traces = traces;
             _resolver = resolver;
@@ -25,7 +25,7 @@ namespace Datadog.Trace.Agent.MessagePack
             Headers.ContentType = new MediaTypeHeaderValue("application/msgpack");
         }
 
-        public Span[][] Traces { get; }
+        public ISpan[][] Traces { get; }
 
         /// <summary>Serialize the HTTP content to a stream as an asynchronous operation.</summary>
         /// <param name="stream">The target stream.</param>

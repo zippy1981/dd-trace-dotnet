@@ -16,8 +16,18 @@ namespace Datadog.Trace
         ulong SpanId { get; }
 
         /// <summary>
-        /// Gets the service name to propagate to child spans.
+        /// Gets the parent's span identifier.
+        /// </summary>
+        ulong? ParentId { get; }
+
+        /// <summary>
+        /// Gets the service name.
         /// </summary>
         string ServiceName { get; }
+
+        /// <summary>
+        /// Gets the parent span context.
+        /// </summary>
+        ISpanContext Parent { get; }
     }
 }

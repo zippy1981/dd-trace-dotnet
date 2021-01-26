@@ -37,7 +37,7 @@ namespace Datadog.Trace.OpenTracing
 
         public OpenTracingSpan ActiveSpan => (OpenTracingSpan)ScopeManager.Active?.Span;
 
-        ISpan ITracer.ActiveSpan => ScopeManager.Active?.Span;
+        global::OpenTracing.ISpan ITracer.ActiveSpan => ScopeManager.Active?.Span;
 
         public ISpanBuilder BuildSpan(string operationName)
         {

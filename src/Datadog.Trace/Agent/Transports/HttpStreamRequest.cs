@@ -34,7 +34,7 @@ namespace Datadog.Trace.Agent.Transports
             _headers.Add(name, value);
         }
 
-        public async Task<IApiResponse> PostAsync(Span[][] traces, FormatterResolverWrapper formatterResolver)
+        public async Task<IApiResponse> PostAsync(ISpan[][] traces, FormatterResolverWrapper formatterResolver)
         {
             using (var bidirectionalStream = _streamFactory.GetBidirectionalStream())
             {
