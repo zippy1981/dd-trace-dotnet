@@ -26,6 +26,7 @@ namespace trace {
     environment::log_directory,
     environment::clr_disable_optimizations,
     environment::clr_enable_inlining,
+    environment::clr_enable_ngen,
     environment::domain_neutral_instrumentation,
     environment::dump_il_rewrite_enabled,
     environment::netstandard_enabled,

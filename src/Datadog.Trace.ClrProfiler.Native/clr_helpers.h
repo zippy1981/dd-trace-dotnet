@@ -470,6 +470,7 @@ mdMethodSpec DefineMethodSpec(const ComPtr<IMetaDataEmit2>& metadata_emit,
 
 bool DisableOptimizations();
 bool EnableInlining();
+bool EnableNGEN();
 bool IsCallTargetEnabled();
 
 bool TryParseSignatureTypes(const ComPtr<IMetaDataImport2>& metadata_import,

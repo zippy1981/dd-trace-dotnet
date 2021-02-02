@@ -180,11 +180,19 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
         integration_methods_, {"netstandard"_W});
   }
 
-  DWORD event_mask = COR_PRF_MONITOR_JIT_COMPILATION |
-                     COR_PRF_DISABLE_TRANSPARENCY_CHECKS_UNDER_FULL_TRUST |
+  DWORD event_mask = COR_PRF_DISABLE_TRANSPARENCY_CHECKS_UNDER_FULL_TRUST |
                      COR_PRF_MONITOR_MODULE_LOADS |
-                     COR_PRF_MONITOR_ASSEMBLY_LOADS |
-                     COR_PRF_DISABLE_ALL_NGEN_IMAGES;
+                     COR_PRF_MONITOR_ASSEMBLY_LOADS;
+
+  if (!EnableNGEN()) {
+    Info("NGEN support is disabled.");
+    event_mask |=
+        COR_PRF_MONITOR_JIT_COMPILATION |
+        COR_PRF_DISABLE_ALL_NGEN_IMAGES;
+
+  } else {
+    Info("NGEN support is enabled.");
+  }
 
   if (is_calltarget_enabled) {
     Info("CallTarget instrumentation is enabled.");

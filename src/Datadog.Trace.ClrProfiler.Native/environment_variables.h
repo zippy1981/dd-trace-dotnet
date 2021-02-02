@@ -109,6 +109,9 @@ const WSTRING clr_enable_inlining = "DD_CLR_ENABLE_INLINING"_W;
 // Sets whether to enable the CallTarget instrumentation mode
 const WSTRING calltarget_enabled = "DD_TRACE_CALLTARGET_ENABLED"_W;
 
+// Sets whether to enable NGEN images
+const WSTRING clr_enable_ngen = "DD_CLR_ENABLE_NGEN"_W;
+
 }  // namespace environment
 }  // namespace trace
 
