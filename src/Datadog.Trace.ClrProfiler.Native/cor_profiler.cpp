@@ -184,28 +184,28 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
                      COR_PRF_MONITOR_MODULE_LOADS |
                      COR_PRF_MONITOR_ASSEMBLY_LOADS;
 
-  if (!EnableNGEN()) {
-    Info("NGEN support is disabled.");
-    event_mask |=
-        COR_PRF_MONITOR_JIT_COMPILATION |
-        COR_PRF_DISABLE_ALL_NGEN_IMAGES;
-
-  } else {
-    Info("NGEN support is enabled.");
-  }
-
   if (is_calltarget_enabled) {
     Info("CallTarget instrumentation is enabled.");
     event_mask |= COR_PRF_ENABLE_REJIT;
   } else {
     Info("CallTarget instrumentation is disabled.");
   }
-  
-  if (!EnableInlining()) {
+
+  if (is_calltarget_enabled && EnableInlining()) {
+    Info("JIT Inlining is enabled.");
+  } else {
     Info("JIT Inlining is disabled.");
     event_mask |= COR_PRF_DISABLE_INLINING;
+  }
+
+  if (is_calltarget_enabled && EnableNGEN()) {
+    Info("NGEN support is enabled.");
+    event_mask |= COR_PRF_MONITOR_CACHE_SEARCHES;
   } else {
-    Info("JIT Inlining is enabled.");
+    Info("NGEN support is disabled.");
+    event_mask |=
+        COR_PRF_MONITOR_JIT_COMPILATION | 
+        COR_PRF_DISABLE_ALL_NGEN_IMAGES;
   }
 
   if (DisableOptimizations()) {
@@ -787,6 +787,38 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITInlining(FunctionID callerId,
       *pfShouldInline = false;
       return S_OK;
     } 
+  }
+
+  return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(
+    FunctionID functionId, BOOL* pbUseCachedFunction) {
+  if (!is_attached_ || !pbUseCachedFunction) {
+    return S_OK;
+  }
+
+  ModuleID functionModuleId;
+  mdToken functionToken = mdTokenNil;
+  auto hr = this->info_->GetFunctionInfo(functionId, NULL, &functionModuleId, &functionToken);
+
+  if (FAILED(hr)) {
+    Warn("*** JITCachedFunctionSearchStarted: Failed to get the function info of: ", functionId);
+    return S_OK;
+  }
+
+  if (rejit_handler == nullptr) {
+    return S_OK;
+  }
+
+  RejitHandlerModule* handlerModule = nullptr;
+  if (rejit_handler->TryGetModule(functionModuleId, &handlerModule)) {
+    RejitHandlerModuleMethod* handlerMethod = nullptr;
+    if (handlerModule->TryGetMethod(functionToken, &handlerMethod)) {
+      Info("*** JITCachedFunctionSearchStarted: NGEN disabled by ReJIT for [ModuleId=", functionModuleId, ", MethodDef=", TokenStr(&functionToken), "]");
+      *pbUseCachedFunction = false;
+      return S_OK;
+    }
   }
 
   return S_OK;
