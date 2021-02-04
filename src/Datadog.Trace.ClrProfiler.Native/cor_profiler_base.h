@@ -13,6 +13,7 @@ class CorProfilerBase : public ICorProfilerCallback8 {
 
  protected:
   ICorProfilerInfo4* info_;
+  ICorProfilerInfo6* info6_;
 
  public:
   CorProfilerBase();

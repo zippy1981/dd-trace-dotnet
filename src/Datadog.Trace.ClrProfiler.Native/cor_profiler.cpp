@@ -134,10 +134,12 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
     return E_FAIL;
   }
 
-  const auto is_calltarget_enabled = IsCallTargetEnabled();
+  is_calltarget_enabled_ = IsCallTargetEnabled();
+  enable_inlining_ = is_calltarget_enabled_ && EnableInlining();
+  enable_ngen_ = is_calltarget_enabled_ && EnableNGEN();
 
   // Initialize ReJIT handler and define the Rewriter Callback
-  if (is_calltarget_enabled) {
+  if (is_calltarget_enabled_) {
       rejit_handler = new RejitHandler(this->info_, [this](RejitHandlerModule* mod, RejitHandlerModuleMethod* method) {
           return this->CallTarget_RewriterCallback(mod, method);
       });
@@ -158,7 +160,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
       FilterIntegrationsByName(all_integrations, disabled_integration_names);
 
   integration_methods_ =
-      FlattenIntegrations(integrations, is_calltarget_enabled);
+      FlattenIntegrations(integrations, is_calltarget_enabled_);
 
     // check if there are any enabled integrations left
   if (integration_methods_.empty()) {
@@ -184,21 +186,21 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
                      COR_PRF_MONITOR_MODULE_LOADS |
                      COR_PRF_MONITOR_ASSEMBLY_LOADS;
 
-  if (is_calltarget_enabled) {
+  if (is_calltarget_enabled_) {
     Info("CallTarget instrumentation is enabled.");
     event_mask |= COR_PRF_ENABLE_REJIT;
   } else {
     Info("CallTarget instrumentation is disabled.");
   }
 
-  if (is_calltarget_enabled && EnableInlining()) {
+  if (enable_inlining_) {
     Info("JIT Inlining is enabled.");
   } else {
     Info("JIT Inlining is disabled.");
     event_mask |= COR_PRF_DISABLE_INLINING;
   }
 
-  if (is_calltarget_enabled && EnableNGEN()) {
+  if (enable_ngen_) {
     Info("NGEN support is enabled.");
     event_mask |= COR_PRF_MONITOR_CACHE_SEARCHES;
   } else {
@@ -222,12 +224,11 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
 
   // set event mask to subscribe to events and disable NGEN images
   // get ICorProfilerInfo6 for net452+
-  ICorProfilerInfo6* info6;
-  hr = cor_profiler_info_unknown->QueryInterface<ICorProfilerInfo6>(&info6);
+  hr = cor_profiler_info_unknown->QueryInterface<ICorProfilerInfo6>(&this->info6_);
 
   if (SUCCEEDED(hr)) {
     Debug("Interface ICorProfilerInfo6 found.");
-    hr = info6->SetEventMask2(event_mask, COR_PRF_HIGH_ADD_ASSEMBLY_REFERENCES);
+    hr = this->info6_->SetEventMask2(event_mask, COR_PRF_HIGH_ADD_ASSEMBLY_REFERENCES);
 
     if (instrument_domain_neutral_assemblies) {
       Info("Note: The ", environment::domain_neutral_instrumentation, " environment variable is not needed when running on .NET Framework 4.5.2 or higher, and will be ignored.");
@@ -543,7 +544,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
         module_info.assembly.app_domain_name);
 
   // We call the function to analyze the module and request the ReJIT of integrations defined in this module.
-  if (IsCallTargetEnabled()) {
+  if (is_calltarget_enabled_) {
 
     // Enqueue ReJIT for System.Web.Compilation.BuildManager.InvokePreStartInitMethods()
     if (module_metadata->assemblyName == "System.Web"_W) {
@@ -570,6 +571,10 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
 
     // Enqueue ReJIT for integrations
     CallTarget_RequestRejitForModule(module_id, module_metadata, filtered_integrations);
+  }
+
+  if (enable_ngen_) {
+    // this->info6_->EnumNgenModuleMethodsInliningThisMethod
   }
 
   return S_OK;
@@ -710,7 +715,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(
       module_metadata->assemblyName == "System.Web"_W && 
       caller.type.name == "System.Web.Compilation.BuildManager"_W && 
       caller.name == "InvokePreStartInitMethods"_W && 
-      !IsCallTargetEnabled()) {
+      !is_calltarget_enabled_) {
     hr = AddIISPreStartInitFlags(module_id, function_token, nullptr);
 
     if (FAILED(hr)) {

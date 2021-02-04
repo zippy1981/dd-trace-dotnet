@@ -38,6 +38,13 @@ class CorProfiler : public CorProfilerBase {
   bool is_desktop_iis = false;
 
   //
+  // Cached environment variables values
+  //
+  bool enable_inlining_ = false;
+  bool enable_ngen_ = false;
+  bool is_calltarget_enabled_ = false;
+
+  //
   // Loader
   //
   Loader* loader_ = nullptr;
