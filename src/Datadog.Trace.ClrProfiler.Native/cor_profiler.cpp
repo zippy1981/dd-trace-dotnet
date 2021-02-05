@@ -234,6 +234,8 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
       Info("Note: The ", environment::domain_neutral_instrumentation, " environment variable is not needed when running on .NET Framework 4.5.2 or higher, and will be ignored.");
     }
   } else {
+    enable_ngen_ = false;
+
     hr = this->info_->SetEventMask(event_mask);
 
     if (instrument_domain_neutral_assemblies) {
