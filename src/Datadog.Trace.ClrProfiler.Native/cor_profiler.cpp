@@ -2824,7 +2824,7 @@ size_t CorProfiler::CallTarget_RequestRejitForModule(ModuleID module_id, ModuleM
       auto methodHandler = moduleHandler->GetOrAddMethod(methodDef);
       methodHandler->SetFunctionInfo(functionInfo);
       methodHandler->SetMethodReplacement(new MethodReplacement(integration.replacement));
-
+      
       // Store module_id and methodDef to request the ReJIT after analyzing all integrations.
       vtModules.push_back(module_id);
       vtMethodDefs.push_back(methodDef);
@@ -2840,15 +2840,14 @@ size_t CorProfiler::CallTarget_RequestRejitForModule(ModuleID module_id, ModuleM
            ", Method=", caller.name, 
            ", Signature=", caller.signature.str(),
            "]");
-      
+
       enumIterator = ++enumIterator;
     }
   }
 
   // Request the ReJIT for all integrations found in the module.
   if (!vtMethodDefs.empty()) {
-    Info("Requesting ReJIT for ", vtMethodDefs.size(), " methods.");
-    this->info_->RequestReJIT((ULONG)vtMethodDefs.size(), vtModules.data(), vtMethodDefs.data());
+    this->rejit_handler->EnqueueForRejit(vtMethodDefs.size(), vtModules.data(), vtMethodDefs.data());
   }
 
   // We return the number of ReJIT requests
