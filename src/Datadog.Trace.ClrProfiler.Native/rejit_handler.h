@@ -23,6 +23,13 @@ struct RejitItem {
   void DeleteArray();
 };
 
+struct RequestReJITValue {
+  ModuleID moduleId;
+  mdMethodDef methodDef;
+  RequestReJITValue() = delete;
+  RequestReJITValue(ModuleID module, mdMethodDef method)
+      : moduleId(module), methodDef(method) {}
+};
 
 /// <summary>
 /// Rejit handler representation of a method
@@ -106,13 +113,21 @@ class RejitHandler {
   std::unordered_map<ModuleID, RejitHandlerModule*> modules;
   std::mutex methodByFunctionId_lock;
   std::unordered_map<FunctionID, RejitHandlerModuleMethod*> methodByFunctionId;
-  ICorProfilerInfo4* profilerInfo;
+  ICorProfilerInfo4* profilerInfo = nullptr;
+  ICorProfilerInfo6* profilerInfo6 = nullptr;
   std::function<HRESULT(RejitHandlerModule*, RejitHandlerModuleMethod*)> rewriteCallback;
 
   BlockingQueue<RejitItem>* rejit_queue_;
   std::thread* rejit_queue_thread_;
 
   RejitHandlerModuleMethod* GetModuleMethodFromFunctionId(FunctionID functionId);
+
+  //
+  // Request ReJIT values
+  //
+  std::mutex rejitted_methods_mutex_;
+  std::vector<RequestReJITValue> rejitted_methods_;
+  std::unordered_map<ModuleID, std::vector<RequestReJITValue>*> ngenmap_methods;
 
  public:
   RejitHandler(ICorProfilerInfo4* pInfo,
@@ -136,6 +151,78 @@ class RejitHandler {
   
   void EnqueueForRejit(size_t length, ModuleID* moduleIds, mdMethodDef* methodDefs) {
     rejit_queue_->push(RejitItem((int)length, moduleIds, methodDefs));
+    {
+      std::lock_guard<std::mutex> guard(rejitted_methods_mutex_);
+
+      for (unsigned int i = 0; i < (int)length; i++) {
+        rejitted_methods_.push_back(RequestReJITValue(moduleIds[i], methodDefs[i]));
+      }
+    }
+  }
+
+  void SetICorProfilerInfo6(ICorProfilerInfo6* pInfo) {
+    this->profilerInfo6 = pInfo;
+  }
+
+  void CheckNGenInlinersForModule(ModuleID moduleId) {
+    if (this->profilerInfo6 == nullptr) {
+      return;
+    }
+
+    std::lock_guard<std::mutex> guard(rejitted_methods_mutex_);
+
+    // Info("NGEN:: Checking inlining for module: ", moduleId);
+    if (!rejitted_methods_.empty()) {
+      for (RequestReJITValue rrValue : rejitted_methods_) {
+        std::vector<RequestReJITValue>* processedVector;
+        if (this->ngenmap_methods.count(moduleId) > 0) {
+          processedVector = this->ngenmap_methods[moduleId];
+        } else {
+          processedVector = new std::vector<RequestReJITValue>();
+          this->ngenmap_methods[moduleId] = processedVector;
+        }
+        bool should_process = true;
+        for (RequestReJITValue processedValue : *processedVector) {
+          if (processedValue.moduleId == rrValue.moduleId &&
+              processedValue.methodDef == rrValue.methodDef) {
+            // Info("NGEN:: Skipping [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, "]");
+            should_process = false;
+            break;
+          }
+        }
+
+        if (should_process) {
+          BOOL incompleteData = false;
+          ICorProfilerMethodEnum* methodEnum;
+          HRESULT hr = this->profilerInfo6->EnumNgenModuleMethodsInliningThisMethod(moduleId, rrValue.moduleId, rrValue.methodDef, &incompleteData, &methodEnum);
+          if (SUCCEEDED(hr)) {
+            if (incompleteData) {
+                Info("NGEN:: Incomplete data [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, "]");
+            } else {
+              COR_PRF_METHOD method;
+              unsigned int total = 0;
+              while (methodEnum->Next(1, &method, NULL) == S_OK) {
+                Info("NGEN:: Asking rewrite for inliner [ModuleId=", method.moduleId, ",MethodDef=", method.methodId, "]");
+                ModuleID moduleInfoArray[1] = {method.moduleId};
+                mdMethodDef methodDefArray[1] = {method.methodId};
+                rejit_queue_->push(RejitItem(1, moduleInfoArray, methodDefArray));
+                total++;
+              }
+              methodEnum->Release();
+              methodEnum = nullptr;
+              // Info("NGEN:: Processed with ", total," inliners [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, "]");
+              processedVector->push_back(rrValue);
+            }
+          } else if (hr == E_INVALIDARG) {
+            Info("NGEN:: Error Invalid arguments in [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, ", HR=", hr ,"]");
+          } else if (hr == CORPROF_E_DATAINCOMPLETE) {
+            Info("NGEN:: Error Incomplete data in [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, ", HR=", hr ,"]");
+          } else {
+            Info("NGEN:: Error in [ModuleId=", rrValue.moduleId, ",MethodDef=", rrValue.methodDef, ", HR=", hr ,"]");
+          }
+        }
+      }
+    }
   }
 
   void Shutdown() {

@@ -227,6 +227,9 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   hr = cor_profiler_info_unknown->QueryInterface<ICorProfilerInfo6>(&this->info6_);
 
   if (SUCCEEDED(hr)) {
+    if (this->rejit_handler != nullptr) {
+      this->rejit_handler->SetICorProfilerInfo6(this->info6_);
+    }
     Debug("Interface ICorProfilerInfo6 found.");
     hr = this->info6_->SetEventMask2(event_mask, COR_PRF_HIGH_ADD_ASSEMBLY_REFERENCES);
 
@@ -575,10 +578,6 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
     CallTarget_RequestRejitForModule(module_id, module_metadata, filtered_integrations);
   }
 
-  if (enable_ngen_) {
-    // this->info6_->EnumNgenModuleMethodsInliningThisMethod
-  }
-
   return S_OK;
 }
 
@@ -818,8 +817,12 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(
     return S_OK;
   }
 
+  // Check if the function is already marked for rejit
   RejitHandlerModule* handlerModule = nullptr;
   if (rejit_handler->TryGetModule(functionModuleId, &handlerModule)) {
+    // Check for inliners in this module
+    this->rejit_handler->CheckNGenInlinersForModule(functionModuleId);
+
     RejitHandlerModuleMethod* handlerMethod = nullptr;
     if (handlerModule->TryGetMethod(functionToken, &handlerMethod)) {
       Info("*** JITCachedFunctionSearchStarted: NGEN disabled by ReJIT for [ModuleId=", functionModuleId, ", MethodDef=", TokenStr(&functionToken), "]");
