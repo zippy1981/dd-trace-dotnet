@@ -5,18 +5,18 @@ using System.Reflection;
 namespace Datadog.Trace.ClrProfiler.Managed.Loader
 {
     /// <summary>
-    /// This is the only publi class in this assembly.
+    /// This is the only public class in this assembly.
     /// The entire assembly is compiled into the native profiler DLL as a resource.
     /// This happens both, for the profiler part of the Tracer, and for the actual Profiler.
     /// The native code then uses this class to call arbitrary managed code:
     /// It uses IL rewriting to inject a call to <c>Startup.Run(..)</c> and passes a list of assemblies.
-    /// Then, this class loads all of the specified assemblies and calls a well known etry point in those assemblies.
+    /// Then, this class loads all of the specified assemblies and calls a well known entry point in those assemblies.
     /// (See <c>TargetLibraryEntrypointXxx</c> constants in this class.)
     /// If the specified assemblies do not contain such an entry point, they will be loaded, but nothing will be executed.
     ///
-    /// This class sets up a basic AppDomain.AssemblyResolve handler to look for the assemblies in a framwork-specific
+    /// This class sets up a basic AppDomain.AssemblyResolve handler to look for the assemblies in a framework-specific
     /// subdirectory of DD_DOTNET_TRACER_HOME in addition to the normal probing paths.
-    /// If also allows for some SxS loading using costom Assembly Load Context.
+    /// If also allows for some SxS loading using custom Assembly Load Context.
     ///
     /// If a target assembly needs additional AssemblyResolve to satisfy its dependencies of for any other reasons,
     /// it should set up its own as the first thing after its entry point is called.
@@ -66,7 +66,7 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
         }
 
         /// <summary>
-        /// Instntites a <c>Startup</c> instance with the specified assemblies and executes it.
+        /// Instantiates a <c>Startup</c> instance with the specified assemblies and executes it.
         /// </summary>
         /// <param name="assemblyNames">List of assemblies to load ans start.</param>
         public static void Run(string[] assemblyNames)
@@ -200,7 +200,7 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
 
         private void ResolveManagedProfilerDirectory()
         {
-            Assembly objectAssembly = (new object()).GetType().Assembly;
+            Assembly objectAssembly = typeof(object).Assembly;
             bool isCoreFx = (objectAssembly?.FullName?.StartsWith("System.Private.CoreLib") == true);
 
             string frameworkBasedSubdir;
