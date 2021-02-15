@@ -5,11 +5,7 @@ namespace trace {
 
 std::string ToString(const std::string& str) { return str; }
 std::string ToString(const char* str) { return std::string(str); }
-std::string ToString(const uint64_t i) {
-  std::stringstream ss;
-  ss << i;
-  return ss.str();
-}
+std::string ToString(const uint64_t i) { return std::to_string(i); }
 std::string ToString(const WSTRING& wstr) {
   std::u16string ustr(reinterpret_cast<const char16_t*>(wstr.c_str()));
   return miniutf::to_utf8(ustr);
@@ -21,8 +17,8 @@ WSTRING ToWSTRING(const std::string& str) {
 }
 
 WSTRING ToWSTRING(const uint64_t i) {
-  const auto ustr = ToString(i);
-  return ToWSTRING(ustr);
+  return WSTRING(reinterpret_cast<const WCHAR*>(std::to_wstring(i).c_str()));
+  // return ToWSTRING(std::to_string(i));
 }
 
 WCHAR operator"" _W(const char c) { return WCHAR(c); }
