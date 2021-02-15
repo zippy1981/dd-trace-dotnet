@@ -47,7 +47,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
 
         /// <summary> The namespace and the type name of the entrypoint to invoke in each loaded assemby.
         /// More info: <see cref="AssemblyLoader.TargetLibraryEntrypointMethod" />. </summary>
-        public const string TargetLibraryEntrypointType = "Datadog.AutoInstrumentation" + "." + "DllMail";
+        public const string TargetLibraryEntrypointType = "Datadog.AutoInstrumentation" + "." + "DllMain";
 
         internal const string AssemblyLoggingComponentMonikerPrefix = "ManagedLoader.";
         private const string LoggingComponentMoniker = AssemblyLoader.AssemblyLoggingComponentMonikerPrefix + nameof(AssemblyLoader);
