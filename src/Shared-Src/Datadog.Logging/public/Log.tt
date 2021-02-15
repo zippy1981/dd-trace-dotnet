@@ -1,0 +1,6 @@
+<#@ parameter type="System.String" name="LogNamespaceName" #>
+
+namespace <#= (LogNamespaceName ?? "LogNamespaceName") #>
+{
+<#@ include file="./Log.tt.cs" #>
+}  // namespace

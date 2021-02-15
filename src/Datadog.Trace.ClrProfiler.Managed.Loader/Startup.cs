@@ -1,112 +1,132 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace Datadog.Trace.ClrProfiler.Managed.Loader
+namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     /// <summary>
     /// This is the only public class in this assembly.
     /// The entire assembly is compiled into the native profiler DLL as a resource.
     /// This happens both, for the profiler part of the Tracer, and for the actual Profiler.
     /// The native code then uses this class to call arbitrary managed code:
-    /// It uses IL rewriting to inject a call to <c>Startup.Run(..)</c> and passes a list of assemblies.
+    /// It uses IL rewriting to inject a call to <c>AssemblyLoader.Run(..)</c> and passes a list of assemblies.
     /// Then, this class loads all of the specified assemblies and calls a well known entry point in those assemblies.
     /// (See <c>TargetLibraryEntrypointXxx</c> constants in this class.)
     /// If the specified assemblies do not contain such an entry point, they will be loaded, but nothing will be executed.
     ///
     /// This class sets up a basic AppDomain.AssemblyResolve handler to look for the assemblies in a framework-specific
     /// subdirectory of DD_DOTNET_TRACER_HOME in addition to the normal probing paths.
-    /// If also allows for some SxS loading using custom Assembly Load Context.
+    /// It also allows for some SxS loading using custom Assembly Load Context.
     ///
-    /// If a target assembly needs additional AssemblyResolve to satisfy its dependencies of for any other reasons,
-    /// it should set up its own as the first thing after its entry point is called.
+    /// If a target assembly needs additional AssemblyResolve event logic to satisfy its dependencies,
+    /// or for any other reasons, it must set up its own AssemblyResolve handler as the first thing after its
+    /// entry point is called.
     ///
     /// ! Do not make the AppDomain.AssemblyResolve handler in here more complex !
     /// If anything, it should be simplified and any special logic should be moved into the respective assemblies
     /// requested for loading.
     ///
     /// ! Also, remember that this assembly is shared between the Tracer's profiler component
-    /// and the Profiler's profiler component. DO not put specialized code here !
+    /// and the Profiler's profiler component. Do not put specialized code here !
     /// </summary>
     public partial class Startup
     {
         /// <summary>
-        /// The constants <c>TargetLibraryEntrypointMethod</c>, <c>...Type</c> and <c>...Namespace</c> specify
+        /// The constants <c>TargetLibraryEntrypointMethod</c>, and <c>...Type</c> specify
         /// which entrypoint to call in the specified assemblies. The respective assembly is expected to have
-        /// exactly this entry point or nothing will be invoked.
+        /// exactly this entry point. Otherwise, the assembly will be loaded, but nothing will be invoked
+        /// explicitly (but be aware of Module cctor caveats).
         /// The method must be static, the return type of the method must be <c>void</c> and it must have no parameters.
         /// Before doing anything else, the target assemblies must set up AppDomain AssemblyResolve events that
         /// make sure that their respective dependencies can be loaded.
         /// </summary>
         public const string TargetLibraryEntrypointMethod = "Run";
 
-        /// <summary> <see cref="Startup.TargetLibraryEntrypointMethod" /> </summary>
-        public const string TargetLibraryEntrypointType = "DllMail";
+        /// <summary> The namespace and the type name of the entrypoint to invoke in each loaded assemby.
+        /// More info: <see cref="Startup.TargetLibraryEntrypointMethod" />. </summary>
+        public const string TargetLibraryEntrypointType = "Datadog.AutoInstrumentation" + "." + "DllMail";
 
-        /// <summary> <see cref="Startup.TargetLibraryEntrypointMethod" /> </summary>
-        public const string TargetLibraryEntrypointNamespace = "Datadog.AutoInstrumentation";
+        private const string LoggingComponentMoniker = "ManagedAssemblyLoader";
 
-        private const string TargetLibraryEntrypointFullTypeName = TargetLibraryEntrypointNamespace
-                                                                 + "."
-                                                                 + TargetLibraryEntrypointType;
-
-#pragma warning disable SA1308 // Variable names must not be prefixed (if not this, what is the static prefix?)
-        private static string s_managedProfilerDirectory = null;
-#pragma warning restore SA1308 // Variable names must not be prefixed
-
-        private readonly string[] _assemblyNames;
+        private readonly string[] _assemblyNamesToLoad;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Startup"/> class.
         /// </summary>
-        /// <param name="assemblyNames">List of assemblies to load ans start.</param>
-        public Startup(string[] assemblyNames)
+        /// <param name="assemblyNamesToLoad">List of assemblies to load and start.</param>
+        public Startup(string[] assemblyNamesToLoad)
         {
-            _assemblyNames = assemblyNames;
+            _assemblyNamesToLoad = assemblyNamesToLoad;
         }
 
         /// <summary>
-        /// Instantiates a <c>Startup</c> instance with the specified assemblies and executes it.
+        /// Instantiates an <c>AssemblyLoader</c> instance with the specified assemblies and executes it.
         /// </summary>
-        /// <param name="assemblyNames">List of assemblies to load ans start.</param>
-        public static void Run(string[] assemblyNames)
+        /// <param name="assemblyNamesToLoad">List of assemblies to load ans start.</param>
+        public static void Run(string[] assemblyNamesToLoad)
         {
-            var startup = new Startup(assemblyNames);
-            startup.Execute();
+            try
+            {
+                try
+                {
+                    var assemblyLoader = new Startup(assemblyNamesToLoad);
+                    assemblyLoader.Execute();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(LoggingComponentMoniker, ex);
+                }
+            }
+            catch
+            {
+                // An exception must have come out of the logger.
+                // We swallow it to avpid crashing the process.
+            }
         }
 
         /// <summary>
-        /// Loads the assemblied specified for this <c>Startup</c> instance and executes their entry point.
+        /// Loads the assemblied specified for this <c>AssemblyLoader</c> instance and executes their entry point.
         /// </summary>
         public void Execute()
         {
-            if (_assemblyNames == null)
+            Log.Info(LoggingComponentMoniker, "Initializing");
+
+            AssemblyResolveEventHandler assemblyResolveEventHandler = CreateAssemblyResolveEventHandler();
+            if (assemblyResolveEventHandler == null)
             {
-                StartupLogger.Log($"Not loading any assemblies ({nameof(_assemblyNames)} is null). ");
                 return;
             }
 
-            if (_assemblyNames.Length == 0)
-            {
-                StartupLogger.Log($"Not loading any assemblies ({nameof(_assemblyNames)}.{nameof(_assemblyNames.Length)} is 0). ");
-                return;
-            }
-
-            ResolveManagedProfilerDirectory();
-            StartupLogger.Log($"Will try to load {_assemblyNames.Length} assemblies. Directory: \"{s_managedProfilerDirectory}\".");
+            Log.Info(LoggingComponentMoniker, "Registering AssemblyResolve handler");
 
             try
             {
-                AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolveEventHandler;
+                AppDomain.CurrentDomain.AssemblyResolve += assemblyResolveEventHandler.OnAssemblyResolve;
             }
             catch (Exception ex)
             {
-                StartupLogger.Log(ex, "Unable to register a callback to the CurrentDomain.AssemblyResolve event.");
+                Log.Error(LoggingComponentMoniker, "Unable to register an AssemblyResolve event handler", ex);
             }
 
-            for (int i = 0; i < _assemblyNames.Length; i++)
+            var logEntryDetails = new List<object>();
+
+            logEntryDetails.Add("Number of assemblies");
+            logEntryDetails.Add(assemblyResolveEventHandler.AssemblyNamesToLoad.Count);
+            logEntryDetails.Add("Number of product binaries directories");
+            logEntryDetails.Add(assemblyResolveEventHandler.ManagedProductBinariesDirectories.Count);
+
+            for (int i = 0; i < assemblyResolveEventHandler.ManagedProductBinariesDirectories.Count; i++)
             {
-                string assemblyName = _assemblyNames[i];
+                logEntryDetails.Add($"managedProductBinariesDirectories[{i}]");
+                logEntryDetails.Add(assemblyResolveEventHandler.ManagedProductBinariesDirectories[i]);
+            }
+
+            Log.Info(LoggingComponentMoniker, "Starting to load assemblies", logEntryDetails);
+
+            for (int i = 0; i < assemblyResolveEventHandler.AssemblyNamesToLoad.Count; i++)
+            {
+                string assemblyName = assemblyResolveEventHandler.AssemblyNamesToLoad[i];
 
                 try
                 {
@@ -114,74 +134,254 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
                 }
                 catch (Exception ex)
                 {
-                    StartupLogger.Log(ex, $"Error loading or starting a managed assembly (\"{assemblyName}\").");
+                    Log.Error(LoggingComponentMoniker, "Error loading or starting a managed assembly", ex, "assemblyName", assemblyName);
                 }
             }
         }
 
         private static void LoadAndStartAssembly(string assemblyName)
         {
-            if (assemblyName == null)
-            {
-                StartupLogger.Log($"Skipping loading assembly because the specified {nameof(assemblyName)} is null.");
-                return;
-            }
-
+            // We have previously excluded assembly names that are null or white-space.
             assemblyName = assemblyName.Trim();
 
-            if (assemblyName.Length == 0)
-            {
-                StartupLogger.Log($"Skipping loading assembly because the specified {nameof(assemblyName)} is \"\".");
-                return;
-            }
-
-            StartupLogger.Log($"Loading managed assembly \"{assemblyName}\""
-                            + $" and invoking method \"{TargetLibraryEntrypointMethod}\""
-                            + $" in type \"{TargetLibraryEntrypointFullTypeName}\".");
+            Log.Info(LoggingComponentMoniker, "Loading managed assembly", "assemblyName", assemblyName);
 
             Assembly assembly = Assembly.Load(assemblyName);
             if (assembly == null)
             {
-                StartupLogger.Log($"Could not load managed assembly \"{assemblyName}\".");
+                Log.Error(LoggingComponentMoniker, "Could not load managed assembly", "assemblyName", assemblyName);
                 return;
             }
 
-            Type entryPointType = assembly.GetType(TargetLibraryEntrypointFullTypeName, throwOnError: false);
+            Type entryPointType = assembly.GetType(TargetLibraryEntrypointType, throwOnError: false);
             if (entryPointType == null)
             {
-                StartupLogger.Log($"Could not obtain type \"{TargetLibraryEntrypointFullTypeName}\""
-                                + $" from managed assembly \"{assemblyName}\".");
+                Log.Info(
+                        LoggingComponentMoniker,
+                        "Assembly was loaded, but entry point was not invoked, bacause it does not contain the entry point type",
+                        "assembly",
+                        assembly.FullName,
+                        "entryPointType",
+                        TargetLibraryEntrypointType);
                 return;
             }
 
             MethodInfo entryPointMethod = entryPointType.GetRuntimeMethod(TargetLibraryEntrypointMethod, parameters: new Type[0]);
             if (entryPointMethod == null)
             {
-                StartupLogger.Log($"Could not obtain method \"{TargetLibraryEntrypointMethod}\""
-                                + " in type \"{TargetLibraryEntrypointFullTypeName}\""
-                                + $" from managed assembly \"{assemblyName}\".");
+                Log.Info(
+                        LoggingComponentMoniker,
+                        "Assembly was loaded, but entry point was not invoked, bacause the entry point type does not contain the entry point method",
+                        "assembly",
+                        assembly.FullName,
+                        "entryPointType",
+                        entryPointType.FullName,
+                        "entryPointMethod",
+                        TargetLibraryEntrypointMethod);
                 return;
-            }
-
-            entryPointMethod.Invoke(obj: null, parameters: null);
-        }
-
-        private static AssemblyName ParseAssemblyName(string fullAssemblyName)
-        {
-            if (string.IsNullOrEmpty(fullAssemblyName))
-            {
-                return null;
             }
 
             try
             {
-                var assemblyName = new AssemblyName(fullAssemblyName);
-                return assemblyName;
+                entryPointMethod.Invoke(obj: null, parameters: null);
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Error(
+                        LoggingComponentMoniker,
+                        "Assembly was loaded and the entry point was invoked; an exception was thrown from the entry point",
+                        ex,
+                        "assembly",
+                        assembly.FullName,
+                        "entryPointType",
+                        entryPointType.FullName,
+                        "entryPointMethod",
+                        entryPointMethod.Name);
+                return;
+            }
+
+            Log.Info(
+                    LoggingComponentMoniker,
+                    "Assembly was loaded and the entry point was invoked",
+                    "assembly",
+                    assembly.FullName,
+                    "entryPointType",
+                    entryPointType.FullName,
+                    "entryPointMethod",
+                    entryPointMethod.Name);
+            return;
+        }
+
+        private static IReadOnlyList<string> CleanAssemblyNamesToLoad(string[] assemblyNamesToLoad)
+        {
+            if (assemblyNamesToLoad == null)
+            {
+                StartupLogger.Log($"Not loading any assemblies ({nameof(assemblyNamesToLoad)} is null). ");
                 return null;
             }
+
+            if (assemblyNamesToLoad.Length == 0)
+            {
+                StartupLogger.Log($"Not loading any assemblies ({nameof(assemblyNamesToLoad)}.{nameof(assemblyNamesToLoad.Length)} is 0). ");
+                return null;
+            }
+
+            // Check for bad assemblyNamesToLoad entries. We expect the array to be small and entries to be OK.
+            // So scrolling multiple times is better then allocating a temp buffer.
+            int validAssemblyNamesCount = 0;
+            for (int pAsmNames = 0; pAsmNames < assemblyNamesToLoad.Length; pAsmNames++)
+            {
+                if (!string.IsNullOrWhiteSpace(assemblyNamesToLoad[pAsmNames]))
+                {
+                    validAssemblyNamesCount++;
+                }
+            }
+
+            if (validAssemblyNamesCount == 0)
+            {
+                StartupLogger.Log($"Not loading any assemblies. Some assembly names were specified, but they are all null or white-space.");
+                return null;
+            }
+
+            if (assemblyNamesToLoad.Length == validAssemblyNamesCount)
+            {
+                return assemblyNamesToLoad;
+            }
+
+            var validAssemblyNamesToLoad = new string[validAssemblyNamesCount];
+            for (int pAsmNames = 0, pValidAsmNames = 0; pAsmNames < assemblyNamesToLoad.Length; pAsmNames++)
+            {
+                if (!string.IsNullOrWhiteSpace(assemblyNamesToLoad[pAsmNames]))
+                {
+                    validAssemblyNamesToLoad[pValidAsmNames++] = assemblyNamesToLoad[pAsmNames];
+                }
+            }
+
+            return validAssemblyNamesToLoad;
+        }
+
+        private static IReadOnlyList<string> ResolveManagedProductBinariesDirectories()
+        {
+            var binaryDirs = new List<string>(capacity: 3);
+
+            string tracerDir = GetTracerManagedBinariesDirectory();
+            if (tracerDir != null)
+            {
+                binaryDirs.Add(tracerDir);
+            }
+
+            string profilerDir = GetProfilerManagedBinariesDirectory();
+            if (profilerDir != null)
+            {
+                binaryDirs.Add(profilerDir);
+            }
+
+            return binaryDirs;
+        }
+
+        private static string GetTracerManagedBinariesDirectory()
+        {
+            // E.g.:
+            //  - c:\Program Files\Datadog\.NET Tracer\net45\
+            //  - c:\Program Files\Datadog\.NET Tracer\netcoreapp3.1\
+            //  - ...
+
+            string tracerHomeDirectory = ReadEnvironmentVariable("DD_DOTNET_TRACER_HOME") ?? string.Empty;
+            string managedBinariesSubdir = GetRuntimeBasedProductBinariesSubdir();
+            string managedBinariesDirectory = Path.Combine(tracerHomeDirectory, managedBinariesSubdir);
+
+            return managedBinariesDirectory;
+        }
+
+        private static string GetProfilerManagedBinariesDirectory()
+        {
+            // Assumed folder structure (may change while we ar still in Alpha):
+            //  - c:\Program Files\Datadog\.NET Tracer\                                     <= Native Tracer/Provifer loader binary
+            //  - c:\Program Files\Datadog\.NET Tracer\                                     <= Also, native Tracer binaries for Win-x64
+            //  - c:\Program Files\Datadog\.NET Tracer\net45\                               <= Managed Tracer binaries for Net Fx 4.5
+            //  - c:\Program Files\Datadog\.NET Tracer\netcoreapp3.1\                       <= Managed Tracer binaries for Net Core 3.1 +
+            //  - c:\Program Files\Datadog\.NET Tracer\ContinuousProfiler\win-x64\          <= Native Profiler binaries for Win-x64
+            //  - c:\Program Files\Datadog\.NET Tracer\ContinuousProfiler\net45\            <= Managed Profiler binaries for Net Fx 4.5
+            //  - c:\Program Files\Datadog\.NET Tracer\ContinuousProfiler\netcoreapp3.1\    <= Managed Profiler binaries for Net Core 3.1 +
+            //  - ...
+
+            string managedBinariesSubdir = GetRuntimeBasedProductBinariesSubdir(out bool isCoreFx);
+
+            string nativeProductBinariesDir;
+            if (isCoreFx)
+            {
+                nativeProductBinariesDir = ReadEnvironmentVariable(Environment.Is64BitProcess ? "CORECLR_PROFILER_PATH_64" : "CORECLR_PROFILER_PATH_32");
+                nativeProductBinariesDir = nativeProductBinariesDir ?? ReadEnvironmentVariable("CORECLR_PROFILER_PATH");
+            }
+            else
+            {
+                nativeProductBinariesDir = ReadEnvironmentVariable(Environment.Is64BitProcess ? "COR_PROFILER_PATH_64" : "COR_PROFILER_PATH_32");
+                nativeProductBinariesDir = nativeProductBinariesDir ?? ReadEnvironmentVariable("COR_PROFILER_PATH");
+            }
+
+            nativeProductBinariesDir = nativeProductBinariesDir ?? string.Empty;                            // Be defensive against env var not being set
+            nativeProductBinariesDir = Path.GetDirectoryName(Path.Combine(nativeProductBinariesDir, "."));  // Normalize in respect to final dir separator
+
+            string tracerHomeDirectory = Path.GetDirectoryName(nativeProductBinariesDir);                   // Shared Tracer/Provifer loader is in Tracer HOME
+            string profilerHomeDirectory = Path.Combine(tracerHomeDirectory, "ContinuousProfiler");         // Profiler-HOME is in <Tracer-HOME>/ContinuousProfiler
+
+            string managedBinariesDirectory = Path.Combine(profilerHomeDirectory, managedBinariesSubdir);   // Managed binarie are in <Profiler-HOME>/net-ver-moniker/
+            return managedBinariesDirectory;
+        }
+
+        private static string GetRuntimeBasedProductBinariesSubdir()
+        {
+            return GetRuntimeBasedProductBinariesSubdir(out bool _);
+        }
+
+        private static string GetRuntimeBasedProductBinariesSubdir(out bool isCoreFx)
+        {
+            Assembly objectAssembly = typeof(object).Assembly;
+            isCoreFx = (objectAssembly?.FullName?.StartsWith("System.Private.CoreLib") == true);
+
+            string productBinariesSubdir;
+            if (isCoreFx)
+            {
+                // We are running under .NET Core (or .NET 5+).
+                // Old versions of .NET core report a major version of 4.
+                // The respective binaries are in <HOME>/netstandard2.0/...
+                // Newer binaries are in <HOME>/netcoreapp3.1/...
+                // This needs to be extended if and when we ship a specific distro for newer .NET versions!
+
+                Version clrVersion = Environment.Version;
+                if ((clrVersion.Major == 3 && clrVersion.Minor >= 1) || clrVersion.Major >= 5)
+                {
+                    productBinariesSubdir = "netcoreapp3.1";
+                }
+                else
+                {
+                    productBinariesSubdir = "netstandard2.0";
+                }
+            }
+            else
+            {
+                // We are running under the (classic) .NET Framework.
+                // We currently ship two distributions targeting .NET Framework.
+                // We want to use the highest-possible compatible assembly version number.
+                // We will try getting the version of mscorlib used.
+                // If that version is >= 4.61 then we use the respective distro. Otherwise we use the Net F 4.5 distro.
+
+                try
+                {
+                    string objectAssemblyFileVersionString = ((AssemblyFileVersionAttribute)objectAssembly.GetCustomAttribute(typeof(AssemblyFileVersionAttribute))).Version;
+                    var objectAssemblyVersion = new Version(objectAssemblyFileVersionString);
+
+                    var mscorlib461Version = new Version("4.6.1055.0");
+
+                    productBinariesSubdir = (objectAssemblyVersion < mscorlib461Version) ? "net45" : "net461";
+                }
+                catch
+                {
+                    productBinariesSubdir = "net45";
+                }
+            }
+
+            return productBinariesSubdir;
         }
 
         private static string ReadEnvironmentVariable(string key)
@@ -198,69 +398,18 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
             return null;
         }
 
-        private void ResolveManagedProfilerDirectory()
+        private AssemblyResolveEventHandler CreateAssemblyResolveEventHandler()
         {
-            Assembly objectAssembly = typeof(object).Assembly;
-            bool isCoreFx = (objectAssembly?.FullName?.StartsWith("System.Private.CoreLib") == true);
-
-            string frameworkBasedSubdir;
-            if (isCoreFx)
+            IReadOnlyList<string> assemblyNamesToLoad = CleanAssemblyNamesToLoad(_assemblyNamesToLoad);
+            if (assemblyNamesToLoad == null)
             {
-                frameworkBasedSubdir = "netstandard2.0";
-
-                // Old versions of .NET core report a major version of 4
-                Version clrVersion = Environment.Version;
-                if ((clrVersion.Major == 3 && clrVersion.Minor >= 1) || clrVersion.Major >= 5)
-                {
-                    frameworkBasedSubdir = "netcoreapp3.1";
-                }
-            }
-            else
-            {
-                // We currently build two assemblies targeting .NET Framework.
-                // If we're running on the .NET Framework, load the highest-compatible assembly
-                string corlibFileVersionString = ((AssemblyFileVersionAttribute)objectAssembly.GetCustomAttribute(typeof(AssemblyFileVersionAttribute))).Version;
-                string corlib461FileVersionString = "4.6.1055.0";
-
-                // This will throw an exception if the version number does not match the expected 2-4 part version number of non-negative int32 numbers,
-                // but mscorlib should be versioned correctly
-                var corlibVersion = new Version(corlibFileVersionString);
-                var corlib461Version = new Version(corlib461FileVersionString);
-                frameworkBasedSubdir = corlibVersion < corlib461Version ? "net45" : "net461";
+                return null;
             }
 
-            string tracerHomeDirectory = ReadEnvironmentVariable("DD_DOTNET_TRACER_HOME") ?? string.Empty;
-            s_managedProfilerDirectory = Path.Combine(tracerHomeDirectory, frameworkBasedSubdir);
-        }
+            IReadOnlyList<string> managedProductBinariesDirectories = ResolveManagedProductBinariesDirectories();
 
-        private bool TryFindAssemblyInProfilerDirectory(AssemblyName assemblyName, out string fullPath)
-        {
-            fullPath = Path.Combine(s_managedProfilerDirectory, $"{assemblyName.Name}.dll");
-            return File.Exists(fullPath);
-        }
-
-        private bool ShouldLoadAssemblyFromProfilerDirectory(AssemblyName assemblyName)
-        {
-            if (string.IsNullOrEmpty(assemblyName?.Name) || string.IsNullOrEmpty(assemblyName?.FullName))
-            {
-                return false;
-            }
-
-            // The AssemblyResolveEventHandler will handle all assemblies that have these prefixes:
-            // If the could not be found, we will look for them in the TRACER_HOME:
-
-            bool shouldHandle = (assemblyName.Name.StartsWith("Datadog.Trace", StringComparison.OrdinalIgnoreCase) == true)
-                    || (assemblyName.Name.StartsWith("Datadog.AutoInstrumentation", StringComparison.OrdinalIgnoreCase) == true);
-
-            // If an assembly does not have the abpve prefix, but it has been specified as the actual startup assembly,
-            // we will also look for it in TRACER_HOME:
-
-            for (int i = 0; !shouldHandle && i < _assemblyNames.Length; i++)
-            {
-                shouldHandle = assemblyName.FullName.Equals(_assemblyNames[i], StringComparison.OrdinalIgnoreCase);
-            }
-
-            return shouldHandle;
+            var assemblyResolveEventHandler = new AssemblyResolveEventHandler(assemblyNamesToLoad, managedProductBinariesDirectories);
+            return assemblyResolveEventHandler;
         }
     }
 }

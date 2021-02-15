@@ -4,12 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Datadog.Trace.ClrProfiler.Managed.Loader
+namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     /// <summary>
-    /// See main description in <c>Startup.cs</c>
+    /// See main description in <c>AssemblyLoader.cs</c>
     /// </summary>
-    public partial class Startup
+    internal partial class AssemblyResolveEventHandler
     {
         // This is the list of all assemblies that are known to be OK for running Side-by-Side,
         // when different versions are referenced in the process.
@@ -21,38 +21,7 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
                 // ["Add.Your.Assembly.Here"] = true
             };
 
-        private bool ShouldLoadAssemblyIntoCustomContext(AssemblyName assemblyName, out string assemblyPath)
-        {
-            assemblyPath = null;
-
-            if (assemblyName == null)
-            {
-                return false;
-            }
-
-            lock (_assembliesToLoadSxS)
-            {
-                if (_assembliesToLoadSxS.TryGetValue(assemblyName.Name, out bool shouldTryLoad))
-                {
-                    if (shouldTryLoad)
-                    {
-                        // We we should load SxS, but we have not tried yet. If the assmably even there?
-
-                        if (TryFindAssemblyInProfilerDirectory(assemblyName, out assemblyPath))
-                        {
-                            // This method is called from AssemblyResolveEventHandler and whenever it returns true, we attempt the SxS load.
-                            // Set the flag to not try again
-                            _assembliesToLoadSxS[assemblyName.Name] = false;
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private Assembly AssemblyResolveEventHandler(object sender, ResolveEventArgs args)
+        public Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
             bool loadIntoCustomContext = false;
             string assemblyPath = null;
@@ -75,8 +44,8 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
                 }
                 catch
                 {
-                    // There was an error. Before giving it, see if we should try loading the assembly side by side.
-                    // If so, we will attemt it below. Otherwise - error out.
+                    // There was an error. Before giving it up, see if we should try loading the assembly side by side.
+                    // If so, we will attempt it below. Otherwise - error out.
                     loadIntoCustomContext = ShouldLoadAssemblyIntoCustomContext(assemblyName, out assemblyPath);
                     if (!loadIntoCustomContext)
                     {
@@ -97,6 +66,37 @@ namespace Datadog.Trace.ClrProfiler.Managed.Loader
             }
 
             return null;
+        }
+
+        private bool ShouldLoadAssemblyIntoCustomContext(AssemblyName assemblyName, out string assemblyPath)
+        {
+            assemblyPath = null;
+
+            if (assemblyName == null)
+            {
+                return false;
+            }
+
+            lock (_assembliesToLoadSxS)
+            {
+                if (_assembliesToLoadSxS.TryGetValue(assemblyName.Name, out bool shouldTryLoad))
+                {
+                    if (shouldTryLoad)
+                    {
+                        // We we should load SxS, but we have not tried yet. Is the assmably even there?
+
+                        if (TryFindAssemblyInProfilerDirectory(assemblyName, out assemblyPath))
+                        {
+                            // This method is called from AssemblyResolveEventHandler and whenever it returns true, we attempt the SxS load.
+                            // Set the flag to not try again
+                            _assembliesToLoadSxS[assemblyName.Name] = false;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Datadog.Trace.ClrProfiler.Managed.Loader
+namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     internal class ManagedProfilerAssemblyLoadContext : AssemblyLoadContext
     {

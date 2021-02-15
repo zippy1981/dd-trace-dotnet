@@ -13,4 +13,34 @@
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Play a trick with the VS Solution Explorer:                                                               -->
+    <!-- We want all these files to be grouped under a key that is:                                                -->
+    <!-- the name of the immediate subfolder within the "Shared-Src" sources folder.                               -->
+    <!-- For that, we need to create an item group rooted in "Shared-Src" and then exclude all except these files. -->
+    <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging\public\Log.tt" />
+    <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging\public\Log.tt.cs" />
+
+    <ExcludedSharedNoActionItems Include="..\Shared-Src\**\*.tt.cs" Exclude="@(IncludedSharedNoActionItem)" />
+    <ExcludedSharedNoActionItems Include="..\Shared-Src\**\*.tt" Exclude="@(IncludedSharedNoActionItem)" />
+    <None Include="..\Shared-Src\**\*.tt.cs" Exclude="@(ExcludedSharedNoActionItems)" />
+    <None Include="..\Shared-Src\**\*.tt" Exclude="@(ExcludedSharedNoActionItems)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- This "service" is required for T4-templating. -->
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+
+    <None Update="Log.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Log.cs</LastGenOutput>
+    </None>
+
+    <Compile Update="Log.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Log.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
 </Project>

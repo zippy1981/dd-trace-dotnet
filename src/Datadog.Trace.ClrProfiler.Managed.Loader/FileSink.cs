@@ -7,7 +7,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace Datadog.Trace.ClrProfiler.Managed.Loader
+namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     internal sealed class FileSink : IDisposable
     {

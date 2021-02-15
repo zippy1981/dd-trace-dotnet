@@ -1,17 +1,16 @@
 #if NETFRAMEWORK
 
 using System;
-using System.IO;
 using System.Reflection;
 
-namespace Datadog.Trace.ClrProfiler.Managed.Loader
+namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     /// <summary>
-    /// See main description in <c>Startup.cs</c>
+    /// See main description in <c>AssemblyLoader.cs</c>
     /// </summary>
-    public partial class Startup
+    internal partial class AssemblyResolveEventHandler
     {
-        private Assembly AssemblyResolveEventHandler(object sender, ResolveEventArgs args)
+        private Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
             AssemblyName assemblyName = ParseAssemblyName(args?.Name);
             if (ShouldLoadAssemblyFromProfilerDirectory(assemblyName) && TryFindAssemblyInProfilerDirectory(assemblyName, out string assemblyPath))
