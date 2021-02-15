@@ -77,11 +77,6 @@
     ///           
     ///           public static void Error(string componentGroupName, string componentName, string message, Exception exception, params object[] dataNamesAndValues)
     ///           {
-    ///               // Prepare a log line (e.g. like below) and persist it to file...
-    ///           }
-    ///   
-    ///           public static void Info(string componentGroupName, string componentName, string message, params object[] dataNamesAndValues)
-    ///           {
     ///               // Prepare a log line in any appropriate way. For example:
     ///               StringBuilder logLine = ProfilerLog.DefaultFormat.ConstructLogLine(
     ///                                               ProfilerLog.DefaultFormat.LogLevelMoniker_Error,
@@ -89,9 +84,14 @@
     ///                                               "::",
     ///                                               componentName,
     ///                                               useUtcTimestamp: false,
-    ///                                               message,
+    ///                                               Log.DefaultFormat.ConstructErrorMessage(message, exception),
     ///                                               dataNamesAndValues);
     ///               // Persist logLine to file...
+    ///           }
+    ///   
+    ///           public static void Info(string componentGroupName, string componentName, string message, params object[] dataNamesAndValues)
+    ///           {
+    ///               // Prepare a log line (e.g. like above) and persist it to file...
     ///           }
     ///
     ///           public static void Debug(string componentGroupName, string componentName, string message, params object[] dataNamesAndValues)
@@ -110,30 +110,7 @@
 
             public static void Error(string componentName, string message, Exception exception, params object[] dataNamesAndValues)
             {
-                string errorMessage;
-                if (message == null && exception == null)
-                {
-                    errorMessage = null;
-                }
-                else if (message != null && exception == null)
-                {
-                    errorMessage = message;
-                }
-                else if (message == null && exception != null)
-                {
-                    errorMessage = exception?.ToString();
-                }
-                else
-                {
-                    if (message.Length > 0 && message[message.Length - 1] == '.')
-                    {
-                        errorMessage = message + " " + exception?.ToString();
-                    }
-                    else
-                    { 
-                        errorMessage = message + ". " + exception?.ToString();
-                    }
-                }
+                string errorMessage = Log.DefaultFormat.ConstructErrorMessage(message, exception);
 
                 Console.WriteLine();
                 Console.WriteLine(Log.DefaultFormat.ConstructLogLine(Log.DefaultFormat.LogLevelMoniker_Error, componentName, useUtcTimestamp: false, errorMessage, dataNamesAndValues)
@@ -169,6 +146,33 @@
             private const string DataValueNotSpecifiedWord = "unspecified";
 
             private static readonly string s_procIdInfo = GetProcIdInfoString();
+
+            public static string ConstructErrorMessage(string message, Exception exception)
+            {
+                if (message != null && exception != null)
+                {
+                    if (message.Length > 0 && message[message.Length - 1] == '.')
+                    {
+                        return message + " " + exception.ToString();
+                    }
+                    else
+                    {
+                        return message + ". " + exception.ToString();
+                    }
+                }
+                else if (message != null && exception == null)
+                {
+                    return message;
+                }
+                else if (message == null && exception != null)
+                {
+                    return exception.ToString();
+                }
+                else
+                {
+                    return null;
+                }
+            }
 
             public static StringBuilder ConstructLogLine(string logLevelMoniker, string componentName, bool useUtcTimestamp, string message, params object[] dataNamesAndValues)
             {
@@ -351,23 +355,41 @@
             }
         }  // class DefaultFormat
 
+        /// <summary>
+        /// Use statements like <c>Log.Configure.Info(YourHandler)</c> to redirect logging to your destination.
+        /// </summary>
         public static class Configure
         {
+            /// <summary>
+            /// Sets the handler delegate for processing Error log events.
+            /// If <c>null</c> is specified, then Error log events will be ignored.
+            /// </summary>
             public static void Error(Action<string, string, Exception, object[]> logEventHandler)
             {
                 s_errorLogEventHandler = logEventHandler;
             }
 
+            /// <summary>
+            /// Sets the handler delegate for processing Info log events.
+            /// If <c>null</c> is specified, then Error log events will be ignored.
+            /// </summary>
             public static void Info(Action<string, string, object[]> logEventHandler)
             {
                 s_infoLogEventHandler = logEventHandler;
             }
 
+            /// <summary>
+            /// Sets the handler delegate for processing Debug log events.
+            /// If <c>null</c> is specified, then Error log events will be ignored.
+            /// </summary>
             public static void Debug(Action<string, string, object[]> logEventHandler)
             {
                 s_debugLogEventHandler = logEventHandler;
             }
 
+            /// <summary>
+            /// Sets whether Debug log events should be processed or ignored.
+            /// </summary>
             public static void DebugLoggingEnabled(bool isDebugLoggingEnabled)
             {
                 s_isDebugLoggingEnabled = isDebugLoggingEnabled;
@@ -442,7 +464,6 @@
         /// Logs a non-critical info message. Mainly used for for debugging during prototyping.
         /// These messages can likely be dropped in production.
         /// </summary>
-        /// <param name="message"></param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Debug(string componentName, string message, params object[] dataNamesAndValues)
         {

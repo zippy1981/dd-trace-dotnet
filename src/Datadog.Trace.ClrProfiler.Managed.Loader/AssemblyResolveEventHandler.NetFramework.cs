@@ -10,16 +10,10 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
     /// </summary>
     internal partial class AssemblyResolveEventHandler
     {
-        private Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
+        public Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
             AssemblyName assemblyName = ParseAssemblyName(args?.Name);
-            if (ShouldLoadAssemblyFromProfilerDirectory(assemblyName) && TryFindAssemblyInProfilerDirectory(assemblyName, out string assemblyPath))
-            {
-                StartupLogger.Debug($"Assembly.LoadFrom(\"{assemblyPath}\")");
-                return Assembly.LoadFrom(assemblyPath);
-            }
-
-            return null;
+            return OnAssemblyResolveCore(assemblyName);
         }
     }
 }

@@ -6,8 +6,10 @@ using System.Reflection;
 namespace Datadog.AutoInstrumentation.ManagedLoader
 {
     /// <summary>
+    /// Loads specified assemblies into the current AppDomain.
+    ///
     /// This is the only public class in this assembly.
-    /// The entire assembly is compiled into the native profiler DLL as a resource.
+    /// This entire assembly is compiled into the native profiler DLL as a resource.
     /// This happens both, for the profiler part of the Tracer, and for the actual Profiler.
     /// The native code then uses this class to call arbitrary managed code:
     /// It uses IL rewriting to inject a call to <c>AssemblyLoader.Run(..)</c> and passes a list of assemblies.
@@ -15,8 +17,8 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
     /// (See <c>TargetLibraryEntrypointXxx</c> constants in this class.)
     /// If the specified assemblies do not contain such an entry point, they will be loaded, but nothing will be executed.
     ///
-    /// This class sets up a basic AppDomain.AssemblyResolve handler to look for the assemblies in a framework-specific
-    /// subdirectory of DD_DOTNET_TRACER_HOME in addition to the normal probing paths.
+    /// This class sets up a basic AppDomain.AssemblyResolve handler to look for the assemblies in a framework-specific subdirectory
+    /// of the product home directory in addition to the normal probing paths (e.g. DD_DOTNET_TRACER_HOME for the Tracer).
     /// It also allows for some SxS loading using custom Assembly Load Context.
     ///
     /// If a target assembly needs additional AssemblyResolve event logic to satisfy its dependencies,
@@ -47,7 +49,8 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         /// More info: <see cref="AssemblyLoader.TargetLibraryEntrypointMethod" />. </summary>
         public const string TargetLibraryEntrypointType = "Datadog.AutoInstrumentation" + "." + "DllMail";
 
-        private const string LoggingComponentMoniker = "ManagedAssemblyLoader";
+        internal const string AssemblyLoggingComponentMonikerPrefix = "ManagedLoader.";
+        private const string LoggingComponentMoniker = AssemblyLoader.AssemblyLoggingComponentMonikerPrefix + nameof(AssemblyLoader);
 
         private readonly string[] _assemblyNamesToLoad;
 
@@ -216,13 +219,13 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         {
             if (assemblyNamesToLoad == null)
             {
-                StartupLogger.Log($"Not loading any assemblies ({nameof(assemblyNamesToLoad)} is null). ");
+                Log.Info(LoggingComponentMoniker, $"Not loading any assemblies ({nameof(assemblyNamesToLoad)} is null). ");
                 return null;
             }
 
             if (assemblyNamesToLoad.Length == 0)
             {
-                StartupLogger.Log($"Not loading any assemblies ({nameof(assemblyNamesToLoad)}.{nameof(assemblyNamesToLoad.Length)} is 0). ");
+                Log.Info(LoggingComponentMoniker, $"Not loading any assemblies ({nameof(assemblyNamesToLoad)}.{nameof(assemblyNamesToLoad.Length)} is 0). ");
                 return null;
             }
 
@@ -239,7 +242,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
 
             if (validAssemblyNamesCount == 0)
             {
-                StartupLogger.Log($"Not loading any assemblies. Some assembly names were specified, but they are all null or white-space.");
+                Log.Info(LoggingComponentMoniker, $"Not loading any assemblies. Some assembly names were specified, but they are all null or white-space.");
                 return null;
             }
 
@@ -384,18 +387,17 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             return productBinariesSubdir;
         }
 
-        private static string ReadEnvironmentVariable(string key)
+        private static string ReadEnvironmentVariable(string envVarName)
         {
             try
             {
-                return Environment.GetEnvironmentVariable(key);
+                return Environment.GetEnvironmentVariable(envVarName);
             }
             catch (Exception ex)
             {
-                StartupLogger.Log(ex, $"Error while loading environment variable \"{key}\".");
+                Log.Error(LoggingComponentMoniker, "Error while loading environment variable", ex, "envVarName", envVarName);
+                return null;
             }
-
-            return null;
         }
 
         private AssemblyResolveEventHandler CreateAssemblyResolveEventHandler()

@@ -11,91 +11,88 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
     /// </summary>
     internal partial class AssemblyResolveEventHandler
     {
-        // This is the list of all assemblies that are known to be OK for running Side-by-Side,
-        // when different versions are referenced in the process.
-        // List their simple name here. The maped value should always be True.
-        // (It is used by the implementation to see if a load has already been attempted.)
-        private readonly Dictionary<string, bool> _assembliesToLoadSxS = new Dictionary<string, bool>()
-            {
-                ["Datadog.Trace"] = true,
-                // ["Add.Your.Assembly.Here"] = true
-            };
+        private readonly HashSet<string> _assembliesAttemptedToLoadSxS = new HashSet<string>();
 
         public Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
-            bool loadIntoCustomContext = false;
-            string assemblyPath = null;
-
-            // Is this an assembly we should try loading from the profiler directory?
             AssemblyName assemblyName = ParseAssemblyName(args?.Name);
-            if (ShouldLoadAssemblyFromProfilerDirectory(assemblyName) && TryFindAssemblyInProfilerDirectory(assemblyName, out assemblyPath))
+            Assembly loadedAssembly = OnAssemblyResolveCore(assemblyName);
+
+            // If the assembly loaded, we are done.
+            if (loadedAssembly != null)
             {
-                // Yes, then try loading it:
+                return loadedAssembly;
+            }
+
+            // We may or may not just have tried to load the assembly.
+            // Regardless, we have not ended up loading it.
+            // It may be an assembly that should be loaded Side-by-Side.
+            // If so, we will need to load it into a custom context.
+
+            if (MustLoadAssemblyIntoCustomContext(assemblyName, out string assemblyPath))
+            {
                 try
                 {
-                    StartupLogger.Debug($"Assembly.LoadFrom(\"{assemblyPath}\")");
-                    Assembly loadedAssembly = Assembly.LoadFrom(assemblyPath);
+                    Log.Debug(LoggingComponentMoniker, $"Assembly listed for SxS loading", "assemblyName", assemblyName.FullName, "assemblyPath", assemblyPath);
+                    loadedAssembly = SxSAssemblyLoadContext.SingeltonInstance.LoadFromAssemblyPath(assemblyPath);
 
-                    // If we loaded the assembly, then all is good. Return:
-                    if (loadedAssembly != null)
+                    if (loadedAssembly == null)
                     {
-                        return loadedAssembly;
+                        Log.Debug(LoggingComponentMoniker, $"Not able to load assembly into SxS loading context", "assemblyName", assemblyName.FullName, "assemblyPath", assemblyPath);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // There was an error. Before giving it up, see if we should try loading the assembly side by side.
-                    // If so, we will attempt it below. Otherwise - error out.
-                    loadIntoCustomContext = ShouldLoadAssemblyIntoCustomContext(assemblyName, out assemblyPath);
-                    if (!loadIntoCustomContext)
-                    {
-                        throw;
-                    }
+                    Log.Error(LoggingComponentMoniker, $"Error loading assembly into SxS loading context", ex, "assemblyName", assemblyName.FullName, "assemblyPath", assemblyPath);
+                    loadedAssembly = null;
                 }
             }
 
-            // We may or may not have just tried loading the assembly.
-            // Regardless, it may be an assembly that should be loaded Side-by-Side.
-            // If so, and we have not loaded it above, we will need to load it into a custom context;
-            loadIntoCustomContext = loadIntoCustomContext || ShouldLoadAssemblyIntoCustomContext(assemblyName, out assemblyPath);
-
-            if (loadIntoCustomContext)
-            {
-                StartupLogger.Debug($"ManagedProfilerAssemblyLoadContext.SingeltonInstance.LoadFromAssemblyPath({assemblyPath})");
-                return ManagedProfilerAssemblyLoadContext.SingeltonInstance.LoadFromAssemblyPath(assemblyPath);
-            }
-
-            return null;
+            return loadedAssembly;
         }
 
-        private bool ShouldLoadAssemblyIntoCustomContext(AssemblyName assemblyName, out string assemblyPath)
+        private bool MustLoadAssemblyIntoCustomContext(AssemblyName assemblyName, out string assemblyPath)
         {
-            assemblyPath = null;
-
-            if (assemblyName == null)
+            if (assemblyName?.Name == null)
             {
+                assemblyPath = null;
                 return false;
             }
 
-            lock (_assembliesToLoadSxS)
+            // Look for the specified assembly in AssembliesToLoadSxS:
+            // (Because AssembliesToLoadSxS is very short, it is an array/list. If it ever gets largem we need to use a look-up instead.)
+            for (int i = 0; i < AssembliesToLoadSxS.Length; i++)
             {
-                if (_assembliesToLoadSxS.TryGetValue(assemblyName.Name, out bool shouldTryLoad))
-                {
-                    if (shouldTryLoad)
-                    {
-                        // We we should load SxS, but we have not tried yet. Is the assmably even there?
+                // Did we list the specified assembly for SxS loading?
 
-                        if (TryFindAssemblyInProfilerDirectory(assemblyName, out assemblyPath))
+                if (assemblyName.Name.Equals(AssembliesToLoadSxS[i], StringComparison.OrdinalIgnoreCase))
+                {
+                    lock (_assembliesAttemptedToLoadSxS)
+                    {
+                        // The specified assembly must be loaded SxS. DId we already try this?
+
+                        if (_assembliesAttemptedToLoadSxS.Contains(assemblyName.Name))
                         {
-                            // This method is called from AssemblyResolveEventHandler and whenever it returns true, we attempt the SxS load.
-                            // Set the flag to not try again
-                            _assembliesToLoadSxS[assemblyName.Name] = false;
+                            // Already tried SxS loading. Do not try again.
+                            assemblyPath = null;
+                            return false;
+                        }
+
+                        // We need to load SxS, and we have not tried yet. Is the assmably even there?
+
+                        if (TryFindAssemblyInProductDirectory(assemblyName, out assemblyPath))
+                        {
+                            // We found the assembly on disk, so we will return true to indicate that it needs to be loaded SxS.
+                            // This method is called from AssemblyResolveEventHandler and whenever it returns true, SxS load to be atempted.
+                            // Set the flag to not try again.
+                            _assembliesAttemptedToLoadSxS.Add(assemblyName.Name);
                             return true;
                         }
                     }
                 }
             }
 
+            assemblyPath = null;
             return false;
         }
     }

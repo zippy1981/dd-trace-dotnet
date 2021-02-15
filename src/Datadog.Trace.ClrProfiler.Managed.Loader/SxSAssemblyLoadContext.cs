@@ -4,9 +4,9 @@ using System.Runtime.Loader;
 
 namespace Datadog.AutoInstrumentation.ManagedLoader
 {
-    internal class ManagedProfilerAssemblyLoadContext : AssemblyLoadContext
+    internal class SxSAssemblyLoadContext : AssemblyLoadContext
     {
-        public static readonly AssemblyLoadContext SingeltonInstance = new ManagedProfilerAssemblyLoadContext();
+        public static readonly AssemblyLoadContext SingeltonInstance = new SxSAssemblyLoadContext();
 
         protected override Assembly Load(AssemblyName assemblyName)
         {
