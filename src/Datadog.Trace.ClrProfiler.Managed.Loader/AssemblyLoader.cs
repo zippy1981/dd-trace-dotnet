@@ -30,7 +30,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
     /// ! Also, remember that this assembly is shared between the Tracer's profiler component
     /// and the Profiler's profiler component. Do not put specialized code here !
     /// </summary>
-    public partial class Startup
+    public partial class AssemblyLoader
     {
         /// <summary>
         /// The constants <c>TargetLibraryEntrypointMethod</c>, and <c>...Type</c> specify
@@ -44,7 +44,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         public const string TargetLibraryEntrypointMethod = "Run";
 
         /// <summary> The namespace and the type name of the entrypoint to invoke in each loaded assemby.
-        /// More info: <see cref="Startup.TargetLibraryEntrypointMethod" />. </summary>
+        /// More info: <see cref="AssemblyLoader.TargetLibraryEntrypointMethod" />. </summary>
         public const string TargetLibraryEntrypointType = "Datadog.AutoInstrumentation" + "." + "DllMail";
 
         private const string LoggingComponentMoniker = "ManagedAssemblyLoader";
@@ -52,10 +52,10 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         private readonly string[] _assemblyNamesToLoad;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Startup"/> class.
+        /// Initializes a new instance of the <see cref="AssemblyLoader"/> class.
         /// </summary>
         /// <param name="assemblyNamesToLoad">List of assemblies to load and start.</param>
-        public Startup(string[] assemblyNamesToLoad)
+        public AssemblyLoader(string[] assemblyNamesToLoad)
         {
             _assemblyNamesToLoad = assemblyNamesToLoad;
         }
@@ -70,7 +70,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             {
                 try
                 {
-                    var assemblyLoader = new Startup(assemblyNamesToLoad);
+                    var assemblyLoader = new AssemblyLoader(assemblyNamesToLoad);
                     assemblyLoader.Execute();
                 }
                 catch (Exception ex)
