@@ -40,7 +40,7 @@ namespace trace {
     const WSTRING empty_string                                  = _LU("");
     const WSTRING default_domain_name                           = _LU("DefaultDomain");
 
-    const LPCWSTR managed_loader_startup_type                   = _LU("Datadog.Trace.ClrProfiler.Managed.Loader.Startup");
+    const LPCWSTR managed_loader_startup_type                   = _LU("Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader");
     const LPCWSTR module_type_name                              = _LU("<Module>");
     const LPCWSTR constructor_name                              = _LU(".cctor");
     const LPCWSTR get_assembly_and_symbols_bytes_name           = _LU("GetAssemblyAndSymbolsBytes");
@@ -50,11 +50,18 @@ namespace trace {
     const LPCWSTR copy_name                                     = _LU("Copy");
     const LPCWSTR system_reflection_assembly_name               = _LU("System.Reflection.Assembly");
     const LPCWSTR system_object_name                            = _LU("System.Object");
+    const LPCWSTR system_type_name                              = _LU("System.Type");
     const LPCWSTR system_appdomain_name                         = _LU("System.AppDomain");
     const LPCWSTR get_currentdomain_name                        = _LU("get_CurrentDomain");
     const LPCWSTR load_name                                     = _LU("Load");
-    const LPCWSTR createinstance_name                           = _LU("CreateInstance");
+    const LPCWSTR gettype_name                                  = _LU("GetType");
     const LPCWSTR loader_method_name                            = _LU("DD_LoadInitializationAssemblies");
+
+    const LPCWSTR system_reflection_methodinfo_name             = _LU("System.Reflection.MethodInfo");
+    const LPCWSTR system_reflection_methodbase_name             = _LU("System.Reflection.MethodBase");
+    const LPCWSTR getmethod_name                                = _LU("GetMethod");
+    const LPCWSTR invoke_name                                   = _LU("Invoke");
+    const LPCWSTR run_name                                      = _LU("Run");
     
     const WSTRING profiler_path_64                              = GetEnvironmentValue(_LU("CORECLR_PROFILER_PATH_64"));
     const WSTRING profiler_path_32                              = GetEnvironmentValue(_LU("CORECLR_PROFILER_PATH_32"));
@@ -400,6 +407,37 @@ namespace trace {
             return hr;
         }
 
+        //
+        // get a TypeRef for System.Type
+        //
+        mdTypeRef system_type_type_ref;
+        hr = metadata_emit->DefineTypeRefByName(mscorlib_ref, system_type_name, &system_type_type_ref);
+        if (FAILED(hr)) {
+            Warn("Loader::InjectLoaderToModuleInitializer: DefineTypeRefByName failed");
+            return hr;
+        }
+        
+        //
+        // get a TypeRef for System.Reflection.MethodInfo
+        //
+        mdTypeRef system_reflection_methodinfo_type_ref;
+        hr = metadata_emit->DefineTypeRefByName(mscorlib_ref, system_reflection_methodinfo_name, &system_reflection_methodinfo_type_ref);
+        if (FAILED(hr)) {
+            Warn("Loader::InjectLoaderToModuleInitializer: DefineTypeRefByName failed");
+            return hr;
+        }
+                
+        //
+        // get a TypeRef for System.Reflection.MethodBase
+        //
+        mdTypeRef system_reflection_methodbase_type_ref;
+        hr = metadata_emit->DefineTypeRefByName(mscorlib_ref, system_reflection_methodbase_name, &system_reflection_methodbase_type_ref);
+        if (FAILED(hr)) {
+            Warn("Loader::InjectLoaderToModuleInitializer: DefineTypeRefByName failed");
+            return hr;
+        }
+
+
         ULONG offset = 0;
 
         //
@@ -460,42 +498,95 @@ namespace trace {
         }
 
         //
-        // Create method signature for Assembly.CreateInstance(string)
+        // Create method signature for System.Type System.Reflection.Assembly.GetType(string name, bool throwOnError)
         //
-        COR_SIGNATURE assembly_create_instance_signature[] = {
-                IMAGE_CEE_CS_CALLCONV_HASTHIS,
-                1,
-                ELEMENT_TYPE_OBJECT,  // ret = System.Object
-                ELEMENT_TYPE_STRING
-        };
+        BYTE system_type_type_ref_compressed_token[4];
+        ULONG system_type_type_ref_compressed_token_length =
+                CorSigCompressToken(system_type_type_ref, system_type_type_ref_compressed_token);
 
-        mdMemberRef assembly_create_instance_member_ref;
-        hr = metadata_emit->DefineMemberRef(
-                system_reflection_assembly_type_ref, createinstance_name,
-                assembly_create_instance_signature,
-                sizeof(assembly_create_instance_signature),
-                &assembly_create_instance_member_ref);
+        COR_SIGNATURE assembly_get_type_signature[50];
+        offset = 0;
+        assembly_get_type_signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        assembly_get_type_signature[offset++] = 2;
+        assembly_get_type_signature[offset++] = ELEMENT_TYPE_CLASS;
+        memcpy(&assembly_get_type_signature[offset],
+               system_type_type_ref_compressed_token,
+               system_type_type_ref_compressed_token_length);
+        offset += system_type_type_ref_compressed_token_length;
+        assembly_get_type_signature[offset++] = ELEMENT_TYPE_STRING;
+        assembly_get_type_signature[offset++] = ELEMENT_TYPE_BOOLEAN;
+
+        mdMemberRef assembly_get_type_member_ref;
+        hr = metadata_emit->DefineMemberRef(system_reflection_assembly_type_ref,
+                                            gettype_name, assembly_get_type_signature,
+                                            offset, &assembly_get_type_member_ref);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
-            return hr;
+          Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
+          return hr;
+        }
+
+        //
+        // Create method signature for System.Reflection.MethodInfo System.Type.GetMethod(string name)
+        //
+        BYTE system_reflection_methodinfo_type_ref_compressed_token[4];
+        ULONG system_reflection_methodinfo_type_ref_compressed_token_length =
+                CorSigCompressToken(system_reflection_methodinfo_type_ref, system_reflection_methodinfo_type_ref_compressed_token);
+        
+        COR_SIGNATURE type_get_method_signature[50];
+        offset = 0;
+        type_get_method_signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        type_get_method_signature[offset++] = 1;
+        type_get_method_signature[offset++] = ELEMENT_TYPE_CLASS;
+        memcpy(&type_get_method_signature[offset],
+               system_reflection_methodinfo_type_ref_compressed_token,
+               system_reflection_methodinfo_type_ref_compressed_token_length);
+        offset += system_reflection_methodinfo_type_ref_compressed_token_length;
+        type_get_method_signature[offset++] = ELEMENT_TYPE_STRING;
+
+        mdMemberRef type_get_method_member_ref;
+        hr = metadata_emit->DefineMemberRef(system_type_type_ref,
+                                            getmethod_name, type_get_method_signature,
+                                            offset, &type_get_method_member_ref);
+        if (FAILED(hr)) {
+          Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
+          return hr;
+        }
+
+        //
+        // Create method signature for object System.Reflection.MethodBase.Invoke(object instance, object[] args)
+        //
+        COR_SIGNATURE methodbase_invoke_signature[] = {
+            IMAGE_CEE_CS_CALLCONV_HASTHIS,
+            2,
+            ELEMENT_TYPE_OBJECT,
+            ELEMENT_TYPE_OBJECT,
+            ELEMENT_TYPE_SZARRAY,
+            ELEMENT_TYPE_OBJECT,
+        };
+        mdMemberRef methodbase_invoke_member_ref;
+        hr = metadata_emit->DefineMemberRef(system_reflection_methodbase_type_ref,
+                                            invoke_name, methodbase_invoke_signature,
+                                            6, &methodbase_invoke_member_ref);
+        if (FAILED(hr)) {
+          Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
+          return hr;
         }
 
         // Create a string representing
-        // "Datadog.Trace.ClrProfiler.Managed.Loader.Startup" 
-        size_t load_helper_str_size = _LU_len(managed_loader_startup_type);
-
+        // "Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader" 
         mdString load_helper_token;
-        hr = metadata_emit->DefineUserString(managed_loader_startup_type, (ULONG)load_helper_str_size, &load_helper_token);
+        hr = metadata_emit->DefineUserString(managed_loader_startup_type, (ULONG)_LU_len(managed_loader_startup_type), &load_helper_token);
         if (FAILED(hr)) {
             Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString failed");
             return hr;
         }
-
-        ULONG string_len = 0;
-        WCHAR string_contents[stringMaxSize]{};
-        hr = metadata_import->GetUserString(load_helper_token, string_contents, stringMaxSize, &string_len);
+        
+        // Create a string representing
+        // "Run" 
+        mdString run_string_token;
+        hr = metadata_emit->DefineUserString(run_name, (ULONG)_LU_len(run_name), &run_string_token);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: GetUserString failed" + ToString(module_id));
+            Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString failed");
             return hr;
         }
 
@@ -563,7 +654,7 @@ namespace trace {
         ILInstr* pFirstInstr = rewriter_void.GetILList()->m_pNext;
         ILInstr* pNewInstr = NULL;
 
-        // Step 1) Call void GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out
+        // Step 1) Call bool GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out
         // int assemblySize, out IntPtr symbolsPtr, out int symbolsSize, ulong appDomainId)
 
         // ldloca.s 0 : Load the address of the "assemblyPtr" variable (locals index
@@ -599,7 +690,7 @@ namespace trace {
         pNewInstr->m_Arg64 = app_domain_id;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
-        // call void GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out int
+        // call bool GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out int
         // assemblySize, out IntPtr symbolsPtr, out int symbolsSize, ulong
         // appDomainID)
         pNewInstr = rewriter_void.NewILInstr();
@@ -759,27 +850,97 @@ namespace trace {
         pNewInstr->m_Arg8 = 6;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
-        // Step 4) Call instance method
-        // Assembly.CreateInstance("Datadog.Trace.ClrProfiler.Managed.Loader.Startup")
+        // Step 5) Call instance method
+        // Assembly.GetType("Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader", true)
 
         // ldloc.s 6 : Load the "loadedAssembly" variable (locals index 6) to call
-        // Assembly.CreateInstance
+        // Assembly.GetType
         pNewInstr = rewriter_void.NewILInstr();
         pNewInstr->m_opcode = CEE_LDLOC_S;
         pNewInstr->m_Arg8 = 6;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
-        // ldstr "Datadog.Trace.ClrProfiler.Managed.Loader.Startup"
+        // ldstr "Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader"
         pNewInstr = rewriter_void.NewILInstr();
         pNewInstr->m_opcode = CEE_LDSTR;
         pNewInstr->m_Arg32 = load_helper_token;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
-        // callvirt System.Object System.Reflection.Assembly.CreateInstance(string)
+        // ldc.i4.1 load true for boolean type
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4_1;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // callvirt System.Type System.Reflection.Assembly.GetType(string, bool)
         pNewInstr = rewriter_void.NewILInstr();
         pNewInstr->m_opcode = CEE_CALLVIRT;
-        pNewInstr->m_Arg32 = assembly_create_instance_member_ref;
+        pNewInstr->m_Arg32 = assembly_get_type_member_ref;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // Step 6) Call instance method
+        // System.Type.GetMethod("Run");
+
+        // ldstr "Run"
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDSTR;
+        pNewInstr->m_Arg32 = run_string_token;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // callvirt instance class System.Reflection.MethodInfo [mscorlib]System.Type::GetMethod(string)
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_CALLVIRT;
+        pNewInstr->m_Arg32 = type_get_method_member_ref;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // Step 7) Call instance method
+        // System.Reflection.MethodBase.Invoke(null, new object[] { "Assembly1", "Assembly2" });
+
+        // ldnull
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDNULL;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // create an array of 1 element with the single string[] parameter
+        
+        // ldc.i4.1 = const int 1 => array length
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4_1;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // newarr System.Object
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_NEWARR;
+        pNewInstr->m_Arg32 = system_object_type_ref;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // dup
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_DUP;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // ldc.i4.0 = const int 0 => array index 0
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4_0;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        
+        // TODO
+        // here we should load the string array for assemblies to load
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDNULL;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        
+        // stelem.ref
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_STELEM_REF;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // callvirt instance class object System.Reflection.MethodBase::Invoke(object, object[])
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_CALLVIRT;
+        pNewInstr->m_Arg32 = methodbase_invoke_member_ref;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // Step 8) Pop and return
 
         // pop the returned object
         pNewInstr = rewriter_void.NewILInstr();
