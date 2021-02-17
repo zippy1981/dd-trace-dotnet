@@ -17,7 +17,8 @@ namespace trace {
         std::mutex loaders_loaded_mutex_;
         std::unordered_set<AppDomainID> loaders_loaded_;
 
-        std::vector<WSTRING> assembly_string_vector_;
+        std::vector<WSTRING> assembly_string_default_appdomain_vector_;
+        std::vector<WSTRING> assembly_string_nondefault_appdomain_vector_;
 
         std::function<void(const std::string& str)> log_debug_callback_ = nullptr;
         std::function<void(const std::string& str)> log_info_callback_ = nullptr;
@@ -41,8 +42,10 @@ namespace trace {
 
     public:
         Loader(ICorProfilerInfo4* info, bool isIIS,
-               WSTRING* assembly_string_array,
-               ULONG assembly_string_array_length,
+               WSTRING* assembly_string_default_appdomain_array,
+               ULONG assembly_string_default_appdomain_array_length,
+               WSTRING* assembly_string_nondefault_appdomain_array,
+               ULONG assembly_string_nondefault_appdomain_array_length,
                std::function<void(const std::string& str)> log_debug_callback,
                std::function<void(const std::string& str)> log_info_callback,
                std::function<void(const std::string& str)> log_warn_callback);

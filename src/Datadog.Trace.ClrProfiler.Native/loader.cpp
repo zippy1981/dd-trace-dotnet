@@ -90,17 +90,28 @@ namespace trace {
 
     Loader::Loader(
         ICorProfilerInfo4* info, bool isIIS,
-        WSTRING* assembly_string_array,
-        ULONG assembly_string_array_length,
+        WSTRING* assembly_string_default_appdomain_array,
+        ULONG assembly_string_default_appdomain_array_length,
+        WSTRING* assembly_string_nondefault_appdomain_array,
+        ULONG assembly_string_nondefault_appdomain_array_length,
         std::function<void(const std::string& str)> log_debug_callback,
         std::function<void(const std::string& str)> log_info_callback,
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
         runtime_information_ = GetRuntimeInformation(info);
         is_iis_ = isIIS;
-        assembly_string_vector_.assign(
-            assembly_string_array,
-            assembly_string_array + assembly_string_array_length);
+        if (assembly_string_default_appdomain_array != nullptr &&
+            assembly_string_default_appdomain_array_length > 0) {
+            assembly_string_default_appdomain_vector_.assign(
+                assembly_string_default_appdomain_array,
+                assembly_string_default_appdomain_array + assembly_string_default_appdomain_array_length);
+        }
+        if (assembly_string_nondefault_appdomain_array != nullptr &&
+            assembly_string_nondefault_appdomain_array_length > 0) {
+            assembly_string_nondefault_appdomain_vector_.assign(
+                assembly_string_nondefault_appdomain_array,
+                assembly_string_nondefault_appdomain_array + assembly_string_nondefault_appdomain_array_length);
+        }
         log_debug_callback_ = log_debug_callback;
         log_info_callback_ = log_info_callback;
         log_warn_callback_ = log_warn_callback;
@@ -149,7 +160,8 @@ namespace trace {
         }
 
         // If we are in the IIS process we skip the default domain
-        if (is_iis_ && app_domain_name_string == default_domain_name) {
+        bool isDefaultDomain = app_domain_name_string == default_domain_name;
+        if (is_iis_ && isDefaultDomain) {
             Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + ToString(assembly_name_string) + ". The module belongs to the DefaultDomain in IIS process.");
             return E_FAIL;
         }
@@ -941,11 +953,15 @@ namespace trace {
         
         // ***************************************************************************************************************
         // here we should load the string array for assemblies to load
-        
+
+        std::vector<WSTRING> assembly_string_vector =
+            isDefaultDomain ? assembly_string_default_appdomain_vector_
+                            : assembly_string_nondefault_appdomain_vector_;
+
         // ldc.i4 = const int (array length)
         pNewInstr = rewriter_void.NewILInstr();
         pNewInstr->m_opcode = CEE_LDC_I4;
-        pNewInstr->m_Arg64 = assembly_string_vector_.size();
+        pNewInstr->m_Arg64 = assembly_string_vector.size();
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
         // newarr System.String
@@ -955,7 +971,7 @@ namespace trace {
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
         
         // loading array index
-        for (ULONG i = 0; i < assembly_string_vector_.size(); i++) {
+        for (ULONG i = 0; i < assembly_string_vector.size(); i++) {
           // dup
           pNewInstr = rewriter_void.NewILInstr();
           pNewInstr->m_opcode = CEE_DUP;
@@ -969,7 +985,7 @@ namespace trace {
 
           // Create a string token
           mdString string_token;
-          hr = metadata_emit->DefineUserString(assembly_string_vector_[i].c_str(), (ULONG)assembly_string_vector_[i].size(), &string_token);
+          hr = metadata_emit->DefineUserString(assembly_string_vector[i].c_str(), (ULONG)assembly_string_vector[i].size(), &string_token);
           if (FAILED(hr)) {
               Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString for string array failed");
               return hr;
