@@ -248,9 +248,14 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   }
 
   // Create the loader class
+  WSTRING assemblies_string_list[1] = { 
+      "Datadog.Trace.ClrProfiler.Managed"_W
+  };
   loader_ = new Loader(
       this->info_, 
       process_name == "w3wp.exe"_W || process_name == "iisexpress.exe"_W,
+      assemblies_string_list,
+      1,
       [this](const std::string& str) { Debug(str); },
       [this](const std::string& str) { Info(str); },
       [this](const std::string& str) { Warn(str); }

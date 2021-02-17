@@ -46,6 +46,7 @@ namespace trace {
     const LPCWSTR get_assembly_and_symbols_bytes_name           = _LU("GetAssemblyAndSymbolsBytes");
     const LPCWSTR mscorlib_name                                 = _LU("mscorlib");
     const LPCWSTR system_byte_name                              = _LU("System.Byte");
+    const LPCWSTR system_string_name                            = _LU("System.String");
     const LPCWSTR system_runtime_interopservices_marshal_name   = _LU("System.Runtime.InteropServices.Marshal");
     const LPCWSTR copy_name                                     = _LU("Copy");
     const LPCWSTR system_reflection_assembly_name               = _LU("System.Reflection.Assembly");
@@ -89,12 +90,17 @@ namespace trace {
 
     Loader::Loader(
         ICorProfilerInfo4* info, bool isIIS,
+        WSTRING* assembly_string_array,
+        ULONG assembly_string_array_length,
         std::function<void(const std::string& str)> log_debug_callback,
         std::function<void(const std::string& str)> log_info_callback,
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
         runtime_information_ = GetRuntimeInformation(info);
         is_iis_ = isIIS;
+        assembly_string_vector_.assign(
+            assembly_string_array,
+            assembly_string_array + assembly_string_array_length);
         log_debug_callback_ = log_debug_callback;
         log_info_callback_ = log_info_callback;
         log_warn_callback_ = log_warn_callback;
@@ -343,6 +349,16 @@ namespace trace {
         //
         mdTypeRef byte_type_ref;
         hr = metadata_emit->DefineTypeRefByName(mscorlib_ref, system_byte_name, &byte_type_ref);
+        if (FAILED(hr)) {
+            Warn("Loader::InjectLoaderToModuleInitializer: DefineTypeRefByName failed");
+            return hr;
+        }
+        
+        //
+        // get a TypeRef for System.String
+        //
+        mdTypeRef string_type_ref;
+        hr = metadata_emit->DefineTypeRefByName(mscorlib_ref, system_string_name, &string_type_ref);
         if (FAILED(hr)) {
             Warn("Loader::InjectLoaderToModuleInitializer: DefineTypeRefByName failed");
             return hr;
@@ -923,11 +939,55 @@ namespace trace {
         pNewInstr->m_opcode = CEE_LDC_I4_0;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
         
-        // TODO
+        // ***************************************************************************************************************
         // here we should load the string array for assemblies to load
+        
+        // ldc.i4 = const int (array length)
         pNewInstr = rewriter_void.NewILInstr();
-        pNewInstr->m_opcode = CEE_LDNULL;
+        pNewInstr->m_opcode = CEE_LDC_I4;
+        pNewInstr->m_Arg64 = assembly_string_vector_.size();
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // newarr System.String
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_NEWARR;
+        pNewInstr->m_Arg32 = string_type_ref;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        
+        // loading array index
+        for (ULONG i = 0; i < assembly_string_vector_.size(); i++) {
+          // dup
+          pNewInstr = rewriter_void.NewILInstr();
+          pNewInstr->m_opcode = CEE_DUP;
+          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+          // ldc.i4 = const int array index 0
+          pNewInstr = rewriter_void.NewILInstr();
+          pNewInstr->m_opcode = CEE_LDC_I4;
+          pNewInstr->m_Arg32 = i;
+          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+          // Create a string token
+          mdString string_token;
+          hr = metadata_emit->DefineUserString(assembly_string_vector_[i].c_str(), (ULONG)assembly_string_vector_[i].size(), &string_token);
+          if (FAILED(hr)) {
+              Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString for string array failed");
+              return hr;
+          }
+
+          // ldstr assembly index value
+          pNewInstr = rewriter_void.NewILInstr();
+          pNewInstr->m_opcode = CEE_LDSTR;
+          pNewInstr->m_Arg32 = string_token;
+          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+          
+          // stelem.ref
+          pNewInstr = rewriter_void.NewILInstr();
+          pNewInstr->m_opcode = CEE_STELEM_REF;
+          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        }
+
+        // ***************************************************************************************************************
         
         // stelem.ref
         pNewInstr = rewriter_void.NewILInstr();
