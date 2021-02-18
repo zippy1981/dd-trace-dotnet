@@ -13,7 +13,6 @@ namespace trace {
     private:
         RuntimeInformation runtime_information_;
         ICorProfilerInfo4* info_;
-        bool is_iis_;
 
         std::mutex loaders_loaded_mutex_;
         std::unordered_set<AppDomainID> loaders_loaded_;
@@ -47,7 +46,7 @@ namespace trace {
             ILInstr* pFirstInstr, mdTypeRef string_type_ref);
 
     public:
-        Loader(ICorProfilerInfo4* info, bool isIIS,
+        Loader(ICorProfilerInfo4* info,
                WSTRING* assembly_string_default_appdomain_array,
                ULONG assembly_string_default_appdomain_array_length,
                WSTRING* assembly_string_nondefault_appdomain_array,

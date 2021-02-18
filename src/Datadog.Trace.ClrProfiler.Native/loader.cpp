@@ -89,7 +89,7 @@ namespace trace {
     };
 
     Loader::Loader(
-        ICorProfilerInfo4* info, bool isIIS,
+        ICorProfilerInfo4* info,
         WSTRING* assembly_string_default_appdomain_array,
         ULONG assembly_string_default_appdomain_array_length,
         WSTRING* assembly_string_nondefault_appdomain_array,
@@ -99,7 +99,6 @@ namespace trace {
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
         runtime_information_ = GetRuntimeInformation(info);
-        is_iis_ = isIIS;
         if (assembly_string_default_appdomain_array != nullptr &&
             assembly_string_default_appdomain_array_length > 0) {
             assembly_string_default_appdomain_vector_.assign(
@@ -149,24 +148,6 @@ namespace trace {
         auto assembly_name_string = WSTRING(assembly_name);
 
         //
-        // retrieve AppDomain Name
-        //
-        WSTRING app_domain_name_string = empty_string;
-        WCHAR app_domain_name[stringMaxSize];
-        ULONG app_domain_name_len = 0;
-        hr = this->info_->GetAppDomainInfo(app_domain_id, stringMaxSize, &app_domain_name_len, app_domain_name, nullptr);
-        if (SUCCEEDED(hr)) {
-          app_domain_name_string = WSTRING(app_domain_name);
-        }
-
-        // If we are in the IIS process we skip the default domain
-        bool isDefaultDomain = app_domain_name_string == default_domain_name;
-        if (is_iis_ && isDefaultDomain) {
-            Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + ToString(assembly_name_string) + ". The module belongs to the DefaultDomain in IIS process.");
-            return E_FAIL;
-        }
-
-        //
         // check if the module is not the loader itself
         //
         if (assembly_name_string == managed_loader_assembly_name) {
@@ -188,8 +169,7 @@ namespace trace {
             if (assembly_name_string == asm_name) {
                 Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + 
                     ToString(assembly_name_string) + 
-                    " [AppDomain=" + ToString(app_domain_id) + 
-                    ", AppDomainName=" + ToString(app_domain_name_string) + "]");
+                    " [AppDomain=" + ToString(app_domain_id) + "]");
                 return E_FAIL;
             }
         }
