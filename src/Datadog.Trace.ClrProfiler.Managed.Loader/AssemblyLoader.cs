@@ -32,7 +32,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
     /// ! Also, remember that this assembly is shared between the Tracer's profiler component
     /// and the Profiler's profiler component. Do not put specialized code here !
     /// </summary>
-    public partial class AssemblyLoader
+    public class AssemblyLoader
     {
         /// <summary>
         /// The constants <c>TargetLibraryEntrypointMethod</c>, and <c>...Type</c> specify
@@ -52,28 +52,33 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         internal const string AssemblyLoggingComponentMonikerPrefix = "ManagedLoader.";
         private const string LoggingComponentMoniker = AssemblyLoader.AssemblyLoggingComponentMonikerPrefix + nameof(AssemblyLoader);
 
-        private readonly string[] _assemblyNamesToLoad;
+        private bool _isDefaultAppDomain;
+        private string[] _assemblyNamesToLoadIntoDefaultAppDomain;
+        private string[] _assemblyNamesToLoadIntoNonDefaultAppDomains;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AssemblyLoader"/> class.
         /// </summary>
-        /// <param name="assemblyNamesToLoad">List of assemblies to load and start.</param>
-        public AssemblyLoader(string[] assemblyNamesToLoad)
+        /// <param name="assemblyNamesToLoadIntoDefaultAppDomain">List of assemblies to load and start if the curret App Domain is the default App Domain.</param>
+        /// <param name="assemblyNamesToLoadIntoNonDefaultAppDomains">List of assemblies to load and start if the curret App Domain is the NOT default App Domain.</param>
+        public AssemblyLoader(string[] assemblyNamesToLoadIntoDefaultAppDomain, string[] assemblyNamesToLoadIntoNonDefaultAppDomains)
         {
-            _assemblyNamesToLoad = assemblyNamesToLoad;
+            _assemblyNamesToLoadIntoDefaultAppDomain = assemblyNamesToLoadIntoDefaultAppDomain;
+            _assemblyNamesToLoadIntoNonDefaultAppDomains = assemblyNamesToLoadIntoNonDefaultAppDomains;
         }
 
         /// <summary>
         /// Instantiates an <c>AssemblyLoader</c> instance with the specified assemblies and executes it.
         /// </summary>
-        /// <param name="assemblyNamesToLoad">List of assemblies to load ans start.</param>
-        public static void Run(string[] assemblyNamesToLoad)
+        /// <param name="assemblyNamesToLoadIntoDefaultAppDomain">List of assemblies to load and start if the curret App Domain is the default App Domain.</param>
+        /// <param name="assemblyNamesToLoadIntoNonDefaultAppDomains">List of assemblies to load and start if the curret App Domain is the NOT default App Domain.</param>
+        public static void Run(string[] assemblyNamesToLoadIntoDefaultAppDomain, string[] assemblyNamesToLoadIntoNonDefaultAppDomains)
         {
             try
             {
                 try
                 {
-                    var assemblyLoader = new AssemblyLoader(assemblyNamesToLoad);
+                    var assemblyLoader = new AssemblyLoader(assemblyNamesToLoadIntoDefaultAppDomain, assemblyNamesToLoadIntoNonDefaultAppDomains);
                     assemblyLoader.Execute();
                 }
                 catch (Exception ex)
@@ -93,7 +98,9 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         /// </summary>
         public void Execute()
         {
-            Log.Info(LoggingComponentMoniker, "Initializing");
+            Log.Info(LoggingComponentMoniker, "Initializing...");
+
+            AnalyzeAppDomain();
 
             AssemblyResolveEventHandler assemblyResolveEventHandler = CreateAssemblyResolveEventHandler();
             if (assemblyResolveEventHandler == null)
@@ -109,11 +116,10 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             }
             catch (Exception ex)
             {
-                Log.Error(LoggingComponentMoniker, "Unable to register an AssemblyResolve event handler", ex);
+                Log.Error(LoggingComponentMoniker, "Error while registering an AssemblyResolve event handler", ex);
             }
 
             var logEntryDetails = new List<object>();
-
             logEntryDetails.Add("Number of assemblies");
             logEntryDetails.Add(assemblyResolveEventHandler.AssemblyNamesToLoad.Count);
             logEntryDetails.Add("Number of product binaries directories");
@@ -400,9 +406,45 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             }
         }
 
+        private void AnalyzeAppDomain()
+        {
+            AppDomain currAD = AppDomain.CurrentDomain;
+            _isDefaultAppDomain = currAD.IsDefaultAppDomain();
+
+            Log.Info(
+                    LoggingComponentMoniker,
+                    "Will load and start assemblies listed for " + (_isDefaultAppDomain ? "the Default AppDomain" : "Non-default AppDomains") + "; listing current AppDomain info",
+                    "IsDefaultAppDomain",
+                    _isDefaultAppDomain,
+                    "Id",
+                    currAD.Id,
+                    "FriendlyName",
+                    currAD.FriendlyName,
+                    "IsFullyTrusted",
+                    currAD.IsFullyTrusted,
+                    "IsHomogenous",
+                    currAD.IsHomogenous,
+                    "BaseDirectory",
+                    currAD.BaseDirectory,
+                    "DynamicDirectory",
+                    currAD.DynamicDirectory,
+                    "RelativeSearchPath",
+                    currAD.RelativeSearchPath,
+                    "ShadowCopyFiles",
+                    currAD.ShadowCopyFiles);
+        }
+
         private AssemblyResolveEventHandler CreateAssemblyResolveEventHandler()
         {
-            IReadOnlyList<string> assemblyNamesToLoad = CleanAssemblyNamesToLoad(_assemblyNamesToLoad);
+            // Pick the list that we want to load:
+            string[] assemblyListToUse = _isDefaultAppDomain
+                                                ? _assemblyNamesToLoadIntoDefaultAppDomain
+                                                : _assemblyNamesToLoadIntoNonDefaultAppDomains;
+
+            // Set class fields to null so that the arrays can be collected. The "assemblyResolveEventHandler" will encpsulate the data needed.
+            _assemblyNamesToLoadIntoDefaultAppDomain = _assemblyNamesToLoadIntoNonDefaultAppDomains = null;
+
+            IReadOnlyList<string> assemblyNamesToLoad = CleanAssemblyNamesToLoad(assemblyListToUse);
             if (assemblyNamesToLoad == null)
             {
                 return null;
