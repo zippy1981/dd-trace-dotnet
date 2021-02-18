@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include "clr_helpers.h"
+#include "il_rewriter.h"
 
 namespace trace {
 
@@ -39,6 +40,11 @@ namespace trace {
             log_warn_callback_(str);
           }
         }
+
+        HRESULT WriteAssembliesStringArray(
+            ILRewriter& rewriter, const ComPtr<IMetaDataEmit2> metadata_emit,
+            const std::vector<WSTRING>& assembly_string_vector,
+            ILInstr* pFirstInstr, mdTypeRef string_type_ref);
 
     public:
         Loader(ICorProfilerInfo4* info, bool isIIS,
