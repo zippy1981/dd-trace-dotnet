@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include "clr_helpers.h"
+#include "il_rewriter.h"
 
 namespace trace {
 
@@ -12,7 +13,6 @@ namespace trace {
     private:
         RuntimeInformation runtime_information_;
         ICorProfilerInfo4* info_;
-        bool is_iis_;
 
         std::mutex loaders_loaded_mutex_;
         std::unordered_set<AppDomainID> loaders_loaded_;
@@ -40,8 +40,13 @@ namespace trace {
           }
         }
 
+        HRESULT WriteAssembliesStringArray(
+            ILRewriter& rewriter, const ComPtr<IMetaDataEmit2> metadata_emit,
+            const std::vector<WSTRING>& assembly_string_vector,
+            ILInstr* pFirstInstr, mdTypeRef string_type_ref);
+
     public:
-        Loader(ICorProfilerInfo4* info, bool isIIS,
+        Loader(ICorProfilerInfo4* info,
                WSTRING* assembly_string_default_appdomain_array,
                ULONG assembly_string_default_appdomain_array_length,
                WSTRING* assembly_string_nondefault_appdomain_array,

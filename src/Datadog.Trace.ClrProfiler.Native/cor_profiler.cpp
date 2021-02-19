@@ -253,11 +253,10 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   };
   loader_ = new Loader(
       this->info_, 
-      process_name == "w3wp.exe"_W || process_name == "iisexpress.exe"_W,
       assemblies_string_list,
       1,
-      nullptr,
-      0,
+      assemblies_string_list,
+      1,
       [this](const std::string& str) { Debug(str); },
       [this](const std::string& str) { Info(str); },
       [this](const std::string& str) { Warn(str); }

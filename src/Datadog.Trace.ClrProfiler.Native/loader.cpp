@@ -89,7 +89,7 @@ namespace trace {
     };
 
     Loader::Loader(
-        ICorProfilerInfo4* info, bool isIIS,
+        ICorProfilerInfo4* info,
         WSTRING* assembly_string_default_appdomain_array,
         ULONG assembly_string_default_appdomain_array_length,
         WSTRING* assembly_string_nondefault_appdomain_array,
@@ -99,7 +99,6 @@ namespace trace {
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
         runtime_information_ = GetRuntimeInformation(info);
-        is_iis_ = isIIS;
         if (assembly_string_default_appdomain_array != nullptr &&
             assembly_string_default_appdomain_array_length > 0) {
             assembly_string_default_appdomain_vector_.assign(
@@ -149,24 +148,6 @@ namespace trace {
         auto assembly_name_string = WSTRING(assembly_name);
 
         //
-        // retrieve AppDomain Name
-        //
-        WSTRING app_domain_name_string = empty_string;
-        WCHAR app_domain_name[stringMaxSize];
-        ULONG app_domain_name_len = 0;
-        hr = this->info_->GetAppDomainInfo(app_domain_id, stringMaxSize, &app_domain_name_len, app_domain_name, nullptr);
-        if (SUCCEEDED(hr)) {
-          app_domain_name_string = WSTRING(app_domain_name);
-        }
-
-        // If we are in the IIS process we skip the default domain
-        bool isDefaultDomain = app_domain_name_string == default_domain_name;
-        if (is_iis_ && isDefaultDomain) {
-            Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + ToString(assembly_name_string) + ". The module belongs to the DefaultDomain in IIS process.");
-            return E_FAIL;
-        }
-
-        //
         // check if the module is not the loader itself
         //
         if (assembly_name_string == managed_loader_assembly_name) {
@@ -188,8 +169,7 @@ namespace trace {
             if (assembly_name_string == asm_name) {
                 Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + 
                     ToString(assembly_name_string) + 
-                    " [AppDomain=" + ToString(app_domain_id) + 
-                    ", AppDomainName=" + ToString(app_domain_name_string) + "]");
+                    " [AppDomain=" + ToString(app_domain_id) + "]");
                 return E_FAIL;
             }
         }
@@ -932,7 +912,7 @@ namespace trace {
         
         // ldc.i4.1 = const int 1 => array length
         pNewInstr = rewriter_void.NewILInstr();
-        pNewInstr->m_opcode = CEE_LDC_I4_1;
+        pNewInstr->m_opcode = CEE_LDC_I4_2;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
 
         // newarr System.Object
@@ -940,6 +920,8 @@ namespace trace {
         pNewInstr->m_opcode = CEE_NEWARR;
         pNewInstr->m_Arg32 = system_object_type_ref;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // *************************************************************************************************************** FIRST PARAMETER
 
         // dup
         pNewInstr = rewriter_void.NewILInstr();
@@ -951,64 +933,39 @@ namespace trace {
         pNewInstr->m_opcode = CEE_LDC_I4_0;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
         
-        // ***************************************************************************************************************
-        // here we should load the string array for assemblies to load
-
-        std::vector<WSTRING> assembly_string_vector =
-            isDefaultDomain ? assembly_string_default_appdomain_vector_
-                            : assembly_string_nondefault_appdomain_vector_;
-
-        // ldc.i4 = const int (array length)
-        pNewInstr = rewriter_void.NewILInstr();
-        pNewInstr->m_opcode = CEE_LDC_I4;
-        pNewInstr->m_Arg64 = assembly_string_vector.size();
-        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
-
-        // newarr System.String
-        pNewInstr = rewriter_void.NewILInstr();
-        pNewInstr->m_opcode = CEE_NEWARR;
-        pNewInstr->m_Arg32 = string_type_ref;
-        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
-        
-        // loading array index
-        for (ULONG i = 0; i < assembly_string_vector.size(); i++) {
-          // dup
-          pNewInstr = rewriter_void.NewILInstr();
-          pNewInstr->m_opcode = CEE_DUP;
-          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
-
-          // ldc.i4 = const int array index 0
-          pNewInstr = rewriter_void.NewILInstr();
-          pNewInstr->m_opcode = CEE_LDC_I4;
-          pNewInstr->m_Arg32 = i;
-          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
-
-          // Create a string token
-          mdString string_token;
-          hr = metadata_emit->DefineUserString(assembly_string_vector[i].c_str(), (ULONG)assembly_string_vector[i].size(), &string_token);
-          if (FAILED(hr)) {
-              Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString for string array failed");
-              return hr;
-          }
-
-          // ldstr assembly index value
-          pNewInstr = rewriter_void.NewILInstr();
-          pNewInstr->m_opcode = CEE_LDSTR;
-          pNewInstr->m_Arg32 = string_token;
-          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
-          
-          // stelem.ref
-          pNewInstr = rewriter_void.NewILInstr();
-          pNewInstr->m_opcode = CEE_STELEM_REF;
-          rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        hr = WriteAssembliesStringArray(rewriter_void, metadata_emit, assembly_string_default_appdomain_vector_, pFirstInstr, string_type_ref);
+        if (FAILED(hr)) {
+          return hr;
         }
-
-        // ***************************************************************************************************************
         
         // stelem.ref
         pNewInstr = rewriter_void.NewILInstr();
         pNewInstr->m_opcode = CEE_STELEM_REF;
         rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // *************************************************************************************************************** SECOND PARAMETER
+
+        // dup
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_DUP;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // ldc.i4.0 = const int 0 => array index 0
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4_1;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+        
+        hr = WriteAssembliesStringArray(rewriter_void, metadata_emit, assembly_string_nondefault_appdomain_vector_, pFirstInstr, string_type_ref);
+        if (FAILED(hr)) {
+          return hr;
+        }
+
+        // stelem.ref
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_STELEM_REF;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // ***************************************************************************************************************
 
         // callvirt instance class object System.Reflection.MethodBase::Invoke(object, object[])
         pNewInstr = rewriter_void.NewILInstr();
@@ -1064,6 +1021,61 @@ namespace trace {
               ", ModuleTypeDef=" + ToString(module_type_def) +
               ", ModuleCCTORDef=" + ToString(cctor_method_def) + "]");
         return S_OK;
+    }
+
+    HRESULT Loader::WriteAssembliesStringArray(
+        ILRewriter& rewriter_void,
+        const ComPtr<IMetaDataEmit2> metadata_emit,
+        const std::vector<WSTRING>& assembly_string_vector,
+        ILInstr* pFirstInstr, mdTypeRef string_type_ref) {
+      ILInstr* pNewInstr;
+
+      // ldc.i4 = const int (array length)
+      pNewInstr = rewriter_void.NewILInstr();
+      pNewInstr->m_opcode = CEE_LDC_I4;
+      pNewInstr->m_Arg64 = assembly_string_vector.size();
+      rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+      // newarr System.String
+      pNewInstr = rewriter_void.NewILInstr();
+      pNewInstr->m_opcode = CEE_NEWARR;
+      pNewInstr->m_Arg32 = string_type_ref;
+      rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+      // loading array index
+      for (ULONG i = 0; i < assembly_string_vector.size(); i++) {
+        // dup
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_DUP;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // ldc.i4 = const int array index 0
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDC_I4;
+        pNewInstr->m_Arg32 = i;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // Create a string token
+        mdString string_token;
+        auto hr = metadata_emit->DefineUserString(assembly_string_vector[i].c_str(), (ULONG)assembly_string_vector[i].size(), &string_token);
+        if (FAILED(hr)) {
+          Warn("Loader::InjectLoaderToModuleInitializer: DefineUserString for string array failed");
+          return hr;
+        }
+
+        // ldstr assembly index value
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_LDSTR;
+        pNewInstr->m_Arg32 = string_token;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+
+        // stelem.ref
+        pNewInstr = rewriter_void.NewILInstr();
+        pNewInstr->m_opcode = CEE_STELEM_REF;
+        rewriter_void.InsertBefore(pFirstInstr, pNewInstr);
+      }
+
+      return S_OK;
     }
 
     bool Loader::GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray,
