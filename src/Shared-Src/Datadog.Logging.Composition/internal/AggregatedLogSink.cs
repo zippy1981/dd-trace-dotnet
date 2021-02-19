@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
-using Datadog.Logging.Emission;
 
 namespace Datadog.Logging.Composition
 {

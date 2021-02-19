@@ -2,9 +2,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
-using System.Threading;
-using Datadog.Logging.Emission;
-using Datadog.Util;
 
 namespace Datadog.Logging.Composition
 {

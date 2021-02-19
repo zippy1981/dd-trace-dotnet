@@ -5,4 +5,5 @@
 // Modify the respective T4 templates if changes are required.
 
 <# string LogNamespaceName = "Datadog.AutoInstrumentation.ManagedLoader"; #>
+<# string LogClassAccessibilityLevel = "internal"; #>
 <#@ include file="..\Shared-Src\Datadog.Logging\public\Log.tt.cs" #>

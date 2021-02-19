@@ -13,73 +13,38 @@
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
+  <!-- Datadog.Logging.Emission.props is required for emitting logs: -->
+  <Import Project="..\Shared-Src\Datadog.Logging\Datadog.Logging.Emission.props" Condition="$(LogEmissionPropsIncluded) == ''" />
+
+  <!-- Datadog.Logging.Composition.props is required for composing logs and chosing a log sink: -->
+  <Import Project="..\Shared-Src\Datadog.Logging\Datadog.Logging.Composition.props" Condition="$(LogCompositionPropsIncluded) == ''" />
+
   <ItemGroup>
-    <!-- Play a trick with the VS Solution Explorer:                                                               -->
-    <!-- We want all these files to be grouped under a key that is:                                                -->
-    <!-- the name of the immediate subfolder within the "Shared-Src" sources folder.                               -->
-    <!-- For that, we need to create an item group rooted in "Shared-Src" and then exclude all except these files. -->
-
-    <!-- *** Cross-project-shared files needed by all projects that use Log.tt.cs: ***                             -->
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Emission\internal\DefaultFormat.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Emission\internal\SimpleConsoleSink.cs" />
-
-    <!-- *** Cross-project-shared files needed by projects that want to do Log composition/redirection: ***        -->
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\ILogSink.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\SimpleConsoleLogSink.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\AggregatedLogSink.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\FileLogSink.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\LogGroupMutex.cs" />
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\DatadogEnvironmentFileLogSinkFactory.cs" />
-
-    <!-- *** Misc shared files: ***                                                                                -->
-    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Util\internal\Validate.cs" />
-
-    <ExcludedSharedCompileItems Include="..\Shared-Src\**\*.cs" Exclude="@(IncludedSharedCompileItem)" />
-    <Compile Include="..\Shared-Src\**\*.cs" Exclude="@(ExcludedSharedCompileItems)" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <!-- Play a trick with the VS Solution Explorer:                                                               -->
-    <!-- We want all these files to be grouped under a key that is:                                                -->
-    <!-- the name of the immediate subfolder within the "Shared-Src" sources folder.                               -->
-    <!-- For that, we need to create an item group rooted in "Shared-Src" and then exclude all except these files. -->
-
-    <!-- *** Cross-project-shared files needed by all projects that use Log.tt.cs: ***                             -->
-    <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging\public\Log.tt.cs" />
-
-    <!-- *** Cross-project-shared files needed by projects that want to do Log composition/redirection: ***        -->
-    <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\LogComposer.tt.cs" />
-
-    <ExcludedSharedNoActionItems Include="..\Shared-Src\**\*.tt.cs" Exclude="@(IncludedSharedNoActionItem)" />
-    <None Include="..\Shared-Src\**\*.tt.cs" Exclude="@(ExcludedSharedNoActionItems)" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <!-- This "service" is required for T4-templating. -->
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-
+    <!-- Log.tt is a T4 template that refers to the Log.tt.cs templete referenced in Datadog.Logging.Emission.props.                     -->
+    <!-- It ensures that the Log Emission API is correctly generated.                                                                    -->
     <None Update="Log.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Log.cs</LastGenOutput>
     </None>
-
-    <None Update="LogComposer.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>LogComposer.cs</LastGenOutput>
-    </None>
-
     <Compile Update="Log.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Log.tt</DependentUpon>
     </Compile>
-
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- LogComposer.tt is a T4 template that refers to the LogComposer.tt.cs templete referenced in Datadog.Logging.Composition.props.  -->
+    <!-- It ensures that the Log Composition API is correctly generated.                                                                 -->
+    <None Update="LogComposer.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LogComposer.cs</LastGenOutput>
+    </None>
     <Compile Update="LogComposer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>LogComposer.tt</DependentUpon>
     </Compile>
-    
   </ItemGroup>
-
+  
 </Project>

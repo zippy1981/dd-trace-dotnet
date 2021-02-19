@@ -76,6 +76,8 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
         {
             try
             {
+                LogConfigurator.SetupLogger();
+
                 try
                 {
                     var assemblyLoader = new AssemblyLoader(assemblyNamesToLoadIntoDefaultAppDomain, assemblyNamesToLoadIntoNonDefaultAppDomains);
@@ -89,7 +91,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             catch
             {
                 // An exception must have come out of the logger.
-                // We swallow it to avpid crashing the process.
+                // We swallow it to avoid crashing the process.
             }
         }
 

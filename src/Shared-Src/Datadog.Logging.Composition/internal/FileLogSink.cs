@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Datadog.Logging.Emission;
-using Datadog.Util;
 
 namespace Datadog.Logging.Composition
 {
@@ -12,8 +11,12 @@ namespace Datadog.Logging.Composition
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1116:Split parameters must start on line after declaration", Justification = "Bad rule")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1310:Field names must not contain underscore", Justification = "Underscore aid visibility in long names")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0007:Use implicit type", Justification = "Worst piece of advise Style tools ever gave.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1615:Element return value must be documented", Justification = "That would be great.")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1611:Element parameters must be documented", Justification = "That would be great.")]
     internal sealed class FileLogSink : ILogSink, IDisposable
     {
+        public const int RotateLogFileWhenLargerBytesDefault = 1024 * 1024 * 128;  // 128 MB
+
         private const string FilenameSeparatorForTimestamp = "-";
         private const string FilenameTimestampFormat = "yyyyMMdd";
         private const string FilenameSeparatorForIndex = "_";
@@ -22,8 +25,6 @@ namespace Datadog.Logging.Composition
 
         private const int FilenameTimestampAndIndexPartsLengthEstimate = 20;
 
-        private const int RotateFilesWhenLargerBytes = 1024 * 1024 * 128;  // 128 MB
-
         private static readonly Encoding LogTextEncoding = Encoding.UTF8;
 
         private readonly object _rotationLock = new object();
@@ -31,22 +32,29 @@ namespace Datadog.Logging.Composition
         private readonly LogGroupMutex _logGroupMutex;
         private readonly string _logFileDir;
         private readonly string _logFileNameBase;
+        private readonly int _rotateLogFileWhenLargerBytes;
 
         private FileStream _logStream;
         private StreamWriter _logWriter;
         private int _rotationIndex;
 
-        private FileLogSink(LogGroupMutex logGroupMutex, string logFileDir, string logFileNameBase, FileStream logStream, int rotationIndex)
+        private FileLogSink(LogGroupMutex logGroupMutex,
+                            string logFileDir,
+                            string logFileNameBase,
+                            int rotateLogFileWhenLargerBytes,
+                            FileStream logStream,
+                            int initialRotationIndex)
         {
             _logSessionId = Guid.NewGuid();
             _logGroupMutex = logGroupMutex;
             _logFileDir = logFileDir;
             _logFileNameBase = logFileNameBase;
+            _rotateLogFileWhenLargerBytes = rotateLogFileWhenLargerBytes;
 
             _logStream = logStream;
             _logWriter = new StreamWriter(logStream, LogTextEncoding);
 
-            _rotationIndex = rotationIndex;
+            _rotationIndex = initialRotationIndex;
         }
 
         public Guid LogSessionId
@@ -56,7 +64,23 @@ namespace Datadog.Logging.Composition
 
         public static bool TryCreateNew(string logFileDir, string logFileNameBase, Guid logGroupId, out FileLogSink newSink)
         {
-            Validate.NotNullOrWhitespace(logFileNameBase, nameof(logFileNameBase));
+            return TryCreateNew(logFileDir, logFileNameBase, logGroupId, FileLogSink.RotateLogFileWhenLargerBytesDefault, out newSink);
+        }
+
+        /// <summary>
+        /// Attention: All loggers from all processes that write to the same <c>logFileNameBase</c> MUST use the same value for <c>rotateLogFileWhenLargerBytes</c>!
+        /// </summary>
+        public static bool TryCreateNew(string logFileDir, string logFileNameBase, Guid logGroupId, int rotateLogFileWhenLargerBytes, out FileLogSink newSink)
+        {
+            if (logFileNameBase == null)
+            {
+                throw new ArgumentNullException(nameof(logFileNameBase));
+            }
+
+            if (string.IsNullOrWhiteSpace(logFileNameBase))
+            {
+                throw new ArgumentException($"{nameof(logFileNameBase)} may not be white-space only.", nameof(logFileNameBase));
+            }
 
             newSink = null;
 
@@ -80,6 +104,11 @@ namespace Datadog.Logging.Composition
                 return false;
             }
 
+            if (rotateLogFileWhenLargerBytes <= 0)
+            {
+                rotateLogFileWhenLargerBytes = -1;
+            }
+
             try
             {
                 try
@@ -91,14 +120,21 @@ namespace Datadog.Logging.Composition
                     string logFilePath = Path.Combine(logFileDir, logFileName);
                     FileStream logStream = new FileStream(logFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
 
-                    newSink = new FileLogSink(logGroupMutex, logFileDir, logFileNameBase, logStream, rotationIndex);
+                    newSink = new FileLogSink(logGroupMutex, logFileDir, logFileNameBase, rotateLogFileWhenLargerBytes, logStream, rotationIndex);
                 }
                 finally
                 {
                     mutex.ReleaseMutex();
                 }
 
-                newSink.Info(StringPair.Create(typeof(FileLogSink).FullName, null), "Logging session started", "LogGroupId", logGroupId, "LogSessionId", newSink.LogSessionId);
+                newSink.Info(StringPair.Create(typeof(FileLogSink).FullName, null),
+                             "Logging session started",
+                             "LogGroupId",
+                             logGroupId,
+                             "LogSessionId",
+                             newSink.LogSessionId,
+                             "RotateLogFileWhenLargerBytes",
+                             rotateLogFileWhenLargerBytes);
             }
             catch
             {
@@ -286,7 +322,7 @@ namespace Datadog.Logging.Composition
                 try
                 {
                     long pos = _logStream.Seek(0, SeekOrigin.End);
-                    if (pos <= RotateFilesWhenLargerBytes)
+                    if (_rotateLogFileWhenLargerBytes > 0 && pos <= _rotateLogFileWhenLargerBytes)
                     {
                         _logWriter.WriteLine(logLine);
 
