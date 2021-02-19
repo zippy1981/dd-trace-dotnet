@@ -12,14 +12,6 @@
 
 #define stringMaxSize 1024
 
-#ifdef _WIN32
-    #define WStr(value) L##value
-    #define WStrLen(value) (size_t) wcslen(value)
-#else
-    #define WStr(value) u##value
-    #define WStrLen(value) (size_t) std::char_traits<char16_t>::length(value)
-#endif
-
 namespace trace {
     
     Loader* loader = nullptr;
@@ -111,6 +103,23 @@ namespace trace {
                 assembly_string_nondefault_appdomain_array,
                 assembly_string_nondefault_appdomain_array + assembly_string_nondefault_appdomain_array_length);
         }
+        log_debug_callback_ = log_debug_callback;
+        log_info_callback_ = log_info_callback;
+        log_warn_callback_ = log_warn_callback;
+        loader = this;
+    }
+
+    Loader::Loader(
+        ICorProfilerInfo4* info,
+        std::vector<WSTRING> assembly_string_default_appdomain_vector,
+        std::vector<WSTRING> assembly_string_nondefault_appdomain_vector,
+        std::function<void(const std::string& str)> log_debug_callback,
+        std::function<void(const std::string& str)> log_info_callback,
+        std::function<void(const std::string& str)> log_warn_callback) {
+        info_ = info;
+        runtime_information_ = GetRuntimeInformation(info);
+        assembly_string_default_appdomain_vector_ = assembly_string_default_appdomain_vector;
+        assembly_string_nondefault_appdomain_vector_ = assembly_string_nondefault_appdomain_vector;
         log_debug_callback_ = log_debug_callback;
         log_info_callback_ = log_info_callback;
         log_warn_callback_ = log_warn_callback;

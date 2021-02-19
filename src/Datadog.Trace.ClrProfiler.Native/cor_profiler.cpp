@@ -248,19 +248,12 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   }
 
   // Create the loader class
-  WSTRING assemblies_string_list[1] = { 
-      "Datadog.Trace.ClrProfiler.Managed"_W
-  };
-  loader_ = new Loader(
-      this->info_, 
-      assemblies_string_list,
-      1,
-      assemblies_string_list,
-      1,
+  loader_ = Loader::CreateLoader(
+      this->info_,
+      process_name,
       [this](const std::string& str) { Debug(str); },
       [this](const std::string& str) { Info(str); },
-      [this](const std::string& str) { Warn(str); }
-  );
+      [this](const std::string& str) { Warn(str); });
 
   // writing opcodes vector for the IL dumper
 #define OPDEF(c, s, pop, push, args, type, l, s1, s2, flow) \

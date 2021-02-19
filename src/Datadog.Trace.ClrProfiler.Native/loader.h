@@ -7,6 +7,14 @@
 #include "clr_helpers.h"
 #include "il_rewriter.h"
 
+#ifdef _WIN32
+#define WStr(value) L##value
+#define WStrLen(value) (size_t) wcslen(value)
+#else
+#define WStr(value) u##value
+#define WStrLen(value) (size_t) std::char_traits<char16_t>::length(value)
+#endif
+
 namespace trace {
 
     class Loader {
@@ -55,10 +63,59 @@ namespace trace {
                std::function<void(const std::string& str)> log_info_callback,
                std::function<void(const std::string& str)> log_warn_callback);
 
+        Loader(ICorProfilerInfo4* info,
+               std::vector<WSTRING> assembly_string_default_appdomain_vector,
+               std::vector<WSTRING> assembly_string_nondefault_appdomain_vector,
+               std::function<void(const std::string& str)> log_debug_callback,
+               std::function<void(const std::string& str)> log_info_callback,
+               std::function<void(const std::string& str)> log_warn_callback);
+
         HRESULT InjectLoaderToModuleInitializer(const ModuleID module_id);
 
         bool GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray, int* assemblySize,
                                         BYTE** pSymbolsArray, int* symbolsSize, AppDomainID appDomainId);
+
+        static Loader* CreateLoader(
+            ICorProfilerInfo4* info, 
+            WSTRING process_name,
+            std::function<void(const std::string& str)> log_debug_callback,
+            std::function<void(const std::string& str)> log_info_callback,
+            std::function<void(const std::string& str)> log_warn_callback) {
+
+          std::vector<WSTRING> assembly_string_default_appdomain_vector;
+          std::vector<WSTRING> assembly_string_nondefault_appdomain_vector;
+          const bool is_iis = process_name == WStr("w3wp.exe") ||
+                              process_name == WStr("iisexpress.exe");
+
+          if (is_iis) {
+
+            assembly_string_default_appdomain_vector = {
+                WStr("Datadog.Trace.ClrProfiler.Managed"),
+                WStr("AppDomain default IIS"),
+            };
+            assembly_string_nondefault_appdomain_vector = {
+                WStr("Datadog.Trace.ClrProfiler.Managed"),
+                WStr("AppDomain non default IIS"),
+            };
+
+          } else {
+
+            assembly_string_default_appdomain_vector = {
+                WStr("Datadog.Trace.ClrProfiler.Managed"),
+                WStr("AppDomain default normal process"),
+            };
+            assembly_string_nondefault_appdomain_vector = {
+                WStr("Datadog.Trace.ClrProfiler.Managed"),
+                WStr("AppDomain non default normal process"),
+            };
+
+          }
+
+          return new Loader(info, assembly_string_default_appdomain_vector,
+                            assembly_string_nondefault_appdomain_vector,
+                            log_debug_callback, log_info_callback,
+                            log_warn_callback);
+        }
     };
 
     extern Loader* loader;  // global reference to loader
