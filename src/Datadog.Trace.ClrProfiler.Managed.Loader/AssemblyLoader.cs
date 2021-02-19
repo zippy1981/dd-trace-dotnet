@@ -401,7 +401,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
             }
             catch (Exception ex)
             {
-                Log.Error(LoggingComponentMoniker, "Error while loading environment variable", ex, "envVarName", envVarName);
+                Log.Error(LoggingComponentMoniker, "Error while reading environment variable", ex, "envVarName", envVarName);
                 return null;
             }
         }

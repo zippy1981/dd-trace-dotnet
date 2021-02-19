@@ -14,15 +14,17 @@ namespace Datadog.Logging.Composition
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0007:Use implicit type", Justification = "Worst piece of advise Style tools ever gave.")]
     internal sealed class FileLogSink : ILogSink, IDisposable
     {
-        public const string FilenameSeparator_Timestamp = "-";
-        public const string FilenameSeparator_Index = "_";
-        public const string FilenameTimestampFormat = "yyyyMMdd";
-        public const string FilenameExtension = "log";
-        public const int FilenameFixedPartsLength = 20;
+        private const string FilenameSeparatorForTimestamp = "-";
+        private const string FilenameTimestampFormat = "yyyyMMdd";
+        private const string FilenameSeparatorForIndex = "_";
+        private const string FilenameIndexFormat = "000";
+        private const string FilenameExtension = "log";
 
-        public const int RotateFilesWhenLargerBytes = 1024 * 1024 * 128;  // 128 MB
+        private const int FilenameTimestampAndIndexPartsLengthEstimate = 20;
 
-        public static readonly Encoding LogTextEncoding = Encoding.UTF8;
+        private const int RotateFilesWhenLargerBytes = 1024 * 1024 * 128;  // 128 MB
+
+        private static readonly Encoding LogTextEncoding = Encoding.UTF8;
 
         private readonly object _rotationLock = new object();
         private readonly Guid _logSessionId;
@@ -112,6 +114,36 @@ namespace Datadog.Logging.Composition
             }
 
             return true;
+        }
+
+        public static void ConstructAndAppendFilename(StringBuilder bufferWithFileameBase, DateTimeOffset timestamp)
+        {
+            ConstructAndAppendFilename(bufferWithFileameBase, timestamp, indexStr: null);
+        }
+
+        public static void ConstructAndAppendFilename(StringBuilder bufferWithFileameBase, DateTimeOffset timestamp, int index)
+        {
+            ConstructAndAppendFilename(bufferWithFileameBase, timestamp, (index < 0) ? null : index.ToString(FilenameIndexFormat));
+        }
+
+        public static void ConstructAndAppendFilename(StringBuilder bufferWithFileameBase, DateTimeOffset timestamp, string indexStr)
+        {
+            if (bufferWithFileameBase == null)
+            {
+                throw new ArgumentNullException(nameof(bufferWithFileameBase));
+            }
+
+            bufferWithFileameBase.Append(FilenameSeparatorForTimestamp);
+            bufferWithFileameBase.Append(timestamp.ToString(FilenameTimestampFormat));
+
+            if (indexStr != null)
+            {
+                bufferWithFileameBase.Append(FilenameSeparatorForIndex);
+                bufferWithFileameBase.Append(indexStr);
+            }
+
+            bufferWithFileameBase.Append(".");
+            bufferWithFileameBase.Append(FilenameExtension);
         }
 
         public void Dispose()
@@ -206,19 +238,6 @@ namespace Datadog.Logging.Composition
             return false;
         }
 
-        private static string ConstructFilename(string nameBase, DateTimeOffset timestamp, int index)
-        {
-            if (index < 0)
-            {
-                return ConstructFilename(nameBase, timestamp, null);
-            }
-            else
-            {
-                string indexStr = index.ToString("000");
-                return ConstructFilename(nameBase, timestamp, indexStr);
-            }
-        }
-
         private static int FindLatestRotationIndex(DirectoryInfo logFileDirInfo, string logFileNameBase, DateTimeOffset timestamp)
         {
             string filenamePattern = ConstructFilename(logFileNameBase, timestamp, "*");
@@ -238,22 +257,19 @@ namespace Datadog.Logging.Composition
             return rotationIndex;
         }
 
-        private static string ConstructFilename(string nameBase, DateTimeOffset timestamp, string index)
+        private static string ConstructFilename(string nameBase, DateTimeOffset timestamp, int index)
         {
-            var filename = new StringBuilder(nameBase.Length + FilenameFixedPartsLength);
+            var filename = new StringBuilder(nameBase.Length + FilenameTimestampAndIndexPartsLengthEstimate);
             filename.Append(nameBase);
-            filename.Append(FilenameSeparator_Timestamp);
-            filename.Append(timestamp.ToString(FilenameTimestampFormat));
+            ConstructAndAppendFilename(filename, timestamp, index);
+            return filename.ToString();
+        }
 
-            if (index != null)
-            {
-                filename.Append(FilenameSeparator_Index);
-                filename.Append(index);
-            }
-
-            filename.Append(".");
-            filename.Append(FilenameExtension);
-
+        private static string ConstructFilename(string nameBase, DateTimeOffset timestamp, string indexStr)
+        {
+            var filename = new StringBuilder(nameBase.Length + FilenameTimestampAndIndexPartsLengthEstimate);
+            filename.Append(nameBase);
+            ConstructAndAppendFilename(filename, timestamp, indexStr);
             return filename.ToString();
         }
 

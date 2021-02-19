@@ -34,8 +34,10 @@ namespace Datadog.Logging.Composition
 #>
     /// TOTAL: <#= validLogNsCount #> loggers.
     /// </summary>
-internal static class LogComposer
+    internal static class LogComposer
     {
+        private const string IsDebugLoggingEnabledEnvVarName = "DD_TRACE_DEBUG";
+
         private static bool s_isDebugLoggingEnabled = true;
 
         public static bool IsDebugLoggingEnabled
@@ -64,6 +66,12 @@ internal static class LogComposer
 #>
                 }
             }
+        }
+
+        public static void SetDebugLoggingEnabledBasedOnEnvironment()
+        {
+            bool envSetting = GetDebugLoggingEnabledEnvironmentSetting();
+            IsDebugLoggingEnabled = envSetting;
         }
 
         public static void RedirectLogs(ILogSink logSink)
@@ -97,6 +105,31 @@ internal static class LogComposer
             }
 #>
             }
+        }
+
+        private static bool GetDebugLoggingEnabledEnvironmentSetting()
+        {
+            // Unless the debug log is explicitly disabled, we assume that it is enabled.
+            try
+            {
+                string IsDebugLoggingEnabledEnvVarValue = Environment.GetEnvironmentVariable(IsDebugLoggingEnabledEnvVarName);
+
+                if (IsDebugLoggingEnabledEnvVarValue != null)
+                {
+                    if (IsDebugLoggingEnabledEnvVarValue.Equals("false", System.StringComparison.OrdinalIgnoreCase)
+                            || IsDebugLoggingEnabledEnvVarValue.Equals("no", System.StringComparison.OrdinalIgnoreCase)
+                            || IsDebugLoggingEnabledEnvVarValue.Equals("n", System.StringComparison.OrdinalIgnoreCase)
+                            || IsDebugLoggingEnabledEnvVarValue.Equals("f", System.StringComparison.OrdinalIgnoreCase)
+                            || IsDebugLoggingEnabledEnvVarValue.Equals("0", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+            }
+            catch
+            { }
+            
+            return true;
         }
     }
 }

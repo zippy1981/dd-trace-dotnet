@@ -19,18 +19,19 @@
     <!-- the name of the immediate subfolder within the "Shared-Src" sources folder.                               -->
     <!-- For that, we need to create an item group rooted in "Shared-Src" and then exclude all except these files. -->
 
-    <!-- *** Files needed by all projects that use Log.tt.cs: ***                                                  -->
+    <!-- *** Cross-project-shared files needed by all projects that use Log.tt.cs: ***                             -->
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Emission\internal\DefaultFormat.cs" />
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Emission\internal\SimpleConsoleSink.cs" />
 
-    <!-- *** Files needed by projects that want to do Log composition/redirection: ***                             -->
+    <!-- *** Cross-project-shared files needed by projects that want to do Log composition/redirection: ***        -->
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\ILogSink.cs" />
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\SimpleConsoleLogSink.cs" />
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\AggregatedLogSink.cs" />
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\FileLogSink.cs" />
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\LogGroupMutex.cs" />
+    <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\DatadogEnvironmentFileLogSinkFactory.cs" />
 
-    <!-- *** Misc shared files needed by all projects that use Log.tt.cs: ***                                      -->
+    <!-- *** Misc shared files: ***                                                                                -->
     <IncludedSharedCompileItem Include="..\Shared-Src\Datadog.Util\internal\Validate.cs" />
 
     <ExcludedSharedCompileItems Include="..\Shared-Src\**\*.cs" Exclude="@(IncludedSharedCompileItem)" />
@@ -43,10 +44,10 @@
     <!-- the name of the immediate subfolder within the "Shared-Src" sources folder.                               -->
     <!-- For that, we need to create an item group rooted in "Shared-Src" and then exclude all except these files. -->
 
-    <!-- *** Files needed by all projects that use Log.tt.cs: ***                                                  -->
+    <!-- *** Cross-project-shared files needed by all projects that use Log.tt.cs: ***                             -->
     <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging\public\Log.tt.cs" />
 
-    <!-- *** Files needed by projects that want to do Log composition/redirection: ***                             -->
+    <!-- *** Cross-project-shared files needed by projects that want to do Log composition/redirection: ***        -->
     <IncludedSharedNoActionItem Include="..\Shared-Src\Datadog.Logging.Composition\internal\LogComposer.tt.cs" />
 
     <ExcludedSharedNoActionItems Include="..\Shared-Src\**\*.tt.cs" Exclude="@(IncludedSharedNoActionItem)" />

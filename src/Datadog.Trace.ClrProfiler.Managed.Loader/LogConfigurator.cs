@@ -1,14 +1,36 @@
 using System;
+using Datadog.Logging.Composition;
 
 namespace Datadog.AutoInstrumentation.ManagedLoader
 {
-    using ManagedLoaderLog = Datadog.AutoInstrumentation.ManagedLoader.Log;
-
     internal static class LogConfigurator
     {
-        public static void Setup()
+        private const bool UseConsoleLogIfFileLogNotAvailable = true;
+
+        private const string ProductFamily = "DotNet";
+        private const string Product = "Common";
+        private const string ComponentGroup = "ManagedLoader";
+        private static readonly Guid ManagedLoaderLogGroupId = Guid.Parse("27B50088-5AFB-44AC-9F24-8A5BD5D1DCF6");
+
+        public static void SetupLogger()
         {
-            ManagedLoaderLog.Configure.Info(null);
+            try
+            {
+                if (DatadogEnvironmentFileLogSinkFactory.TryCreateNewFileLogSink(ProductFamily, Product, ComponentGroup, ManagedLoaderLogGroupId, out FileLogSink fileLogSink))
+                {
+                    LogComposer.RedirectLogs(fileLogSink);
+                    LogComposer.SetDebugLoggingEnabledBasedOnEnvironment();
+                    return;
+                }
+            }
+            catch
+            { }
+
+            if (UseConsoleLogIfFileLogNotAvailable)
+            {
+                LogComposer.RedirectLogs(SimpleConsoleLogSink.SingeltonInstance);
+                LogComposer.IsDebugLoggingEnabled = true;
+            }
         }
     }
 }
