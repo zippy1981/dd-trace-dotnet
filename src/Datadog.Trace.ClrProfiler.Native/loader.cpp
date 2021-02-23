@@ -1,7 +1,6 @@
 #include "loader.h"
 
 #include "dllmain.h"
-#include "il_rewriter.h"
 #include "il_rewriter_wrapper.h"
 #include "resource.h"
 
@@ -90,7 +89,6 @@ namespace trace {
         std::function<void(const std::string& str)> log_info_callback,
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
-        runtime_information_ = GetRuntimeInformation(info);
         if (assembly_string_default_appdomain_array != nullptr &&
             assembly_string_default_appdomain_array_length > 0) {
             assembly_string_default_appdomain_vector_.assign(
@@ -106,6 +104,7 @@ namespace trace {
         log_debug_callback_ = log_debug_callback;
         log_info_callback_ = log_info_callback;
         log_warn_callback_ = log_warn_callback;
+        runtime_information_ = GetRuntimeInformation();
         loader = this;
     }
 
@@ -117,12 +116,12 @@ namespace trace {
         std::function<void(const std::string& str)> log_info_callback,
         std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
-        runtime_information_ = GetRuntimeInformation(info);
         assembly_string_default_appdomain_vector_ = assembly_string_default_appdomain_vector;
         assembly_string_nondefault_appdomain_vector_ = assembly_string_nondefault_appdomain_vector;
         log_debug_callback_ = log_debug_callback;
         log_info_callback_ = log_info_callback;
         log_warn_callback_ = log_warn_callback;
+        runtime_information_ = GetRuntimeInformation();
         loader = this;
     }
 

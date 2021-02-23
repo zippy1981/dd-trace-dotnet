@@ -1,11 +1,16 @@
 #ifndef DD_CLR_PROFILER_LOADER_H_
 #define DD_CLR_PROFILER_LOADER_H_
 
+#include <corhlpr.h>
+#include <corprof.h>
+#include <functional>
 #include <mutex>
 #include <unordered_set>
+#include <utility>
 
-#include "clr_helpers.h"
+#include "com_ptr.h"
 #include "il_rewriter.h"
+#include "string.h"
 
 #ifdef _WIN32
 #define WStr(value) L##value
@@ -16,10 +21,45 @@
 #endif
 
 namespace trace {
+    
+    struct RuntimeInfo {
+        COR_PRF_RUNTIME_TYPE runtime_type;
+        USHORT major_version;
+        USHORT minor_version;
+        USHORT build_version;
+        USHORT qfe_version;
+
+        RuntimeInfo() 
+            : runtime_type((COR_PRF_RUNTIME_TYPE)0x0), 
+            major_version(0),
+            minor_version(0),
+            build_version(0),
+            qfe_version(0) {}
+
+        RuntimeInfo(COR_PRF_RUNTIME_TYPE runtime_type, USHORT major_version, 
+                    USHORT minor_version, USHORT build_version, USHORT qfe_version)
+            : runtime_type(runtime_type),
+            major_version(major_version),
+            minor_version(minor_version),
+            build_version(build_version),
+            qfe_version(qfe_version) {}
+
+        RuntimeInfo& operator=(const RuntimeInfo& other) {
+            runtime_type = other.runtime_type;
+            major_version = other.major_version;
+            minor_version = other.minor_version;
+            build_version = other.build_version;
+            qfe_version = other.qfe_version;
+            return *this;
+        }
+
+        bool is_desktop() const { return runtime_type == COR_PRF_DESKTOP_CLR; }
+        bool is_core() const { return runtime_type == COR_PRF_CORE_CLR; }
+    };
 
     class Loader {
     private:
-        RuntimeInformation runtime_information_;
+        RuntimeInfo runtime_information_;
         ICorProfilerInfo4* info_;
 
         std::mutex loaders_loaded_mutex_;
@@ -52,6 +92,21 @@ namespace trace {
             ILRewriter& rewriter, const ComPtr<IMetaDataEmit2> metadata_emit,
             const std::vector<WSTRING>& assembly_string_vector,
             ILInstr* pFirstInstr, mdTypeRef string_type_ref);
+
+        RuntimeInfo GetRuntimeInformation() {
+            COR_PRF_RUNTIME_TYPE runtime_type;
+            USHORT major_version;
+            USHORT minor_version;
+            USHORT build_version;
+            USHORT qfe_version;
+        
+            auto hr = info_->GetRuntimeInformation(nullptr, &runtime_type, &major_version, &minor_version, &build_version, &qfe_version, 0, nullptr, nullptr);
+            if (FAILED(hr)) {
+                return {};
+            }
+        
+            return {runtime_type, major_version, minor_version, build_version, qfe_version};
+        }
 
     public:
         Loader(ICorProfilerInfo4* info,

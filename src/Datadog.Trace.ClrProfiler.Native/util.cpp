@@ -5,8 +5,6 @@
 #include <sstream>
 #include <string> //NOLINT
 #include <vector>
-#include "miniutf.hpp"
-#include "pal.h"
 
 namespace trace {
 
