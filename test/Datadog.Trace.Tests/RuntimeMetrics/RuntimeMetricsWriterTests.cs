@@ -82,13 +82,17 @@ namespace Datadog.Trace.Tests.RuntimeMetrics
                     s => s.Increment(MetricsNames.ExceptionsCount, 5, It.IsAny<double>(), new[] { "exception_type:CustomException2" }),
                     Times.Once);
 
-                statsd.ResetCalls();
+                statsd.Invocations.Clear();
 
                 // Make sure stats are reset when pushed
                 writer.PushEvents();
 
                 statsd.Verify(
-                    s => s.Increment(MetricsNames.ExceptionsCount, It.IsAny<int>(), It.IsAny<double>(), It.IsAny<string[]>()),
+                    s => s.Increment(MetricsNames.ExceptionsCount, It.IsAny<int>(), It.IsAny<double>(), new[] { "exception_type:CustomException1" }),
+                    Times.Never);
+
+                statsd.Verify(
+                    s => s.Increment(MetricsNames.ExceptionsCount, It.IsAny<int>(), It.IsAny<double>(), new[] { "exception_type:CustomException2" }),
                     Times.Never);
             }
         }

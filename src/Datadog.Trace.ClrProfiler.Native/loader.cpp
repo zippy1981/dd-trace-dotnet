@@ -3,7 +3,6 @@
 #include "dllmain.h"
 #include "il_rewriter.h"
 #include "il_rewriter_wrapper.h"
-#include "logging.h"
 #include "resource.h"
 
 #ifdef MACOS    
@@ -13,20 +12,12 @@
 
 #define stringMaxSize 1024
 
-#ifdef _WIN32
-    #define _LU(value) L##value
-    #define _LU_len(value) (size_t) wcslen(value)
-#else
-    #define _LU(value) u##value
-    #define _LU_len(value) (size_t) std::char_traits<char16_t>::length(value)
-#endif
-
 namespace trace {
     
     Loader* loader = nullptr;
 
 #ifdef _WIN32
-    const WSTRING native_profiler_file_win32                    = _LU("DATADOG.TRACE.CLRPROFILER.NATIVE.DLL");
+    const WSTRING native_profiler_file_win32                    = WStr("DATADOG.TRACE.CLRPROFILER.NATIVE.DLL");
 #elif LINUX
     extern uint8_t dll_start[]                                  asm("_binary_Datadog_Trace_ClrProfiler_Managed_Loader_dll_start");
     extern uint8_t dll_end[]                                    asm("_binary_Datadog_Trace_ClrProfiler_Managed_Loader_dll_end");
@@ -37,54 +28,61 @@ namespace trace {
     const std::string native_profiler_file_macos                = "Datadog.Trace.ClrProfiler.Native.dylib";
 #endif
     
-    const WSTRING managed_loader_assembly_name                  = _LU("Datadog.Trace.ClrProfiler.Managed.Loader");
-    const WSTRING empty_string                                  = _LU("");
-    const WSTRING default_domain_name                           = _LU("DefaultDomain");
+    const WSTRING managed_loader_assembly_name                  = WStr("Datadog.Trace.ClrProfiler.Managed.Loader");
+    const WSTRING empty_string                                  = WStr("");
+    const WSTRING default_domain_name                           = WStr("DefaultDomain");
 
-    const LPCWSTR managed_loader_startup_type                   = _LU("Datadog.Trace.ClrProfiler.Managed.Loader.Startup");
-    const LPCWSTR module_type_name                              = _LU("<Module>");
-    const LPCWSTR constructor_name                              = _LU(".cctor");
-    const LPCWSTR get_assembly_and_symbols_bytes_name           = _LU("GetAssemblyAndSymbolsBytes");
-    const LPCWSTR mscorlib_name                                 = _LU("mscorlib");
-    const LPCWSTR system_byte_name                              = _LU("System.Byte");
-    const LPCWSTR system_runtime_interopservices_marshal_name   = _LU("System.Runtime.InteropServices.Marshal");
-    const LPCWSTR copy_name                                     = _LU("Copy");
-    const LPCWSTR system_reflection_assembly_name               = _LU("System.Reflection.Assembly");
-    const LPCWSTR system_object_name                            = _LU("System.Object");
-    const LPCWSTR system_appdomain_name                         = _LU("System.AppDomain");
-    const LPCWSTR get_currentdomain_name                        = _LU("get_CurrentDomain");
-    const LPCWSTR load_name                                     = _LU("Load");
-    const LPCWSTR createinstance_name                           = _LU("CreateInstance");
-    const LPCWSTR loader_method_name                            = _LU("DD_LoadInitializationAssemblies");
+    const LPCWSTR managed_loader_startup_type                   = WStr("Datadog.Trace.ClrProfiler.Managed.Loader.Startup");
+    const LPCWSTR module_type_name                              = WStr("<Module>");
+    const LPCWSTR constructor_name                              = WStr(".cctor");
+    const LPCWSTR get_assembly_and_symbols_bytes_name           = WStr("GetAssemblyAndSymbolsBytes");
+    const LPCWSTR mscorlib_name                                 = WStr("mscorlib");
+    const LPCWSTR system_byte_name                              = WStr("System.Byte");
+    const LPCWSTR system_runtime_interopservices_marshal_name   = WStr("System.Runtime.InteropServices.Marshal");
+    const LPCWSTR copy_name                                     = WStr("Copy");
+    const LPCWSTR system_reflection_assembly_name               = WStr("System.Reflection.Assembly");
+    const LPCWSTR system_object_name                            = WStr("System.Object");
+    const LPCWSTR system_appdomain_name                         = WStr("System.AppDomain");
+    const LPCWSTR get_currentdomain_name                        = WStr("get_CurrentDomain");
+    const LPCWSTR load_name                                     = WStr("Load");
+    const LPCWSTR createinstance_name                           = WStr("CreateInstance");
+    const LPCWSTR loader_method_name                            = WStr("DD_LoadInitializationAssemblies");
     
-    const WSTRING profiler_path_64                              = GetEnvironmentValue(_LU("CORECLR_PROFILER_PATH_64"));
-    const WSTRING profiler_path_32                              = GetEnvironmentValue(_LU("CORECLR_PROFILER_PATH_32"));
-    const WSTRING profiler_path                                 = GetEnvironmentValue(_LU("CORECLR_PROFILER_PATH"));
+    const WSTRING profiler_path_64                              = GetEnvironmentValue(WStr("CORECLR_PROFILER_PATH_64"));
+    const WSTRING profiler_path_32                              = GetEnvironmentValue(WStr("CORECLR_PROFILER_PATH_32"));
+    const WSTRING profiler_path                                 = GetEnvironmentValue(WStr("CORECLR_PROFILER_PATH"));
 
     // We exclude here the direct references of the loader to avoid a cyclic reference problem.
     // Also well-known assemblies we want to avoid.
     const WSTRING assemblies_exclusion_list_[] = {
-            _LU("mscorlib"),
-            _LU("netstandard"),
-            _LU("System.Private.CoreLib"),
-            _LU("System"),
-            _LU("System.Core"),
-            _LU("System.Configuration"),
-            _LU("System.Data"),
-            _LU("System.EnterpriseServices"),
-            _LU("System.Numerics"),
-            _LU("System.Runtime.Caching"),
-            _LU("System.Security"),
-            _LU("System.Transactions"),
-            _LU("System.Xml"),
-            _LU("System.Web"),
-            _LU("System.Web.ApplicationServices"),
+            WStr("mscorlib"),
+            WStr("netstandard"),
+            WStr("System.Private.CoreLib"),
+            WStr("System"),
+            WStr("System.Core"),
+            WStr("System.Configuration"),
+            WStr("System.Data"),
+            WStr("System.EnterpriseServices"),
+            WStr("System.Numerics"),
+            WStr("System.Runtime.Caching"),
+            WStr("System.Security"),
+            WStr("System.Transactions"),
+            WStr("System.Xml"),
+            WStr("System.Web"),
+            WStr("System.Web.ApplicationServices"),
     };
 
-    Loader::Loader(ICorProfilerInfo4* info, bool isIIS) {
+    Loader::Loader(
+        ICorProfilerInfo4* info, bool isIIS,
+        std::function<void(const std::string& str)> log_debug_callback,
+        std::function<void(const std::string& str)> log_info_callback,
+        std::function<void(const std::string& str)> log_warn_callback) {
         info_ = info;
         runtime_information_ = GetRuntimeInformation(info);
         is_iis_ = isIIS;
+        log_debug_callback_ = log_debug_callback;
+        log_info_callback_ = log_info_callback;
+        log_warn_callback_ = log_warn_callback;
         loader = this;
     }
 
@@ -100,7 +98,7 @@ namespace trace {
         AssemblyID assembly_id = 0;
         HRESULT hr = this->info_->GetModuleInfo2(module_id, NULL, 0, NULL, NULL, &assembly_id, NULL);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching AssemblyID for ModuleID=", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching AssemblyID for ModuleID=" + module_id);
             return hr;
         }
 
@@ -112,7 +110,7 @@ namespace trace {
         ULONG assembly_name_len = 0;
         hr = this->info_->GetAssemblyInfo(assembly_id, stringMaxSize, &assembly_name_len, assembly_name, &app_domain_id, NULL);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching AppDomainID for AssemblyID=", assembly_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching AppDomainID for AssemblyID=" + assembly_id);
             return hr;
         }
 
@@ -131,7 +129,7 @@ namespace trace {
 
         // If we are in the IIS process we skip the default domain
         if (is_iis_ && app_domain_name_string == default_domain_name) {
-            Debug("Loader::InjectLoaderToModuleInitializer: Skipping ", assembly_name_string, ". The module belongs to the DefaultDomain in IIS process.");
+            Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + ToString(assembly_name_string) + ". The module belongs to the DefaultDomain in IIS process.");
             return E_FAIL;
         }
 
@@ -155,12 +153,13 @@ namespace trace {
         //
         for (const auto asm_name : assemblies_exclusion_list_) {
             if (assembly_name_string == asm_name) {
-                Debug("Loader::InjectLoaderToModuleInitializer: Skipping ", assembly_name_string, " [AppDomain=", app_domain_id , ", AppDomainName=", app_domain_name_string, "]");
+                Debug("Loader::InjectLoaderToModuleInitializer: Skipping " + 
+                    ToString(assembly_name_string) + 
+                    " [AppDomain=" + ToString(app_domain_id) + 
+                    ", AppDomainName=" + ToString(app_domain_name_string) + "]");
                 return E_FAIL;
             }
         }
-
-        Debug("Loader::InjectLoaderToModuleInitializer: Analyzing ", assembly_name_string, " [AppDomain=", app_domain_id , ", AppDomainName=", app_domain_name_string, "]");
 
         //
         // the loader is not loaded yet for this AppDomain
@@ -173,7 +172,7 @@ namespace trace {
         ComPtr<IUnknown> metadata_interfaces;
         hr = this->info_->GetModuleMetaData(module_id, ofRead | ofWrite, IID_IMetaDataImport2, metadata_interfaces.GetAddressOf());
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching metadata interfaces for ModuleID=", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching metadata interfaces for ModuleID=" + module_id);
             return hr;
         }
 
@@ -191,14 +190,14 @@ namespace trace {
         mdTypeDef module_type_def = mdTypeDefNil;
         hr = metadata_import->FindTypeDefByName(module_type_name, mdTokenNil, &module_type_def);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching ", module_type_name," (module type) typedef for ModuleID=", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: failed fetching " + ToString(module_type_name) + " (module type) typedef for ModuleID=" + ToString(module_id));
             return hr;
         }
 
         //
         // Check if the <Module> type has already a ..ctor, if not we create an empty one.
         //
-        BYTE cctor_signature[] = {
+        COR_SIGNATURE cctor_signature[] = {
                 IMAGE_CEE_CS_CALLCONV_DEFAULT,  // Calling convention
                 0,                              // Number of parameters
                 ELEMENT_TYPE_VOID,              // Return type
@@ -208,7 +207,7 @@ namespace trace {
         mdMethodDef cctor_method_def = mdMethodDefNil;
         hr = metadata_import->FindMethod(module_type_def, constructor_name, cctor_signature, sizeof(cctor_signature), &cctor_method_def);
         if (FAILED(hr)) {
-            Debug("Loader::InjectLoaderToModuleInitializer: failed fetching <Module>..ctor methoddef for ModuleID=", module_id, ". Creating new .cctor");
+            Debug("Loader::InjectLoaderToModuleInitializer: failed fetching <Module>..ctor methoddef, creating new .ctor for ModuleID=" + ToString(module_id));
 
             //
             // Define a new ..ctor for the <Module> type
@@ -218,7 +217,7 @@ namespace trace {
                                              sizeof(cctor_signature), 0, 0, &cctor_method_def);
 
             if (FAILED(hr)) {
-                Warn("Loader::InjectLoaderToModuleInitializer: Error creating .cctor for <Module> ModuleID=", module_id);
+              Warn("Loader::InjectLoaderToModuleInitializer: Error creating .cctor for <Module> ModuleID=" + ToString(module_id));
                 return hr;
             }
 
@@ -236,7 +235,7 @@ namespace trace {
 
             hr = rewriter.Export();
             if (FAILED(hr)) {
-                Warn("Loader::InjectLoaderToModuleInitializer: ILRewriter.Export failed creating .cctor for <Module> ModuleID=", module_id);
+                Warn("Loader::InjectLoaderToModuleInitializer: ILRewriter.Export failed creating .cctor for <Module> ModuleID=" + ToString(module_id));
                 return hr;
             }
         }
@@ -295,14 +294,14 @@ namespace trace {
 #else   // BIT64
         WSTRING native_profiler_file = profiler_path_32 == empty_string ? profiler_path : profiler_path_32;
 #endif  // BIT64
-        Debug("Loader::InjectLoaderToModuleInitializer: Setting the PInvoke native profiler library path to ", native_profiler_file);
+        Debug("Loader::InjectLoaderToModuleInitializer: Setting the PInvoke native profiler library path to " + ToString(native_profiler_file));
 
 #endif  // _WIN32
 
         mdModuleRef profiler_ref;
         hr = metadata_emit->DefineModuleRef(native_profiler_file.c_str(), &profiler_ref);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: DefineModuleRef for ", native_profiler_file, " failed.");
+            Warn("Loader::InjectLoaderToModuleInitializer: Failed! DefineModuleRef for " + ToString(native_profiler_file));
             return hr;
         }
 
@@ -317,7 +316,7 @@ namespace trace {
         //
         mdAssemblyRef mscorlib_ref = mdAssemblyRefNil;
         ASSEMBLYMETADATA metadata{ 4, 0, 0, 0};
-        BYTE public_key[] = {0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89};
+        COR_SIGNATURE public_key[] = {0xB7, 0x7A, 0x5C, 0x56, 0x19, 0x34, 0xE0, 0x89};
         hr = assembly_emit->DefineAssemblyRef(public_key, sizeof(public_key), mscorlib_name, &metadata, NULL, 0, 0, &mscorlib_ref);
         if (FAILED(hr)) {
             Warn("Loader::InjectLoaderToModuleInitializer: Error creating assembly reference to mscorlib.");
@@ -402,9 +401,7 @@ namespace trace {
         ULONG system_appdomain_type_ref_compressed_token_length = 
             CorSigCompressToken(system_appdomain_type_ref, system_appdomain_type_ref_compressed_token);
 
-        COR_SIGNATURE* appdomain_get_current_domain_signature = 
-            new COR_SIGNATURE[3 + system_appdomain_type_ref_compressed_token_length];
-
+        COR_SIGNATURE appdomain_get_current_domain_signature[50];
         offset = 0;
         appdomain_get_current_domain_signature[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
         appdomain_get_current_domain_signature[offset++] = 0;
@@ -418,7 +415,6 @@ namespace trace {
         hr = metadata_emit->DefineMemberRef(system_appdomain_type_ref, get_currentdomain_name,
                                             appdomain_get_current_domain_signature, offset,
                                             &appdomain_get_current_domain_member_ref);
-        delete[] appdomain_get_current_domain_signature;
         if (FAILED(hr)) {
             Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
             return hr;
@@ -432,9 +428,7 @@ namespace trace {
                 CorSigCompressToken(system_reflection_assembly_type_ref,
                                     system_reflection_assembly_type_ref_compressed_token);
 
-        COR_SIGNATURE* appdomain_load_signature = new COR_SIGNATURE
-        [7 + system_reflection_assembly_type_ref_compressed_token_length];
-
+        COR_SIGNATURE appdomain_load_signature[50];
         offset = 0;
         appdomain_load_signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
         appdomain_load_signature[offset++] = 2;
@@ -452,8 +446,6 @@ namespace trace {
         hr = metadata_emit->DefineMemberRef(system_appdomain_type_ref,
                                             load_name, appdomain_load_signature, 
                                             offset, &appdomain_load_member_ref);
-        delete[] appdomain_load_signature;
-
         if (FAILED(hr)) {
             Warn("Loader::InjectLoaderToModuleInitializer: DefineMemberRef failed");
             return hr;
@@ -482,7 +474,7 @@ namespace trace {
 
         // Create a string representing
         // "Datadog.Trace.ClrProfiler.Managed.Loader.Startup" 
-        size_t load_helper_str_size = _LU_len(managed_loader_startup_type);
+        size_t load_helper_str_size = WStrLen(managed_loader_startup_type);
 
         mdString load_helper_token;
         hr = metadata_emit->DefineUserString(managed_loader_startup_type, (ULONG)load_helper_str_size, &load_helper_token);
@@ -495,7 +487,7 @@ namespace trace {
         WCHAR string_contents[stringMaxSize]{};
         hr = metadata_import->GetUserString(load_helper_token, string_contents, stringMaxSize, &string_len);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: GetUserString failed", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: GetUserString failed" + ToString(module_id));
             return hr;
         }
 
@@ -549,7 +541,7 @@ namespace trace {
                             &locals_signature[11]);
         hr = metadata_emit->GetTokenFromSig(locals_signature, sizeof(locals_signature), &locals_signature_token);
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: Unable to generate locals signature. ModuleID=", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: Unable to generate locals signature. ModuleID=" + ToString(module_id));
             return hr;
         }
 
@@ -793,7 +785,7 @@ namespace trace {
 
         hr = rewriter_void.Export();
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: Call to ILRewriter.Export() failed for ModuleID=", module_id);
+            Warn("Loader::InjectLoaderToModuleInitializer: Call to ILRewriter.Export() failed for ModuleID=" + ToString(module_id));
             return hr;
         }
 
@@ -805,9 +797,8 @@ namespace trace {
         ILRewriter rewriter(this->info_, nullptr, module_id, cctor_method_def);
         hr = rewriter.Import();
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: ",
-                 "Call to ILRewriter.Import() failed for ModuleID=", module_id,
-                 ", CCTORMethodDef", cctor_method_def);
+            Warn("Loader::InjectLoaderToModuleInitializer: Call to ILRewriter.Import() failed for ModuleID=" + ToString(module_id) +
+                 ", CCTORMethodDef" + ToString(cctor_method_def));
             return hr;
         }
         ILRewriterWrapper rewriter_wrapper(&rewriter);
@@ -816,18 +807,17 @@ namespace trace {
         rewriter_wrapper.CallMember(startup_method_def, false);
         hr = rewriter.Export();
         if (FAILED(hr)) {
-            Warn("Loader::InjectLoaderToModuleInitializer: ",
-                 "Call to ILRewriter.Export() failed for ModuleID=", module_id,
-                 ", CCTORMethodDef", cctor_method_def);
+            Warn("Loader::InjectLoaderToModuleInitializer: Call to ILRewriter.Export() failed for ModuleID=" + ToString(module_id) +
+                 ", CCTORMethodDef" + ToString(cctor_method_def));
             return hr;
         }
 
-        Info("Loader::InjectLoaderToModuleInitializer [ModuleID=", module_id,
-              ", AssemblyID=", assembly_id,
-              ", AssemblyName=", assembly_name_string,
-              ", AppDomainID=", app_domain_id,
-              ", ModuleTypeDef=", module_type_def,
-              ", ModuleCCTORDef=", cctor_method_def, "]");
+        Info("Loader::InjectLoaderToModuleInitializer [ModuleID=" + ToString(module_id) +
+              ", AssemblyID=" + ToString(assembly_id) +
+              ", AssemblyName=" + ToString(assembly_name_string) +
+              ", AppDomainID=" + ToString(app_domain_id) +
+              ", ModuleTypeDef=" + ToString(module_type_def) +
+              ", ModuleCCTORDef=" + ToString(cctor_method_def) + "]");
         return S_OK;
     }
 
@@ -844,11 +834,11 @@ namespace trace {
         // check if the loader has been already loaded for this AppDomain
         //
         if (loaders_loaded_.find(appDomainId) != loaders_loaded_.end()) {
-            Warn("Loader::GetAssemblyAndSymbolsBytes the loader was already loaded for AppDomainID=", appDomainId);
+            Warn("Loader::GetAssemblyAndSymbolsBytes the loader was already loaded for AppDomainID=" + ToString(appDomainId));
             return false;
         }
 
-        Info("Loader::GetAssemblyAndSymbolsBytes Loading loader data for AppDomainID=", appDomainId);
+        Info("Loader::GetAssemblyAndSymbolsBytes Loading loader data for AppDomainID=" + ToString(appDomainId));
         loaders_loaded_.insert(appDomainId);
 
 #ifdef _WIN32

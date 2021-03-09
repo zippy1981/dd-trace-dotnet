@@ -33,7 +33,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   const auto debug_enabled_value =
       GetEnvironmentValue(environment::debug_enabled);
 
-  if (debug_enabled_value == "1"_W || debug_enabled_value == "true"_W) {
+  if (debug_enabled_value == WStr("1") || debug_enabled_value == WStr("true")) {
     debug_logging_enabled = true;
   }
 
@@ -41,8 +41,8 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   const auto dump_il_rewrite_enabled_value = 
       GetEnvironmentValue(environment::dump_il_rewrite_enabled);
 
-  if (dump_il_rewrite_enabled_value == "1"_W ||
-      dump_il_rewrite_enabled_value == "true"_W) {
+  if (dump_il_rewrite_enabled_value == WStr("1") ||
+      dump_il_rewrite_enabled_value == WStr("true")) {
     dump_il_rewrite_enabled = true;
   }
 
@@ -52,7 +52,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   const WSTRING tracing_enabled =
       GetEnvironmentValue(environment::tracing_enabled);
 
-  if (tracing_enabled == "0"_W || tracing_enabled == "false"_W) {
+  if (tracing_enabled == WStr("0") || tracing_enabled == WStr("false")) {
     Info("DATADOG TRACER DIAGNOSTICS - Profiler disabled in ", environment::tracing_enabled);
     return E_FAIL;
   }
@@ -100,7 +100,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   const WSTRING azure_app_services_value =
       GetEnvironmentValue(environment::azure_app_services);
 
-  if (azure_app_services_value == "1"_W) {
+  if (azure_app_services_value == WStr("1")) {
     Info("Profiler is operating within Azure App Services context.");
     in_azure_app_services = true;
 
@@ -117,7 +117,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
     const auto cli_telemetry_profile_value = GetEnvironmentValue(
         environment::azure_app_services_cli_telemetry_profile_value);
 
-    if (cli_telemetry_profile_value == "AzureKudu"_W) {
+    if (cli_telemetry_profile_value == WStr("AzureKudu")) {
       Info("DATADOG TRACER DIAGNOSTICS - Profiler disabled: ", app_pool_id_value,
            " is recognized as Kudu, an Azure App Services reserved process.");
       return E_FAIL;
@@ -177,9 +177,9 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   // https://github.com/DataDog/dd-trace-dotnet/pull/753.
   // users can opt-in to the additional instrumentation by setting environment
   // variable DD_TRACE_NETSTANDARD_ENABLED
-  if (netstandard_enabled != "1"_W && netstandard_enabled != "true"_W) {
+  if (netstandard_enabled != WStr("1") && netstandard_enabled != WStr("true")) {
     integration_methods_ = FilterIntegrationsByTargetAssemblyName(
-        integration_methods_, {"netstandard"_W});
+        integration_methods_, {WStr("netstandard")});
   }
 
   DWORD event_mask = COR_PRF_DISABLE_TRANSPARENCY_CHECKS_UNDER_FULL_TRUST |
@@ -218,7 +218,7 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   const WSTRING domain_neutral_instrumentation =
       GetEnvironmentValue(environment::domain_neutral_instrumentation);
 
-  if (domain_neutral_instrumentation == "1"_W || domain_neutral_instrumentation == "true"_W) {
+  if (domain_neutral_instrumentation == WStr("1") || domain_neutral_instrumentation == WStr("true")) {
     instrument_domain_neutral_assemblies = true;
   }
 
@@ -256,13 +256,19 @@ CorProfiler::Initialize(IUnknown* cor_profiler_info_unknown) {
   }
 
   runtime_information_ = GetRuntimeInformation(this->info_);
-  if (process_name == "w3wp.exe"_W  ||
-      process_name == "iisexpress.exe"_W) {
+  if (process_name == WStr("w3wp.exe")  ||
+      process_name == WStr("iisexpress.exe")) {
     is_desktop_iis = runtime_information_.is_desktop();
   }
 
   // Create the loader class
-  loader_ = new Loader(this->info_, process_name == "w3wp.exe"_W || process_name == "iisexpress.exe"_W);
+  loader_ = new Loader(
+      this->info_, 
+      process_name == WStr("w3wp.exe") || process_name == WStr("iisexpress.exe"),
+      [this](const std::string& str) { Debug(str); },
+      [this](const std::string& str) { Info(str); },
+      [this](const std::string& str) { Warn(str); }
+  );
 
   // writing opcodes vector for the IL dumper
 #define OPDEF(c, s, pop, push, args, type, l, s1, s2, flow) \
@@ -331,7 +337,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::AssemblyLoadFinished(AssemblyID assembly_
     Debug("AssemblyLoadFinished: AssemblyName=", assembly_info.name, " AssemblyVersion=", assembly_metadata.version.str());
   }
 
-  if (assembly_info.name == "Datadog.Trace.ClrProfiler.Managed"_W) {
+  if (assembly_info.name == WStr("Datadog.Trace.ClrProfiler.Managed")) {
     // Configure a version string to compare with the profiler version
     std::stringstream ss;
     ss << assembly_metadata.version.major << '.'
@@ -405,8 +411,8 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
   // Identify the AppDomain ID of mscorlib which will be the Shared Domain
   // because mscorlib is always a domain-neutral assembly
   if (!corlib_module_loaded &&
-      (module_info.assembly.name == "mscorlib"_W ||
-       module_info.assembly.name == "System.Private.CoreLib"_W)) {
+      (module_info.assembly.name == WStr("mscorlib") ||
+       module_info.assembly.name == WStr("System.Private.CoreLib"))) {
     corlib_module_loaded = true;
     corlib_app_domain_id = app_domain_id;
     
@@ -442,7 +448,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
   // but the Datadog.Trace.ClrProfiler.Managed.Loader assembly that the startup hook loads from a
   // byte array will be loaded into a non-shared AppDomain.
   // In this case, do not insert another startup hook into that non-shared AppDomain
-  if (module_info.assembly.name == "Datadog.Trace.ClrProfiler.Managed.Loader"_W) {
+  if (module_info.assembly.name == WStr("Datadog.Trace.ClrProfiler.Managed.Loader")) {
     Info("ModuleLoadFinished: Datadog.Trace.ClrProfiler.Managed.Loader loaded into AppDomain ",
           app_domain_id, " ", module_info.assembly.app_domain_name);
     return S_OK;
@@ -506,8 +512,8 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
   // subscribe to DiagnosticSource events.
   // don't skip Dapper: it makes ADO.NET calls even though it doesn't reference
   // System.Data or System.Data.Common
-  if (module_info.assembly.name != "Microsoft.AspNetCore.Hosting"_W &&
-      module_info.assembly.name != "Dapper"_W) {
+  if (module_info.assembly.name != WStr("Microsoft.AspNetCore.Hosting") &&
+      module_info.assembly.name != WStr("Dapper")) {
     filtered_integrations =
         FilterIntegrationsByTarget(filtered_integrations, assembly_import);
 
@@ -552,14 +558,14 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id,
   if (is_calltarget_enabled_) {
 
     // Enqueue ReJIT for System.Web.Compilation.BuildManager.InvokePreStartInitMethods()
-    if (module_metadata->assemblyName == "System.Web"_W) {
+    if (module_metadata->assemblyName == WStr("System.Web")) {
       mdTypeDef typeDef = mdTypeDefNil;
-      auto typeName = "System.Web.Compilation.BuildManager"_W;
-      auto hr = metadata_import->FindTypeDefByName(typeName.c_str(), mdTokenNil, &typeDef);
+      auto typeName = WStr("System.Web.Compilation.BuildManager");
+      auto hr = metadata_import->FindTypeDefByName(typeName, mdTokenNil, &typeDef);
       if (SUCCEEDED(hr)) {
         mdMethodDef methodDef = mdMethodDefNil;
-        auto methodName = "InvokePreStartInitMethods"_W;
-        hr = metadata_import->FindMethod(typeDef, methodName.c_str(), nullptr, 0, &methodDef);
+        auto methodName = WStr("InvokePreStartInitMethods");
+        hr = metadata_import->FindMethod(typeDef, methodName, nullptr, 0, &methodDef);
         if (SUCCEEDED(hr)) {
           Info("InvokePreStartInitMethod was found and enqueued for rejit");
           module_metadata->invoke_pre_start_init_methodDef = methodDef;
@@ -608,8 +614,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleUnloadStarted(ModuleID module_id) {
   }
 
   // remove module metadata from map
-  if (module_id_to_info_map_.count(module_id) > 0) {
-    ModuleMetadata* metadata = module_id_to_info_map_[module_id];
+  auto findRes = module_id_to_info_map_.find(module_id);
+  if (findRes != module_id_to_info_map_.end()) {
+    ModuleMetadata* metadata = findRes->second;
 
     // remove appdomain id from managed_profiler_loaded_app_domains set
     if (managed_profiler_loaded_app_domains.find(metadata->app_domain_id) !=
@@ -689,8 +696,10 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(
 
   // Verify that we have the metadata for this module
   ModuleMetadata* module_metadata = nullptr;
-  if (module_id_to_info_map_.count(module_id) > 0) {
-    module_metadata = module_id_to_info_map_[module_id];
+
+  auto findRes = module_id_to_info_map_.find(module_id);
+  if (findRes != module_id_to_info_map_.end()) {
+    module_metadata = findRes->second;
   }
 
   if (module_metadata == nullptr) {
@@ -713,9 +722,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(
   }
 
   if (is_desktop_iis && 
-      module_metadata->assemblyName == "System.Web"_W && 
-      caller.type.name == "System.Web.Compilation.BuildManager"_W && 
-      caller.name == "InvokePreStartInitMethods"_W && 
+      module_metadata->assemblyName == WStr("System.Web") && 
+      caller.type.name == WStr("System.Web.Compilation.BuildManager") && 
+      caller.name == WStr("InvokePreStartInitMethods") && 
       !is_calltarget_enabled_) {
     hr = AddIISPreStartInitFlags(module_id, function_token, nullptr);
 
@@ -888,8 +897,8 @@ HRESULT STDMETHODCALLTYPE CorProfiler::GetAssemblyReferences(
   assembly_metadata.usMinorVersion = assemblyReference.version.minor;
   assembly_metadata.usBuildNumber = assemblyReference.version.build;
   assembly_metadata.usRevisionNumber = assemblyReference.version.revision;
-  if (assemblyReference.locale == "neutral"_W) {
-    assembly_metadata.szLocale = const_cast<WCHAR*>("\0"_W.c_str());
+  if (assemblyReference.locale == WStr("neutral")) {
+    assembly_metadata.szLocale = const_cast<WCHAR*>(WStr("\0"));
     assembly_metadata.cbLocale = 0;
   } else {
     assembly_metadata.szLocale =
@@ -958,7 +967,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(
   // Perform method call replacements
   for (auto& method_replacement : method_replacements) {
     // Exit early if the method replacement isn't actually doing a replacement
-    if (method_replacement.wrapper_method.action != "ReplaceTargetMethod"_W) {
+    if (method_replacement.wrapper_method.action != WStr("ReplaceTargetMethod")) {
       continue;
     }
 
@@ -1118,7 +1127,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(
 
       auto is_match = true;
       for (size_t i = 0; i < expected_sig.size(); i++) {
-        if (expected_sig[i] == "_"_W) {
+        if (expected_sig[i] == WStr("_")) {
           // We are supposed to ignore this index
           continue;
         }
@@ -1266,7 +1275,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(
 
         // Currently, we only expect to see `System.Threading.CancellationToken` as a valuetype in this position
         // If we expand this to a general case, we would always perform the boxing regardless of type
-        if (GetTypeInfo(module_metadata->metadata_import, valuetype_type_token).name == "System.Threading.CancellationToken"_W) {
+        if (GetTypeInfo(module_metadata->metadata_import, valuetype_type_token).name == WStr("System.Threading.CancellationToken")) {
           rewriter_wrapper.Box(valuetype_type_token);
         }
       }
@@ -1285,7 +1294,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(
           // `System.ReadOnlyMemory<T>` as a valuetype in this
           // position If we expand this to a general case, we would always
           // perform the boxing regardless of type
-          if (GetTypeInfo(module_metadata->metadata_import, valuetype_type_token).name == "System.ReadOnlyMemory`1"_W
+          if (GetTypeInfo(module_metadata->metadata_import, valuetype_type_token).name == WStr("System.ReadOnlyMemory`1")
               && ParseType(&p_end_byte)) {
             size_t length = p_end_byte - p_start_byte;
             mdTypeSpec type_token;
@@ -1393,7 +1402,7 @@ HRESULT CorProfiler::ProcessInsertionCalls(
   ILInstr* lastInstr = rewriter.GetILList()->m_pPrev; // Should be a 'ret' instruction
 
   for (auto& method_replacement : method_replacements) {
-    if (method_replacement.wrapper_method.action == "ReplaceTargetMethod"_W) {
+    if (method_replacement.wrapper_method.action == WStr("ReplaceTargetMethod")) {
       continue;
     }
 
@@ -1423,7 +1432,7 @@ HRESULT CorProfiler::ProcessInsertionCalls(
     }
 
     // After successfully getting the method reference, insert a call to it
-    if (method_replacement.wrapper_method.action == "InsertFirst"_W) {
+    if (method_replacement.wrapper_method.action == WStr("InsertFirst")) {
       // Get first instruction and set the rewriter to that location
       rewriter_wrapper.SetILPosition(firstInstr);
       rewriter_wrapper.CallMember(wrapper_method_ref, false);
@@ -1735,13 +1744,13 @@ HRESULT CorProfiler::AddIISPreStartInitFlags(
 
   // Get System.Boolean type token
   mdToken boolToken;
-  metadata_emit->DefineTypeRefByName(mscorlib_ref, SystemBoolean.data(),
+  metadata_emit->DefineTypeRefByName(mscorlib_ref, SystemBoolean,
                                      &boolToken);
 
   // Get System.AppDomain type ref
   mdTypeRef system_appdomain_type_ref;
   hr = metadata_emit->DefineTypeRefByName(
-      mscorlib_ref, "System.AppDomain"_W.c_str(), &system_appdomain_type_ref);
+      mscorlib_ref, WStr("System.AppDomain"), &system_appdomain_type_ref);
   if (FAILED(hr)) {
     Warn("Wrapper objectTypeRef could not be defined.");
     return hr;
@@ -1760,8 +1769,8 @@ HRESULT CorProfiler::AddIISPreStartInitFlags(
   ULONG token_length = CorSigCompressToken(
       system_appdomain_type_ref, system_appdomain_type_ref_compressed_token);
 
-  COR_SIGNATURE* appdomain_get_current_domain_signature =
-      new COR_SIGNATURE[start_length + token_length];
+  const auto appdomain_get_current_domain_signature_length = start_length + token_length;
+  COR_SIGNATURE appdomain_get_current_domain_signature[250];
   memcpy(appdomain_get_current_domain_signature,
          appdomain_get_current_domain_signature_start, start_length);
   memcpy(&appdomain_get_current_domain_signature[start_length],
@@ -1769,10 +1778,10 @@ HRESULT CorProfiler::AddIISPreStartInitFlags(
 
   mdMemberRef appdomain_get_current_domain_member_ref;
   hr = metadata_emit->DefineMemberRef(
-      system_appdomain_type_ref, "get_CurrentDomain"_W.c_str(),
-      appdomain_get_current_domain_signature, start_length + token_length,
+      system_appdomain_type_ref, WStr("get_CurrentDomain"),
+      appdomain_get_current_domain_signature, 
+      appdomain_get_current_domain_signature_length,
       &appdomain_get_current_domain_member_ref);
-  delete[] appdomain_get_current_domain_signature;
 
   // Get AppDomain.SetData
   COR_SIGNATURE appdomain_set_data_signature[] = {
@@ -1784,7 +1793,7 @@ HRESULT CorProfiler::AddIISPreStartInitFlags(
   };
   mdMemberRef appdomain_set_data_member_ref;
   hr = metadata_emit->DefineMemberRef(
-      system_appdomain_type_ref, "SetData"_W.c_str(),
+      system_appdomain_type_ref, WStr("SetData"),
       appdomain_set_data_signature,
       sizeof(appdomain_set_data_signature),
       &appdomain_set_data_member_ref);
@@ -1908,8 +1917,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::GetReJITParameters(ModuleID moduleId, mdM
   ModuleMetadata* module_metadata = nullptr;
   {
     std::lock_guard<std::mutex> guard(module_id_to_info_map_lock_);
-    if (module_id_to_info_map_.count(moduleId) > 0) {
-      module_metadata = module_id_to_info_map_[moduleId];
+    auto findRes = module_id_to_info_map_.find(moduleId);
+    if (findRes != module_id_to_info_map_.end()) {
+      module_metadata = findRes->second;
     } else {
       return S_OK;
     }
@@ -2027,7 +2037,7 @@ size_t CorProfiler::CallTarget_RequestRejitForModule(ModuleID module_id, ModuleM
         const auto argumentTypeName = methodArguments[i].GetTypeTokName(metadata_import);
         const auto integrationArgumentTypeName = integration.replacement.target_method.signature_types[i + 1];
         Debug("  -> ", argumentTypeName, " = ", integrationArgumentTypeName);
-        if (argumentTypeName != integrationArgumentTypeName && integrationArgumentTypeName != "_"_W) {
+        if (argumentTypeName != integrationArgumentTypeName && integrationArgumentTypeName != WStr("_")) {
           argumentsMismatch = true;
           break;
         }
@@ -2366,8 +2376,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
   // ***
   ILInstr* startExceptionCatch = reWriterWrapper.StLocal(exceptionIndex);
   reWriterWrapper.SetILPosition(methodReturnInstr);
-  reWriterWrapper.Rethrow();
-  ILInstr* methodCatchLeaveInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+  ILInstr* rethrowInstr = reWriterWrapper.Rethrow();
 
   // ***
   // EXCEPTION FINALLY / END METHOD PART
@@ -2469,9 +2478,6 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
     reWriterWrapper.LoadLocal(returnValueIndex);
   }
 
-  // Resolving branching to the end of the method
-  methodCatchLeaveInstr->m_pTarget = endFinallyInstr->m_pNext;
-  
   // Changes all returns to a LEAVE.S
   for (ILInstr* pInstr = rewriter.GetILList()->m_pNext;
        pInstr != rewriter.GetILList(); pInstr = pInstr->m_pNext) {
@@ -2498,14 +2504,14 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
   exClause.m_pTryBegin = firstInstruction;
   exClause.m_pTryEnd = startExceptionCatch;
   exClause.m_pHandlerBegin = startExceptionCatch;
-  exClause.m_pHandlerEnd = methodCatchLeaveInstr;
+  exClause.m_pHandlerEnd = rethrowInstr;
   exClause.m_ClassToken = callTargetTokens->GetExceptionTypeRef();
 
   EHClause finallyClause{};
   finallyClause.m_Flags = COR_ILEXCEPTION_CLAUSE_FINALLY;
   finallyClause.m_pTryBegin = firstInstruction;
-  finallyClause.m_pTryEnd = methodCatchLeaveInstr->m_pNext;
-  finallyClause.m_pHandlerBegin = methodCatchLeaveInstr->m_pNext;
+  finallyClause.m_pTryEnd = rethrowInstr->m_pNext;
+  finallyClause.m_pHandlerBegin = rethrowInstr->m_pNext;
   finallyClause.m_pHandlerEnd = endFinallyInstr;
 
   // ***
