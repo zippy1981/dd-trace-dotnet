@@ -38,7 +38,9 @@ namespace Datadog.Trace.DiagnosticSource
 
             List<DiagnosticObserver> observers = new()
             {
-                new AspNetCoreDiagnosticObserver()
+                new AspNetCoreDiagnosticObserver(),
+                new SystemNetHttpObserver(),
+                new DefaultDiagnosticObserver()
             };
 
             DiagnosticManager.Instance = new DiagnosticManager(observers);
