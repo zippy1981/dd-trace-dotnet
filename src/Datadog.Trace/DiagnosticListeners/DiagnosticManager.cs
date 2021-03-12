@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Vendors.Serilog.Events;
 
@@ -13,17 +12,12 @@ namespace Datadog.Trace.DiagnosticListeners
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<DiagnosticManager>();
 
         private readonly IEnumerable<DiagnosticObserver> _diagnosticObservers;
-        private readonly List<IDisposable> _subscriptions = new List<IDisposable>();
+        private readonly List<IDisposable> _subscriptions = new();
         private IDisposable _allListenersSubscription;
 
         public DiagnosticManager(IEnumerable<DiagnosticObserver> diagnosticSubscribers)
         {
-            if (diagnosticSubscribers == null)
-            {
-                throw new ArgumentNullException(nameof(diagnosticSubscribers));
-            }
-
-            _diagnosticObservers = diagnosticSubscribers;
+            _diagnosticObservers = diagnosticSubscribers ?? throw new ArgumentNullException(nameof(diagnosticSubscribers));
         }
 
         public static DiagnosticManager Instance { get; set; }
