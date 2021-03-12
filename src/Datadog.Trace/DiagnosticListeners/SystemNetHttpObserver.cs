@@ -10,8 +10,6 @@ namespace Datadog.Trace.DiagnosticListeners
 
         protected override void OnNext(string eventName, object arg)
         {
-            Console.WriteLine($"OnNext: {eventName}");
-
             switch (eventName)
             {
                 case "System.Net.Http.HttpRequestOut.Start":
