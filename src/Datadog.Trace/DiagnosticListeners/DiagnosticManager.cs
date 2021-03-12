@@ -23,7 +23,7 @@ namespace Datadog.Trace.DiagnosticListeners
                 throw new ArgumentNullException(nameof(diagnosticSubscribers));
             }
 
-            _diagnosticObservers = diagnosticSubscribers.Where(x => x.IsSubscriberEnabled());
+            _diagnosticObservers = diagnosticSubscribers;
         }
 
         public static DiagnosticManager Instance { get; set; }
@@ -51,19 +51,23 @@ namespace Datadog.Trace.DiagnosticListeners
         {
             foreach (var subscriber in _diagnosticObservers)
             {
-                IDisposable subscription = subscriber.SubscribeIfMatch(listener);
-
-                if (subscription != null)
+                if (subscriber.IsSubscriberEnabled())
                 {
-                    if (Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug(
-                            "Subscriber '{SubscriberType}' returned subscription for '{ListenerName}'",
-                            subscriber.GetType().Name,
-                            listener.Name);
-                    }
+                    IDisposable subscription = subscriber.SubscribeIfMatch(listener);
 
-                    _subscriptions.Add(subscription);
+                    if (subscription != null)
+                    {
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                        {
+                            Log.Debug(
+                                "Subscriber '{SubscriberType}' returned subscription for '{ListenerName}'",
+                                subscriber.GetType().Name,
+                                listener.Name);
+                        }
+
+                        _subscriptions.Add(subscription);
+                        // return;
+                    }
                 }
             }
         }
