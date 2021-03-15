@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net45;net461;netstandard2.0;netcoreapp3.1</TargetFrameworks>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
 
     <!-- NuGet packages -->
     <IsPackable>true</IsPackable>
@@ -24,9 +24,6 @@
   <ItemGroup>
     <!-- NuGet -->
     <None Include="$(MSBuildThisFileDirectory)\..\datadog-logo-256x256.png" Pack="true" Visible="false" PackagePath="packageIcon.png" />
-
-    <!-- StyleCop -->
-    <Compile Include="$(MSBuildThisFileDirectory)GlobalSuppressions.cs" Link="GlobalSuppressions.src.cs" />
 
     <!-- reference assemblies let us target .NET Framework without the SDK (for example, on non-Windows) -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0" PrivateAssets="all" />

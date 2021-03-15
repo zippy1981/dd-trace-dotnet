@@ -14,9 +14,14 @@ namespace Datadog.Trace.DiagnosticListeners
             {
                 case "System.Net.Http.HttpRequestOut.Start":
                     var requestOutStartArgs = arg.DuckCast<SystemNetHttpObserverStubs.IHttpRequestOutStart>();
+                    Console.WriteLine($"{eventName}, {requestOutStartArgs.Request.RequestUri}");
                     break;
                 case "System.Net.Http.HttpRequestOut.Stop":
                     var requestOutStopArgs = arg.DuckCast<SystemNetHttpObserverStubs.IHttpRequestOutStop>();
+                    Console.WriteLine($"{eventName}, {(int)requestOutStopArgs.Response.StatusCode} {requestOutStopArgs.Response.RequestMessage}");
+                    break;
+                case "System.Net.Http.Exception":
+                    Console.WriteLine(eventName);
                     break;
                 case "System.Net.Http.Request":
                     var requestArgs = arg.DuckCast<SystemNetHttpObserverStubs.IRequest>();
