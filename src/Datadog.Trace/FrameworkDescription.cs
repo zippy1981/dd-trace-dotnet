@@ -1,10 +1,6 @@
 using System;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Datadog.Trace.Logging;
-using Microsoft.Win32;
 
 namespace Datadog.Trace
 {
