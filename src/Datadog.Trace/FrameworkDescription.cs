@@ -10,21 +10,6 @@ namespace Datadog.Trace
 
         private static readonly Assembly RootAssembly = typeof(object).Assembly;
 
-        private static readonly Tuple<int, string>[] DotNetFrameworkVersionMapping =
-        {
-            // known min value for each framework version
-            Tuple.Create(528040, "4.8"),
-            Tuple.Create(461808, "4.7.2"),
-            Tuple.Create(461308, "4.7.1"),
-            Tuple.Create(460798, "4.7"),
-            Tuple.Create(394802, "4.6.2"),
-            Tuple.Create(394254, "4.6.1"),
-            Tuple.Create(393295, "4.6"),
-            Tuple.Create(379893, "4.5.2"),
-            Tuple.Create(378675, "4.5.1"),
-            Tuple.Create(378389, "4.5"),
-        };
-
         private FrameworkDescription(
             string name,
             string productVersion,
