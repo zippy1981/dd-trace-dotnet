@@ -8,13 +8,6 @@ namespace Datadog.Trace
 {
     internal partial class FrameworkDescription
     {
-        private static FrameworkDescription _instance = null;
-
-        public static FrameworkDescription Instance
-        {
-            get { return _instance ?? (_instance = Create()); }
-        }
-
         private static readonly Tuple<int, string>[] DotNetFrameworkVersionMapping =
         {
             // known min value for each framework version

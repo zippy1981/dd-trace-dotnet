@@ -7,13 +7,6 @@ namespace Datadog.Trace
 {
     internal partial class FrameworkDescription
     {
-        private static FrameworkDescription _instance = null;
-
-        public static FrameworkDescription Instance
-        {
-            get { return _instance ?? (_instance = Create()); }
-        }
-
         public static FrameworkDescription Create()
         {
             var frameworkName = "unknown";

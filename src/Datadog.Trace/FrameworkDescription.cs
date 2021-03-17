@@ -10,6 +10,8 @@ namespace Datadog.Trace
 
         private static readonly Assembly RootAssembly = typeof(object).Assembly;
 
+        private static FrameworkDescription _instance;
+
         private FrameworkDescription(
             string name,
             string productVersion,
@@ -22,6 +24,11 @@ namespace Datadog.Trace
             OSPlatform = osPlatform;
             OSArchitecture = osArchitecture;
             ProcessArchitecture = processArchitecture;
+        }
+
+        public static FrameworkDescription Instance
+        {
+            get { return _instance ??= Create(); }
         }
 
         public string Name { get; }
