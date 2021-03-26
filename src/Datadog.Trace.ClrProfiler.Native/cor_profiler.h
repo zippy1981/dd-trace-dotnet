@@ -19,6 +19,28 @@
 
 namespace trace {
 
+typedef struct _MethodReplacementItem {
+  WCHAR* callerAssembly;
+  WCHAR* callerType;
+  WCHAR* callerMethod;
+  WCHAR* targetAssembly;
+  WCHAR* targetType;
+  WCHAR* targetMethod;
+  WCHAR** signatureTypes;
+  USHORT signatureTypesLength;
+  USHORT targetMinimumMajor;
+  USHORT targetMinimumMinor;
+  USHORT targetMinimumPatch;
+  USHORT targetMaximumMajor;
+  USHORT targetMaximumMinor;
+  USHORT targetMaximumPatch;
+  WCHAR* wrapperAssembly;
+  WCHAR* wrapperType;
+  WCHAR* wrapperMethod;
+  WCHAR* wrapperSignature;
+  WCHAR* wrapperAction;
+} MethodReplacementItem;
+
 class CorProfiler : public CorProfilerBase {
  private:
   std::atomic_bool is_attached_ = {false};
@@ -36,7 +58,7 @@ class CorProfiler : public CorProfilerBase {
   std::unordered_set<AppDomainID> first_jit_compilation_app_domains;
   bool in_azure_app_services = false;
   bool is_desktop_iis = false;
-  
+
   //
   // CallTarget Members
   //
@@ -107,6 +129,63 @@ class CorProfiler : public CorProfilerBase {
   void GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray, int* assemblySize,
                                  BYTE** pSymbolsArray, int* symbolsSize) const;
 
+  void SetIntegrations(MethodReplacementItem* items, int size) {
+    Info("SetIntegrations received from managed side: ", size, " integrations.");
+    if (items != nullptr) {
+      for (int i = 0; i < size; i++) {
+        Info("  MethodReplacementItem:");
+        const MethodReplacementItem current = items[i];
+        if (current.callerAssembly != nullptr) {
+          Info("    CallerAssembly: ", WSTRING(current.callerAssembly));
+        }
+        if (current.callerType != nullptr) {
+          Info("    CallerType: ", WSTRING(current.callerType));
+        }
+        if (current.callerMethod != nullptr) {
+          Info("    CallerMethod: ", WSTRING(current.callerMethod));
+        }
+        if (current.targetAssembly != nullptr) {
+          Info("    TargetAssembly: ", WSTRING(current.targetAssembly));
+        }
+        if (current.targetType != nullptr) {
+          Info("    TargetType: ", WSTRING(current.targetType));
+        }
+        if (current.targetMethod != nullptr) {
+          Info("    TargetMethod: ", WSTRING(current.targetMethod));
+        }
+        Info("    SignatureTypes: ", current.signatureTypesLength);
+        for (int sIdx = 0; sIdx < current.signatureTypesLength; sIdx++) {
+          const auto currentSignature = current.signatureTypes[sIdx];
+          if (currentSignature != nullptr) {
+            const WSTRING signatureType = WSTRING(currentSignature);
+            Info("       - ", signatureType);
+          }
+        }
+        Info("    TargetMinimumMajor: ", current.targetMinimumMajor);
+        Info("    TargetMinimumMinor: ", current.targetMinimumMinor);
+        Info("    TargetMinimumPatch: ", current.targetMinimumPatch);
+        Info("    TargetMaximumMajor: ", current.targetMaximumMajor);
+        Info("    TargetMaximumMinor: ", current.targetMaximumMinor);
+        Info("    TargetMaximumPatch: ", current.targetMaximumPatch);
+        if (current.wrapperAssembly != nullptr) {
+          Info("    WrapperAssembly: ", WSTRING(current.wrapperAssembly));
+        }
+        if (current.wrapperType != nullptr) {
+          Info("    WrapperType: ", WSTRING(current.wrapperType));
+        }
+        if (current.wrapperMethod != nullptr) {
+          Info("    WrapperMethod: ", WSTRING(current.wrapperMethod));
+        }
+        if (current.wrapperSignature != nullptr) {
+          Info("    WrapperSignature: ", WSTRING(current.wrapperSignature));
+        }
+        if (current.wrapperAction != nullptr) {
+          Info("    WrapperAction: ", WSTRING(current.wrapperAction));
+        }
+      }
+    }
+  }
+
   //
   // ICorProfilerCallback methods
   //
@@ -127,7 +206,7 @@ class CorProfiler : public CorProfilerBase {
   HRESULT STDMETHODCALLTYPE Shutdown() override;
 
   HRESULT STDMETHODCALLTYPE ProfilerDetachSucceeded() override;
-  
+
   HRESULT STDMETHODCALLTYPE JITInlining(FunctionID callerId,
                                         FunctionID calleeId,
                                         BOOL* pfShouldInline) override;

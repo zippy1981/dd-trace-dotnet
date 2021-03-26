@@ -50,6 +50,9 @@ namespace Datadog.Trace.ClrProfiler
         /// </summary>
         public static void Initialize()
         {
+            // Send integrations to the native profiler
+            NativeMethods.SetIntegrations();
+
             if (Interlocked.Exchange(ref _firstInitialization, 0) != 1)
             {
                 // Initialize() was already called before

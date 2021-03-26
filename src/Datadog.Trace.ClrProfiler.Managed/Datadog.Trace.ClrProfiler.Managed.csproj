@@ -50,4 +50,9 @@ Users who need manual instrumentation should reference the "Datadog.Trace" packa
     <!-- Include Datadog.Trace.Build assembly as a reference for publishing purposes -->
     <ProjectReference Include="..\Datadog.Trace.MSBuild\Datadog.Trace.MSBuild.csproj" PrivateAssets="all" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != 'net45'">
+    <!--Source Generators-->
+    <ProjectReference Include="..\..\tools\Datadog.SourceGenerators.IntegrationsList\Datadog.SourceGenerators.IntegrationsList.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"></ProjectReference>
+  </ItemGroup>
 </Project>
