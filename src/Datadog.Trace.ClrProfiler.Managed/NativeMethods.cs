@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -24,6 +25,8 @@ namespace Datadog.Trace.ClrProfiler
 
         public static void SetIntegrations()
         {
+            var sw = Stopwatch.StartNew();
+
             var attributesFromAssembly = typeof(Instrumentation).Assembly.GetCustomAttributes(inherit: false)
                                                             .Select(a => a as InstrumentMethodAttribute)
                                                             .Where(a => a != null);
@@ -65,10 +68,7 @@ namespace Datadog.Trace.ClrProfiler
                                          by integrationName into g
                                          from item in g
                                          from assembly in item.attribute.AssemblyNames
-                                         select new MethodReplacementItem(
-                                             null,
-                                             null,
-                                             null,
+                                         select new CallTargetDefinition(
                                              assembly,
                                              item.attribute.TypeName,
                                              item.attribute.MethodName,
@@ -80,50 +80,11 @@ namespace Datadog.Trace.ClrProfiler
                                              item.attribute.VersionRange.MaximumMinor,
                                              item.attribute.VersionRange.MaximumPatch,
                                              item.assembly.FullName,
-                                             item.wrapperType.FullName,
-                                             null,
-                                             null,
-                                             MethodReplacementActionType.CallTargetModification.ToString());
+                                             item.wrapperType.FullName);
 
-            // find all methods in Datadog.Trace.ClrProfiler.Managed.dll with [InterceptMethod]
-            // and create objects that will generate correct JSON schema
-            var integrations = from wrapperType in assemblyTypes
-                               from wrapperMethod in wrapperType.GetRuntimeMethods()
-                               let attributes = wrapperMethod.GetCustomAttributes<InterceptMethodAttribute>(inherit: false)
-                               where attributes.Any()
-                               from attribute in attributes
-                               let integrationName = attribute.Integration ?? GetIntegrationName(wrapperType)
-                               orderby integrationName
-                               group new
-                               {
-                                   wrapperType,
-                                   wrapperMethod,
-                                   attribute
-                               }
-                               by integrationName into g
-                               from item in g
-                               from targetAssembly in item.attribute.TargetAssemblies
-                               select new MethodReplacementItem(
-                                             item.attribute.CallerAssembly,
-                                             item.attribute.CallerType,
-                                             item.attribute.CallerMethod,
-                                             targetAssembly,
-                                             item.attribute.TargetType,
-                                             item.attribute.TargetMethod ?? item.wrapperMethod.Name,
-                                             item.attribute.TargetSignatureTypes,
-                                             item.attribute.TargetVersionRange.MinimumMajor,
-                                             item.attribute.TargetVersionRange.MinimumMinor,
-                                             item.attribute.TargetVersionRange.MinimumPatch,
-                                             item.attribute.TargetVersionRange.MaximumMajor,
-                                             item.attribute.TargetVersionRange.MaximumMinor,
-                                             item.attribute.TargetVersionRange.MaximumPatch,
-                                             typeof(Instrumentation).Assembly.FullName,
-                                             item.wrapperType.FullName,
-                                             item.wrapperMethod.Name,
-                                             GetMethodSignature(item.wrapperMethod, item.attribute),
-                                             item.attribute.MethodReplacementAction.ToString());
+            var integrationsArray = callTargetIntegrations.ToArray();
 
-            var integrationsArray = callTargetIntegrations.Concat(integrations).ToArray();
+            Console.Write(sw.Elapsed.TotalMilliseconds);
 
             if (IsWindows)
             {
@@ -223,7 +184,7 @@ namespace Datadog.Trace.ClrProfiler
             public static extern bool IsProfilerAttached();
 
             [DllImport("Datadog.Trace.ClrProfiler.Native.dll", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int SetIntegrations([In, Out] MethodReplacementItem[] methodArrays, int size);
+            public static extern int SetIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
         }
 
         // assume .NET Core if not running on Windows
@@ -233,19 +194,13 @@ namespace Datadog.Trace.ClrProfiler
             public static extern bool IsProfilerAttached();
 
             [DllImport("Datadog.Trace.ClrProfiler.Native", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int SetIntegrations([In, Out] MethodReplacementItem[] methodArrays, int size);
+            public static extern int SetIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
         }
 
 #pragma warning disable SA1201 // Elements should appear in the correct order
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct MethodReplacementItem
+        public struct CallTargetDefinition
         {
-            public string CallerAssembly;
-
-            public string CallerType;
-
-            public string CallerMethod;
-
             public string TargetAssembly;
 
             public string TargetType;
@@ -272,16 +227,7 @@ namespace Datadog.Trace.ClrProfiler
 
             public string WrapperType;
 
-            public string WrapperMethod;
-
-            public string WrapperSignature;
-
-            public string WrapperAction;
-
-            public MethodReplacementItem(
-                string callerAssembly,
-                string callerType,
-                string callerMethod,
+            public CallTargetDefinition(
                 string targetAssembly,
                 string targetType,
                 string targetMethod,
@@ -293,14 +239,8 @@ namespace Datadog.Trace.ClrProfiler
                 ushort targetMaximumMinor,
                 ushort targetMaximumPatch,
                 string wrapperAssembly,
-                string wrapperType,
-                string wrapperMethod,
-                string wrapperSignature,
-                string wrapperAction)
+                string wrapperType)
             {
-                CallerAssembly = callerAssembly;
-                CallerType = callerType;
-                CallerMethod = callerMethod;
                 TargetAssembly = targetAssembly;
                 TargetType = targetType;
                 TargetMethod = targetMethod;
@@ -325,9 +265,6 @@ namespace Datadog.Trace.ClrProfiler
                 TargetMaximumPatch = targetMaximumPatch;
                 WrapperAssembly = wrapperAssembly;
                 WrapperType = wrapperType;
-                WrapperMethod = wrapperMethod;
-                WrapperSignature = wrapperSignature;
-                WrapperAction = wrapperAction;
             }
 
             public void Dispose()

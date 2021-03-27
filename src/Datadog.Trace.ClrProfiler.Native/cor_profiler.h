@@ -19,10 +19,7 @@
 
 namespace trace {
 
-typedef struct _MethodReplacementItem {
-  WCHAR* callerAssembly;
-  WCHAR* callerType;
-  WCHAR* callerMethod;
+typedef struct _CallTargetDefinition {
   WCHAR* targetAssembly;
   WCHAR* targetType;
   WCHAR* targetMethod;
@@ -36,10 +33,7 @@ typedef struct _MethodReplacementItem {
   USHORT targetMaximumPatch;
   WCHAR* wrapperAssembly;
   WCHAR* wrapperType;
-  WCHAR* wrapperMethod;
-  WCHAR* wrapperSignature;
-  WCHAR* wrapperAction;
-} MethodReplacementItem;
+} CallTargetDefinition;
 
 class CorProfiler : public CorProfilerBase {
  private:
@@ -129,21 +123,12 @@ class CorProfiler : public CorProfilerBase {
   void GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray, int* assemblySize,
                                  BYTE** pSymbolsArray, int* symbolsSize) const;
 
-  void SetIntegrations(MethodReplacementItem* items, int size) {
+  void SetIntegrations(CallTargetDefinition* items, int size) {
     Info("SetIntegrations received from managed side: ", size, " integrations.");
     if (items != nullptr) {
       for (int i = 0; i < size; i++) {
-        Info("  MethodReplacementItem:");
-        const MethodReplacementItem current = items[i];
-        if (current.callerAssembly != nullptr) {
-          Info("    CallerAssembly: ", WSTRING(current.callerAssembly));
-        }
-        if (current.callerType != nullptr) {
-          Info("    CallerType: ", WSTRING(current.callerType));
-        }
-        if (current.callerMethod != nullptr) {
-          Info("    CallerMethod: ", WSTRING(current.callerMethod));
-        }
+        Info("  CallTargetDefinition:");
+        const CallTargetDefinition current = items[i];
         if (current.targetAssembly != nullptr) {
           Info("    TargetAssembly: ", WSTRING(current.targetAssembly));
         }
@@ -172,15 +157,6 @@ class CorProfiler : public CorProfilerBase {
         }
         if (current.wrapperType != nullptr) {
           Info("    WrapperType: ", WSTRING(current.wrapperType));
-        }
-        if (current.wrapperMethod != nullptr) {
-          Info("    WrapperMethod: ", WSTRING(current.wrapperMethod));
-        }
-        if (current.wrapperSignature != nullptr) {
-          Info("    WrapperSignature: ", WSTRING(current.wrapperSignature));
-        }
-        if (current.wrapperAction != nullptr) {
-          Info("    WrapperAction: ", WSTRING(current.wrapperAction));
         }
       }
     }
