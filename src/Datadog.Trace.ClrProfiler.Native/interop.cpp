@@ -16,6 +16,6 @@ EXTERN_C VOID STDAPICALLTYPE GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray, i
   return trace::profiler->GetAssemblyAndSymbolsBytes(pAssemblyArray, assemblySize, pSymbolsArray, symbolsSize);
 }
 
-EXTERN_C VOID STDAPICALLTYPE SetIntegrations(trace::CallTargetDefinition* items, int size) {
-  return trace::profiler->SetIntegrations(items, size);
+EXTERN_C VOID STDAPICALLTYPE AddIntegrations(trace::CallTargetDefinition* items, int size) {
+  return trace::profiler->AddIntegrations(items, size);
 }

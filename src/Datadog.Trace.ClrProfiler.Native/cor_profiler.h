@@ -123,7 +123,7 @@ class CorProfiler : public CorProfilerBase {
   void GetAssemblyAndSymbolsBytes(BYTE** pAssemblyArray, int* assemblySize,
                                  BYTE** pSymbolsArray, int* symbolsSize) const;
 
-  void SetIntegrations(CallTargetDefinition* items, int size) {
+  void AddIntegrations(CallTargetDefinition* items, int size) {
     Info("SetIntegrations received from managed side: ", size, " integrations.");
     if (items != nullptr) {
       for (int i = 0; i < size; i++) {

@@ -23,7 +23,7 @@ namespace Datadog.Trace.ClrProfiler
             return NonWindows.IsProfilerAttached();
         }
 
-        public static void SetIntegrations()
+        public static void AddIntegrations()
         {
             var sw = Stopwatch.StartNew();
 
@@ -84,21 +84,21 @@ namespace Datadog.Trace.ClrProfiler
 
             var integrationsArray = callTargetIntegrations.ToArray();
 
-            Console.Write(sw.Elapsed.TotalMilliseconds);
-
             if (IsWindows)
             {
-                Windows.SetIntegrations(integrationsArray, integrationsArray.Length);
+                Windows.AddIntegrations(integrationsArray, integrationsArray.Length);
             }
             else
             {
-                NonWindows.SetIntegrations(integrationsArray, integrationsArray.Length);
+                NonWindows.AddIntegrations(integrationsArray, integrationsArray.Length);
             }
 
             foreach (var item in integrationsArray)
             {
                 item.Dispose();
             }
+
+            Console.Write(sw.Elapsed.TotalMilliseconds);
         }
 
         private static string GetIntegrationName(Type wrapperType)
@@ -184,7 +184,7 @@ namespace Datadog.Trace.ClrProfiler
             public static extern bool IsProfilerAttached();
 
             [DllImport("Datadog.Trace.ClrProfiler.Native.dll", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int SetIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
+            public static extern int AddIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
         }
 
         // assume .NET Core if not running on Windows
@@ -194,7 +194,7 @@ namespace Datadog.Trace.ClrProfiler
             public static extern bool IsProfilerAttached();
 
             [DllImport("Datadog.Trace.ClrProfiler.Native", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int SetIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
+            public static extern int AddIntegrations([In, Out] CallTargetDefinition[] methodArrays, int size);
         }
 
 #pragma warning disable SA1201 // Elements should appear in the correct order
