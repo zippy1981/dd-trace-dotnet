@@ -1,8 +1,9 @@
+using System;
 using System.Threading.Tasks;
 
 namespace Datadog.Trace.Agent
 {
-    internal interface IAgentWriter
+    internal interface IAgentWriter : IDisposable
     {
         void WriteTrace(Span[] trace);
 

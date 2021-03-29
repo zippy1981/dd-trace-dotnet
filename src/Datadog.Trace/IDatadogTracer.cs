@@ -4,7 +4,7 @@ using Datadog.Trace.Sampling;
 
 namespace Datadog.Trace
 {
-    internal interface IDatadogTracer
+    internal interface IDatadogTracer : IDisposable
     {
         string DefaultServiceName { get; }
 

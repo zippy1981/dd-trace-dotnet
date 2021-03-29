@@ -44,11 +44,12 @@ namespace Datadog.Trace
         private static object _globalInstanceLock = new object();
 
         private static RuntimeMetricsWriter _runtimeMetricsWriter;
-
         private readonly IScopeManager _scopeManager;
         private readonly Timer _heartbeatTimer;
 
         private readonly IAgentWriter _agentWriter;
+
+        private bool disposedValue;
 
         static Tracer()
         {
@@ -184,8 +185,7 @@ namespace Datadog.Trace
         /// </summary>
         ~Tracer()
         {
-            // update the count of Tracer instances
-            Interlocked.Decrement(ref _liveTracerCount);
+            InternalDispose();
         }
 
         /// <summary>
@@ -266,6 +266,15 @@ namespace Datadog.Trace
             }
 
             return new Tracer(configuration);
+        }
+
+        /// <summary>
+        /// Dispose instance
+        /// </summary>
+        public void Dispose()
+        {
+            InternalDispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -699,6 +708,46 @@ namespace Datadog.Trace
             // to estimate the number of "live" Tracers than can potentially
             // send traces to the Agent
             Statsd?.Gauge(TracerMetricNames.Health.Heartbeat, _liveTracerCount);
+        }
+
+        private void InternalDispose()
+        {
+            if (!disposedValue)
+            {
+                // update the count of Tracer instances
+                Interlocked.Decrement(ref _liveTracerCount);
+
+                // Dispose the agent writer
+                _agentWriter.Dispose();
+
+                AppDomain.CurrentDomain.ProcessExit -= CurrentDomain_ProcessExit;
+                AppDomain.CurrentDomain.DomainUnload -= CurrentDomain_DomainUnload;
+                try
+                {
+                    // Registering for the AppDomain.UnhandledException event cannot be called by a security transparent method
+                    // This will only happen if the Tracer is not run full-trust
+                    AppDomain.CurrentDomain.UnhandledException -= CurrentDomain_UnhandledException;
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Unable to unregister a callback to the AppDomain.UnhandledException event.");
+                }
+
+                try
+                {
+                    // Registering for the cancel key press event requires the System.Security.Permissions.UIPermission
+                    Console.CancelKeyPress -= Console_CancelKeyPress;
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Unable to unregister a callback to the Console.CancelKeyPress event.");
+                }
+
+                // Disposing the heartbeat timer
+                _heartbeatTimer.Dispose();
+
+                disposedValue = true;
+            }
         }
     }
 }

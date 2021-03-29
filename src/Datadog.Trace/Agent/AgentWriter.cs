@@ -46,6 +46,7 @@ namespace Datadog.Trace.Agent
         private byte[] _temporaryBuffer = new byte[1024];
 
         private TaskCompletionSource<bool> _forceFlush;
+        private bool disposedValue;
 
         static AgentWriter()
         {
@@ -72,6 +73,11 @@ namespace Datadog.Trace.Agent
 
             _flushTask = automaticFlush ? Task.Run(FlushBuffersTaskLoopAsync) : Task.FromResult(true);
             _flushTask.ContinueWith(t => Log.Error(t.Exception, "Error in flush task"), TaskContinuationOptions.OnlyOnFaulted);
+        }
+
+        ~AgentWriter()
+        {
+            InternalDispose();
         }
 
         internal event Action Flushed;
@@ -164,6 +170,15 @@ namespace Datadog.Trace.Agent
             }
 
             await FlushBuffers().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Dispose instance
+        /// </summary>
+        public void Dispose()
+        {
+            InternalDispose();
+            GC.SuppressFinalize(this);
         }
 
         internal void WriteWatermark(Action watermark, bool wakeUpThread = true)
@@ -391,6 +406,15 @@ namespace Datadog.Trace.Agent
                     _serializationMutex.Wait();
                     _serializationMutex.Reset();
                 }
+            }
+        }
+
+        private void InternalDispose()
+        {
+            if (!disposedValue)
+            {
+                FlushAndCloseAsync().GetAwaiter().GetResult();
+                disposedValue = true;
             }
         }
 
