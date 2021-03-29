@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -26,6 +27,8 @@ namespace Datadog.Trace
     {
         private const string UnknownServiceName = "UnknownService";
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<Tracer>();
+        private static readonly ConcurrentBag<WeakReference<Tracer>> Tracers = new ConcurrentBag<WeakReference<Tracer>>();
+        private static readonly Timer HeartbeatTimer;
 
         /// <summary>
         /// The number of Tracer instances that have been created and not yet destroyed.
@@ -46,13 +49,40 @@ namespace Datadog.Trace
         private static RuntimeMetricsWriter _runtimeMetricsWriter;
 
         private readonly IScopeManager _scopeManager;
-        private readonly Timer _heartbeatTimer;
 
         private readonly IAgentWriter _agentWriter;
 
         static Tracer()
         {
             TracingProcessManager.Initialize();
+
+            // Register callbacks to make sure we flush the traces before exiting
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+            AppDomain.CurrentDomain.DomainUnload += CurrentDomain_DomainUnload;
+
+            try
+            {
+                // Registering for the AppDomain.UnhandledException event cannot be called by a security transparent method
+                // This will only happen if the Tracer is not run full-trust
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Unable to register a callback to the AppDomain.UnhandledException event.");
+            }
+
+            try
+            {
+                // Registering for the cancel key press event requires the System.Security.Permissions.UIPermission
+                Console.CancelKeyPress += Console_CancelKeyPress;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Unable to register a callback to the Console.CancelKeyPress event.");
+            }
+
+            // start the heartbeat loop
+            HeartbeatTimer = new Timer(HeartbeatCallback, state: null, dueTime: TimeSpan.Zero, period: TimeSpan.FromMinutes(1));
         }
 
         /// <summary>
@@ -78,6 +108,8 @@ namespace Datadog.Trace
 
         internal Tracer(TracerSettings settings, IAgentWriter agentWriter, ISampler sampler, IScopeManager scopeManager, IDogStatsd statsd)
         {
+            Tracers.Add(new WeakReference<Tracer>(this));
+
             // update the count of Tracer instances
             Interlocked.Increment(ref _liveTracerCount);
 
@@ -129,34 +161,6 @@ namespace Datadog.Trace
                     Sampler.RegisterRule(new GlobalSamplingRule(globalRate));
                 }
             }
-
-            // Register callbacks to make sure we flush the traces before exiting
-            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
-            AppDomain.CurrentDomain.DomainUnload += CurrentDomain_DomainUnload;
-
-            try
-            {
-                // Registering for the AppDomain.UnhandledException event cannot be called by a security transparent method
-                // This will only happen if the Tracer is not run full-trust
-                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Unable to register a callback to the AppDomain.UnhandledException event.");
-            }
-
-            try
-            {
-                // Registering for the cancel key press event requires the System.Security.Permissions.UIPermission
-                Console.CancelKeyPress += Console_CancelKeyPress;
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Unable to register a callback to the Console.CancelKeyPress event.");
-            }
-
-            // start the heartbeat loop
-            _heartbeatTimer = new Timer(HeartbeatCallback, state: null, dueTime: TimeSpan.Zero, period: TimeSpan.FromMinutes(1));
 
             // If configured, add/remove the correlation identifiers into the
             // LibLog logging context when a scope is activated/closed
@@ -655,37 +659,38 @@ namespace Datadog.Trace
             }
         }
 
-        private void InitializeLibLogScopeEventSubscriber(IScopeManager scopeManager, string defaultServiceName, string version, string env)
-        {
-            new LibLogScopeEventSubscriber(scopeManager, defaultServiceName, version ?? string.Empty, env ?? string.Empty);
-        }
-
-        private void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             RunShutdownTasks();
         }
 
-        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Log.Warning("Application threw an unhandled exception: {Exception}", e.ExceptionObject);
             RunShutdownTasks();
         }
 
-        private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             RunShutdownTasks();
         }
 
-        private void CurrentDomain_DomainUnload(object sender, EventArgs e)
+        private static void CurrentDomain_DomainUnload(object sender, EventArgs e)
         {
             RunShutdownTasks();
         }
 
-        private void RunShutdownTasks()
+        private static void RunShutdownTasks()
         {
             try
             {
-                _agentWriter.FlushAndCloseAsync().Wait();
+                foreach (var weakTracer in Tracers)
+                {
+                    if (weakTracer.TryGetTarget(out Tracer tracer))
+                    {
+                        tracer._agentWriter.FlushAndCloseAsync().Wait();
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -693,12 +698,26 @@ namespace Datadog.Trace
             }
         }
 
-        private void HeartbeatCallback(object state)
+        private static void HeartbeatCallback(object state)
         {
-            // use the count of Tracer instances as the heartbeat value
-            // to estimate the number of "live" Tracers than can potentially
-            // send traces to the Agent
-            Statsd?.Gauge(TracerMetricNames.Health.Heartbeat, _liveTracerCount);
+            if (Volatile.Read(ref _liveTracerCount) > 0)
+            {
+                foreach (var weakTracer in Tracers)
+                {
+                    if (weakTracer.TryGetTarget(out Tracer tracer))
+                    {
+                        // use the count of Tracer instances as the heartbeat value
+                        // to estimate the number of "live" Tracers than can potentially
+                        // send traces to the Agent
+                        tracer.Statsd?.Gauge(TracerMetricNames.Health.Heartbeat, _liveTracerCount);
+                    }
+                }
+            }
+        }
+
+        private void InitializeLibLogScopeEventSubscriber(IScopeManager scopeManager, string defaultServiceName, string version, string env)
+        {
+            new LibLogScopeEventSubscriber(scopeManager, defaultServiceName, version ?? string.Empty, env ?? string.Empty);
         }
     }
 }
