@@ -190,6 +190,7 @@ namespace Datadog.Trace
         {
             // update the count of Tracer instances
             Interlocked.Decrement(ref _liveTracerCount);
+            _agentWriter.FlushAndCloseAsync();
         }
 
         /// <summary>
