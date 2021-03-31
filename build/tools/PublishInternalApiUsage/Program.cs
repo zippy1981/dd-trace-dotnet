@@ -15,42 +15,32 @@ namespace PublishInternalApiUsage
     public class Program
     {
         private static readonly string _tempDirectory = "tmp";
+        private static readonly string _allCsvPath = "Datadog_Trace_InternalApiUsage_All.csv";
+        private static readonly string _errorCsvPath = "Datadog_Trace_InternalApiUsage_Errors.csv";
         private static readonly string[] _targetFrameworks = { "net45", "net461", "netcoreapp3.1", "netstandard2.0" };
         private static readonly string[] _targetAssemblies = { "Datadog.Trace.ClrProfiler.Managed.dll", "Datadog.Trace.AspNet.dll" };
 
-        private static string _csvPath = "Datadog_Trace_InternalApiUsage.csv";
-
         public static async Task Main(string[] args)
         {
-            if (args.Length == 1)
-            {
-                if (args[0] == "--help")
-                {
-                    Console.WriteLine("Usage: PublishInternalApiUsage [output_csv_path]");
-                    return;
-                }
-                else
-                {
-                    _csvPath = args[0];
-                }
-            }
-
             var versionsToDirectoriesDict = await DownloadAndExtractFromGithubReleases();
-            var missingMethodNamesToVersionsDict = ResolveMethodsAndMarkFailures(versionsToDirectoriesDict);
+            RecordMemberReferences(versionsToDirectoriesDict, out var allMethodNamesToVersionsDict, out var missingMethodNamesToVersionsDict);
 
-            WriteCsv(_csvPath, versionsToDirectoriesDict.Keys.ToList(), missingMethodNamesToVersionsDict);
+            WriteCsv(_allCsvPath, versionsToDirectoriesDict.Keys.ToList(), allMethodNamesToVersionsDict);
+            WriteCsv(_errorCsvPath, versionsToDirectoriesDict.Keys.ToList(), missingMethodNamesToVersionsDict);
             Directory.Delete(_tempDirectory, recursive: true);
         }
 
         /// <summary>
-        /// For each version, load a set of Datadog.Trace.* assemblies, iterate through all Datadog.Trace.dll member references,
-        /// attempt to resolve them, and mark all failures in a Dictionary that maps the name<->failing versions
+        /// For each version, load a set of Datadog.Trace.* assemblies, iterate through all Datadog.Trace.dll member references
+        /// and attempt to resolve them. Mark all API's encountered and the API's that fail to resolve against newer versions.
         /// </summary>
-        /// <param name="versionsToDirectoriesDict">A dictionary mapping each version to its directory on disk</param>
-        /// <returns>A dictionary mapping names of member references to their failing versions</returns>
-        private static Dictionary<string, HashSet<Version>> ResolveMethodsAndMarkFailures(Dictionary<Version, string> versionsToDirectoriesDict)
+        /// <param name="versionsToDirectoriesDict">A dictionary mapping versions to their directories on disk</param>
+        /// <param name="allMethodNamesToVersionsDict">A dictionary mapping names of member references to the versions in which they're defined</param>
+        /// <param name="missingMethodNamesToVersionsDict">A dictionary mapping names of member references to their failing versions</param>
+        private static void RecordMemberReferences(Dictionary<Version, string> versionsToDirectoriesDict, out Dictionary<DictionaryKey, HashSet<Version>> allMethodNamesToVersionsDict, out Dictionary<DictionaryKey, HashSet<Version>> missingMethodNamesToVersionsDict)
         {
-            Dictionary<string, HashSet<Version>> missingMethodNamesToVersionsDict = new Dictionary<string, HashSet<Version>>();
+            allMethodNamesToVersionsDict = new Dictionary<DictionaryKey, HashSet<Version>>();
+            missingMethodNamesToVersionsDict = new Dictionary<DictionaryKey, HashSet<Version>>();
 
             foreach (Version inputVersion in versionsToDirectoriesDict.Keys)
             {
@@ -88,19 +78,16 @@ namespace PublishInternalApiUsage
                                         continue;
                                     }
 
+                                    var key = new DictionaryKey(memberReference);
+                                    AddToDictionary(allMethodNamesToVersionsDict, key, inputVersion);
+
                                     // Attempt to resolve each of them and mark failures for the ones that do not resolve on Datadog.Trace.dll
                                     try
                                     {
                                         IMemberDefinition memberDef = memberReference.Resolve();
                                         if (memberDef is null)
                                         {
-                                            string key = memberReference.ToString();
-                                            if (!missingMethodNamesToVersionsDict.TryGetValue(key, out HashSet<Version> versions))
-                                            {
-                                                missingMethodNamesToVersionsDict[key] = new HashSet<Version>();
-                                            }
-
-                                            missingMethodNamesToVersionsDict[key].Add(bindingVersion);
+                                            AddToDictionary(missingMethodNamesToVersionsDict, key, bindingVersion);
                                         }
                                     }
                                     catch
@@ -111,45 +98,6 @@ namespace PublishInternalApiUsage
                             }
                         }
                     }
-                }
-            }
-
-            return missingMethodNamesToVersionsDict;
-        }
-
-        private static void WriteCsv(string path, List<Version> allVersions, Dictionary<string, HashSet<Version>> missingMethodsByVersion)
-        {
-            int headersLength = allVersions.Count + 1;
-
-            using (var writer = new StreamWriter(path))
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-            {
-                // Write headers as the first row of regular fields
-                csv.WriteField("Method Name");
-                foreach (Version version in allVersions.OrderByDescending(v => v))
-                {
-                    csv.WriteField(version);
-                }
-
-                csv.NextRecord();
-
-                foreach (KeyValuePair<string, HashSet<Version>> kvp in missingMethodsByVersion)
-                {
-                    csv.WriteField(kvp.Key);
-
-                    foreach (Version version in allVersions.OrderByDescending(v => v))
-                    {
-                        if (kvp.Value.Contains(version))
-                        {
-                            csv.WriteField("X");
-                        }
-                        else
-                        {
-                            csv.WriteField(string.Empty);
-                        }
-                    }
-
-                    csv.NextRecord();
                 }
             }
         }
@@ -224,6 +172,58 @@ namespace PublishInternalApiUsage
             }
 
             return versionToPathDict;
+        }
+
+        private static void WriteCsv(string path, List<Version> allVersions, Dictionary<DictionaryKey, HashSet<Version>> apisToVersions)
+        {
+            int headersLength = allVersions.Count + 1;
+
+            using (var writer = new StreamWriter(path))
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                // Write headers as the first row of regular fields
+                csv.WriteHeader<DictionaryKey>();
+                foreach (Version version in allVersions.OrderByDescending(v => v))
+                {
+                    csv.WriteField(version);
+                }
+
+                csv.NextRecord();
+
+                var orderedMethods = apisToVersions.OrderBy(kvp => kvp.Key.TypeNamespace)
+                                                   .ThenBy(kvp => kvp.Key.TypeName)
+                                                   .ThenBy(kvp => kvp.Key.Name);
+
+                foreach (KeyValuePair<DictionaryKey, HashSet<Version>> kvp in orderedMethods)
+                {
+                    csv.WriteRecord(kvp.Key);
+
+                    foreach (Version version in allVersions.OrderByDescending(v => v))
+                    {
+                        if (kvp.Value.Contains(version))
+                        {
+                            csv.WriteField("X");
+                        }
+                        else
+                        {
+                            csv.WriteField(string.Empty);
+                        }
+                    }
+
+                    csv.NextRecord();
+                }
+            }
+        }
+
+        private static void AddToDictionary(Dictionary<DictionaryKey, HashSet<Version>> dictionary, DictionaryKey key, Version value)
+        {
+            if (!dictionary.TryGetValue(key, out HashSet<Version> versions))
+            {
+                versions = new HashSet<Version>();
+                dictionary[key] = versions;
+            }
+
+            versions.Add(value);
         }
     }
 }
