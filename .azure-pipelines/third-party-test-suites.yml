@@ -437,3 +437,88 @@ stages:
         testResultsFiles: npgsql/test/**/*.trx
         testRunTitle: Postgres-$(os)-$(tagName)
       condition: succeededOrFailed()
+
+    # Steps sourced from https://github.com/StackExchange/StackExchange.Redis/blob/2.2.4/.github/workflows/CI.yml
+  - job: StackExchange_Windows
+    strategy:
+      matrix:
+        # Ubuntu_Major5:
+        #   imageName: ubuntu-20.04
+        #   os: ubuntu
+        #   tagName: v5.0.4
+        # Windows_Major5:
+        #   imageName: windows-2019
+        #   os: windows
+        #   tagName:  v2.2.4
+        # Ubuntu_Major4:
+        #   imageName: ubuntu-20.04
+        #   os: ubuntu
+        #   tagName: v4.1.9
+        Windows_Major2:
+          imageName: windows-2019
+          os: windows
+          tagName: 2.2.4
+
+    variables:
+      pg_major: 13
+      postgis_version: 3
+
+    pool:
+      vmImage: $(imageName)
+
+    # Enable the Datadog Agent service for this job
+    services:
+      dd_agent: dd_agent
+
+    steps:
+    - checkout: none
+
+    - download: current
+      artifact: runner-dotnet-tool
+      patterns: '**/*.nupkg'
+
+    - script: dotnet tool install --global --add-source $(Pipeline.Workspace)/runner-dotnet-tool dd-trace
+      displayName: Install dd-trace tool
+
+    - script: |
+        git clone https://github.com/StackExchange/StackExchange.Redis.git
+        cd StackExchange.Redis
+        git checkout $(tagName)
+      displayName: Checkout StackExchange.Redis at tag $(tagName)
+
+    - script: dotnet build Build.csproj -c Release /p:CI=true
+      displayName: .NET Build
+      workingDirectory: StackExchange.Redis
+
+    - script: |
+        .\redis-server.exe --service-install --service-name "redis-6379" "..\Basic\master-6379.conf"
+        .\redis-server.exe --service-install --service-name "redis-6380" "..\Basic\replica-6380.conf"
+        .\redis-server.exe --service-install --service-name "redis-6381" "..\Basic\secure-6381.conf"
+        .\redis-server.exe --service-install --service-name "redis-6382" "..\Failover\master-6382.conf"
+        .\redis-server.exe --service-install --service-name "redis-6383" "..\Failover\replica-6383.conf"
+        .\redis-server.exe --service-install --service-name "redis-7000" "..\Cluster\cluster-7000.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7001" "..\Cluster\cluster-7001.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7002" "..\Cluster\cluster-7002.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7003" "..\Cluster\cluster-7003.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7004" "..\Cluster\cluster-7004.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7005" "..\Cluster\cluster-7005.conf" --dir "..\Cluster"
+        .\redis-server.exe --service-install --service-name "redis-7010" "..\Sentinel\redis-7010.conf"
+        .\redis-server.exe --service-install --service-name "redis-7011" "..\Sentinel\redis-7011.conf"
+        .\redis-server.exe --service-install --service-name "redis-26379" "..\Sentinel\sentinel-26379.conf" --sentinel
+        .\redis-server.exe --service-install --service-name "redis-26380" "..\Sentinel\sentinel-26380.conf" --sentinel
+        .\redis-server.exe --service-install --service-name "redis-26381" "..\Sentinel\sentinel-26381.conf" --sentinel
+        Start-Service redis-*
+      displayName: Start Redis Services (v3.0.503)
+      workingDirectory: StackExchange.Redis\tests\RedisConfigs\3.0.503
+
+    - script: dd-trace --merge-spans --dd-env CI --dd-service StackExchange.Redis.Tests --dd-version $(tagName) dotnet "test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx --results-directory tests/results"
+      displayName: StackExchange.Redis.Tests
+      workingDirectory: StackExchange.Redis
+
+    - task: PublishTestResults@2
+      displayName: publish test results
+      inputs:
+        testResultsFormat: VSTest
+        testResultsFiles: $(System.DefaultWorkingDirectory)/StackExchange.Redis/tests/results/**/*.trx
+        testRunTitle: StackExchange.Redis-$(os)-$(tagName)
+      condition: succeededOrFailed()
