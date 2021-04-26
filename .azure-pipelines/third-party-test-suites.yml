@@ -104,7 +104,7 @@ stages:
     #   displayName: StackExchange.Redis.Tests
     #   workingDirectory: StackExchange.Redis
 
-    - powershell: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx --results-directory tests/results
+    - powershell: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger "trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx" --results-directory tests/results
       displayName: StackExchange.Redis.Tests
       workingDirectory: StackExchange.Redis
 
