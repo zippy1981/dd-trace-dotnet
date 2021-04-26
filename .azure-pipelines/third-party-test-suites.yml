@@ -39,10 +39,10 @@ stages:
         #   imageName: windows-2019
         #   os: windows
         #   tagName:  v2.2.4
-        # Ubuntu_Major4:
-        #   imageName: ubuntu-20.04
-        #   os: ubuntu
-        #   tagName: v4.1.9
+        Ubuntu_Major2:
+          imageName: ubuntu-20.04
+          os: ubuntu
+          tagName: 2.2.4
         Windows_Major2:
           imageName: windows-2019
           os: windows
@@ -69,15 +69,20 @@ stages:
     # - script: dotnet tool install --global --add-source $(Pipeline.Workspace)/runner-dotnet-tool dd-trace
     #   displayName: Install dd-trace tool
 
-    - powershell: |
+    - script: |
         git clone https://github.com/StackExchange/StackExchange.Redis.git
         cd StackExchange.Redis
         git checkout $(tagName)
       displayName: Checkout StackExchange.Redis at tag $(tagName)
 
-    - powershell: dotnet build Build.csproj -c Release /p:CI=true
+    - script: dotnet build Build.csproj -c Release /p:CI=true
       displayName: .NET Build
       workingDirectory: StackExchange.Redis
+
+    - script: docker-compose -f docker-compose.yml up -d
+      displayName: Start Redis Services (docker-compose)
+      workingDirectory: ./StackExchange.Redis/tests/RedisConfigs
+      condition: startsWith(variables['imageName'], 'ubuntu')
 
     - powershell: |
         .\redis-server.exe --service-install --service-name "redis-6379" "..\Basic\master-6379.conf"
@@ -97,14 +102,15 @@ stages:
         .\redis-server.exe --service-install --service-name "redis-26380" "..\Sentinel\sentinel-26380.conf" --sentinel
         .\redis-server.exe --service-install --service-name "redis-26381" "..\Sentinel\sentinel-26381.conf" --sentinel
         Start-Service redis-*
-      displayName: Start Redis Services (v3.0.503)
+      displayName: Start Redis Services (Windows v3.0.503)
       workingDirectory: StackExchange.Redis\tests\RedisConfigs\3.0.503
+      condition: startsWith(variables['imageName'], 'windows')
 
     # - script: dd-trace --merge-spans --dd-env CI --dd-service StackExchange.Redis.Tests --dd-version $(tagName) dotnet "test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx --results-directory tests/results"
     #   displayName: StackExchange.Redis.Tests
     #   workingDirectory: StackExchange.Redis
 
-    - powershell: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger "trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx" --results-directory tests/results
+    - script: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger "trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx" --results-directory tests/results
       displayName: StackExchange.Redis.Tests
       workingDirectory: StackExchange.Redis
 
