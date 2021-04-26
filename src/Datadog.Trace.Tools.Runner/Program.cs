@@ -121,7 +121,7 @@ namespace Datadog.Trace.Tools.Runner
                         h.Heading = "Datadog APM Auto-instrumentation Runner";
                         h.AddNewLineBetweenHelpSections = true;
                         h.AdditionalNewLineAfterOption = false;
-                        return HelpText.DefaultParsingErrorsHandler(result, h);
+                        return h;
                     },
                     e =>
                     {
