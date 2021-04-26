@@ -69,17 +69,17 @@ stages:
     # - script: dotnet tool install --global --add-source $(Pipeline.Workspace)/runner-dotnet-tool dd-trace
     #   displayName: Install dd-trace tool
 
-    - script: |
+    - powershell: |
         git clone https://github.com/StackExchange/StackExchange.Redis.git
         cd StackExchange.Redis
         git checkout $(tagName)
       displayName: Checkout StackExchange.Redis at tag $(tagName)
 
-    - script: dotnet build Build.csproj -c Release /p:CI=true
+    - powershell: dotnet build Build.csproj -c Release /p:CI=true
       displayName: .NET Build
       workingDirectory: StackExchange.Redis
 
-    - script: |
+    - powershell: |
         .\redis-server.exe --service-install --service-name "redis-6379" "..\Basic\master-6379.conf"
         .\redis-server.exe --service-install --service-name "redis-6380" "..\Basic\replica-6380.conf"
         .\redis-server.exe --service-install --service-name "redis-6381" "..\Basic\secure-6381.conf"
@@ -104,7 +104,7 @@ stages:
     #   displayName: StackExchange.Redis.Tests
     #   workingDirectory: StackExchange.Redis
 
-    - script: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx --results-directory tests/results
+    - powershell: dotnet test tests/StackExchange.Redis.Tests/StackExchange.Redis.Tests.csproj -c Release /p:CI=true --logger trx;LogFileName=StackExchange.Redis.Tests.$(os).$(tagName).trx --results-directory tests/results
       displayName: StackExchange.Redis.Tests
       workingDirectory: StackExchange.Redis
 
