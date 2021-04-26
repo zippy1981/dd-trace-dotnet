@@ -27,7 +27,7 @@ resources:
 stages:
 - stage: run_tests
   jobs:
-  - job: Entity_Framework_Core
+  - job: EFCore
     strategy:
       matrix:
         Major5:
@@ -64,8 +64,18 @@ stages:
         Start-CosmosDbEmulator
       displayName: Start Cosmos Emulator
 
-    - script: efcore\restore.cmd
+    - script: restore.cmd
       displayName: Restore
+      workingDirectory: $(System.DefaultWorkingDirectory)/efcore
 
-    - script: dotnet test efcore\test\EFCore.Cosmos.FunctionalTests
+    - script: dotnet test test\EFCore.Cosmos.FunctionalTests --logger trx;LogFileName=EFCore.Cosmos.FunctionalTests.windows.$(tagName).trx --results-directory test/results"
       displayName: Test on Cosmos
+      workingDirectory: $(System.DefaultWorkingDirectory)/efcore
+
+    - task: PublishTestResults@2
+      displayName: publish test results
+      inputs:
+        testResultsFormat: VSTest
+        testResultsFiles: $(System.DefaultWorkingDirectory)/efcore/test/results/**/*.trx
+        testRunTitle: EFCore-windows-$(tagName)
+      condition: succeededOrFailed()
