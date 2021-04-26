@@ -211,3 +211,46 @@ stages:
         testResultsFiles: npgsql/test/**/*.trx
         testRunTitle: Postgres-$(os)-$(tagName)
       condition: succeededOrFailed()
+
+  - job: Entity_Framework_Core
+    strategy:
+      matrix:
+        Major5:
+          tagName: v5.0.5
+        # Major3:
+        #   tagName: v3.1.14
+
+    pool:
+      vmImage: windows-2019
+
+    # Enable the Datadog Agent service for this job
+    services:
+      dd_agent: dd_agent
+
+    steps:
+
+    - checkout: none
+
+    # - download: current
+    #   artifact: runner-dotnet-tool
+    #   patterns: '**/*.nupkg'
+
+    # - script: dotnet tool install --global --add-source $(Pipeline.Workspace)/runner-dotnet-tool dd-trace
+    #   displayName: Install dd-trace tool
+
+    - script: |
+        git clone https://github.com/dotnet/efcore.git
+        cd efcore
+        git checkout $(tagName)
+      displayName: Checkout dotnet/efcore at tag $(tagName)
+
+    - powershell: |
+        Import-Module "$env:ProgramFiles\Azure Cosmos DB Emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator"
+        Start-CosmosDbEmulator
+      displayName: Start Cosmos Emulator
+
+    - script: efcore\restore.cmd
+      displayName: Restore
+
+    - script: dotnet test efcore\test\EFCore.Cosmos.FunctionalTests
+      displayName: Test on Cosmos
