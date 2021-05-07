@@ -13,10 +13,10 @@ namespace Datadog.Trace.Agent.MessagePack
             // It should be the number of members of the object to be serialized.
             var len = 8;
 
-            if (value.Context.ParentId != null)
-            {
-                len++;
-            }
+            // if (value.Context.ParentId != null)
+            // {
+            len++;
+            // }
 
             if (value.Error)
             {
@@ -53,11 +53,9 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteString(ref bytes, offset, "duration");
             offset += MessagePackBinary.WriteInt64(ref bytes, offset, value.Duration.ToNanoseconds());
 
-            if (value.Context.ParentId != null)
-            {
-                offset += MessagePackBinary.WriteString(ref bytes, offset, "parent_id");
-                offset += MessagePackBinary.WriteUInt64(ref bytes, offset, (ulong)value.Context.ParentId);
-            }
+            ulong parentId = value.Context.ParentId ?? 0;
+            offset += MessagePackBinary.WriteString(ref bytes, offset, "parent_id");
+            offset += MessagePackBinary.WriteUInt64(ref bytes, offset, parentId);
 
             if (value.Error)
             {
