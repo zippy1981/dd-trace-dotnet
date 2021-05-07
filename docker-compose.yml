@@ -288,6 +288,16 @@ services:
     depends_on:
     - rabbitmq
 
+  testagent:
+    image: kyleverhoog/dd-trace-test-agent
+    ports:
+      - "127.0.0.1:9126:8126"
+    volumes:
+      - ./test/snapshots:/snapshots
+    environment:
+      - SNAPSHOT_DIR=/snapshots
+      - SNAPSHOT_CI
+
   # The IIS images are based on Windows images, so they can only be run on Docker for Windows,
   # and only after switching to run Windows containers
   IntegrationTests.IIS.LoaderOptimizationRegKey:

@@ -1,0 +1,16 @@
+[[{"name" "single-operation"
+   "service" "my-svc"
+   "resource" "single-operation"
+   "type" nil
+   "span_id" 0
+   "trace_id" 0
+   "parent_id" nil
+   "start" 1620357318713485200
+   "duration" 8842500
+   "meta" {"k" "v"
+           "num" "1234"}
+   "metrics" {"_sampling_priority_v1" 1.0
+              "float_metric" 12.34
+              "int_metric" 4321.0
+              "_dd.tracer_kr" 0.0
+              "_dd.top_level" 1.0}}]]

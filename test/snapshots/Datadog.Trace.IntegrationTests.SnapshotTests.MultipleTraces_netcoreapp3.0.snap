@@ -1,0 +1,32 @@
+[[{"name" "operation1"
+   "service" "my-svc"
+   "resource" "operation1"
+   "type" nil
+   "span_id" 0
+   "trace_id" 0
+   "parent_id" nil
+   "start" 1620357357206945300
+   "duration" 50000
+   "meta" {"k" "v"
+           "num" "1234"}
+   "metrics" {"_sampling_priority_v1" 1.0
+              "float_metric" 12.34
+              "int_metric" 4321.0
+              "_dd.tracer_kr" 0.0
+              "_dd.top_level" 1.0}}]
+ [{"name" "operation2"
+   "service" "my-svc"
+   "resource" "operation2"
+   "type" nil
+   "span_id" 0
+   "trace_id" 1
+   "parent_id" nil
+   "start" 1620357357207030400
+   "duration" 26800
+   "meta" {"k" "v"
+           "num" "1234"}
+   "metrics" {"_sampling_priority_v1" 1.0
+              "float_metric" 12.34
+              "int_metric" 4321.0
+              "_dd.tracer_kr" 0.0
+              "_dd.top_level" 1.0}}]]

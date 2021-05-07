@@ -1,0 +1,55 @@
+[[{"name" "parent-operation"
+   "service" "my-svc"
+   "resource" "parent-operation"
+   "type" nil
+   "span_id" 0
+   "trace_id" 0
+   "parent_id" nil
+   "start" 1620357326530522400
+   "duration" 1331200
+   "meta" {"k" "v"
+           "num" "1234"}
+   "metrics" {"_sampling_priority_v1" 1.0
+              "float_metric" 12.34
+              "int_metric" 4321.0
+              "_dd.tracer_kr" 0.0
+              "_dd.top_level" 1.0}}
+      {"name" "parallel-operation"
+       "service" "my-svc"
+       "resource" "parallel-operation"
+       "type" nil
+       "span_id" 1
+       "trace_id" 0
+       "parent_id" 0
+       "start" 1620357326531535500
+       "duration" 14300
+       "meta" {"k" "v"
+               "num" "1234"}
+       "metrics" {"float_metric" 12.34
+                  "int_metric" 4321.0}}
+      {"name" "parallel-operation"
+       "service" "my-svc"
+       "resource" "parallel-operation"
+       "type" nil
+       "span_id" 2
+       "trace_id" 0
+       "parent_id" 0
+       "start" 1620357326531579600
+       "duration" 143700
+       "meta" {"k" "v"
+               "num" "1234"}
+       "metrics" {"float_metric" 12.34
+                  "int_metric" 4321.0}}
+      {"name" "parallel-operation"
+       "service" "my-svc"
+       "resource" "parallel-operation"
+       "type" nil
+       "span_id" 3
+       "trace_id" 0
+       "parent_id" 0
+       "start" 1620357326531581300
+       "duration" 170000
+       "meta" {"k" "v"
+               "num" "1234"}
+       "metrics" {"float_metric" 12.34
+                  "int_metric" 4321.0}}]]
