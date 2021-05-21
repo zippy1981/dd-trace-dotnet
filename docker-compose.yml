@@ -187,6 +187,19 @@ services:
       KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
       KAFKA_REST_SCHEMA_REGISTRY_URL: 'http://kafka-schema-registry:8081'
 
+  cosmosdb:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+    ports:
+    - "127.0.0.1:8081:8081"
+    - "127.0.0.1:10251:10251"
+    - "127.0.0.1:10252:10252"
+    - "127.0.0.1:10253:10253"
+    - "127.0.0.1:10254:10254"
+    environment:
+    - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+    - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true 
+    - AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=${ipaddr}
+
   build:
     build:
       context: ./
@@ -411,6 +424,7 @@ services:
     - MYSQL57_PORT=3306
     - RABBITMQ_HOST=rabbitmq
     - KAFKA_BROKER_HOST=kafka-broker:29092
+    - COSMOSDB_ENDPOINT=https://cosmosdb:8081/
     - buildConfiguration=${buildConfiguration}
     - publishTargetFramework=netcoreapp2.1
     depends_on:
@@ -426,6 +440,7 @@ services:
     - rabbitmq
     - kafka-broker
     - kafka-zookeeper
+    - cosmosdb
 
   IntegrationTests.Alpine.Core30:
     build:
@@ -449,6 +464,7 @@ services:
     - MYSQL57_PORT=3306
     - RABBITMQ_HOST=rabbitmq
     - KAFKA_BROKER_HOST=kafka-broker:29092
+    - COSMOSDB_ENDPOINT=https://cosmosdb:8081/
     - buildConfiguration=${buildConfiguration}
     - publishTargetFramework=netcoreapp3.0
     depends_on:
@@ -464,6 +480,7 @@ services:
     - rabbitmq
     - kafka-broker
     - kafka-zookeeper
+    - cosmosdb
 
   IntegrationTests.Alpine.Core31:
     build:
@@ -487,6 +504,7 @@ services:
     - MYSQL57_PORT=3306
     - RABBITMQ_HOST=rabbitmq
     - KAFKA_BROKER_HOST=kafka-broker:29092
+    - COSMOSDB_ENDPOINT=https://cosmosdb:8081/
     - buildConfiguration=${buildConfiguration}
     - publishTargetFramework=netcoreapp3.1
     depends_on:
@@ -502,6 +520,7 @@ services:
     - rabbitmq
     - kafka-broker
     - kafka-zookeeper
+    - cosmosdb
 
   IntegrationTests.Alpine.Core50:
     build:
@@ -525,6 +544,7 @@ services:
     - MYSQL57_PORT=3306
     - RABBITMQ_HOST=rabbitmq
     - KAFKA_BROKER_HOST=kafka-broker:29092
+    - COSMOSDB_ENDPOINT=https://cosmosdb:8081/
     - buildConfiguration=${buildConfiguration}
     - publishTargetFramework=net5.0
     depends_on:
@@ -540,6 +560,7 @@ services:
     - rabbitmq
     - kafka-broker
     - kafka-zookeeper
+    - cosmosdb
 
   IntegrationTests:
     build:
@@ -563,6 +584,7 @@ services:
     - MYSQL57_PORT=3306
     - RABBITMQ_HOST=rabbitmq
     - KAFKA_BROKER_HOST=kafka-broker:29092
+    - COSMOSDB_ENDPOINT=https://cosmosdb:8081/
     - buildConfiguration=${buildConfiguration}
     - publishTargetFramework=${publishTargetFramework}
     depends_on:
@@ -578,6 +600,7 @@ services:
     - rabbitmq
     - kafka-broker
     - kafka-zookeeper
+    - cosmosdb
 
   IntegrationTests.ARM64.Core50:
     build:

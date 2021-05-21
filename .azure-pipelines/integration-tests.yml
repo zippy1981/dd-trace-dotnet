@@ -74,6 +74,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e buildConfiguration=$(buildConfiguration) Profiler
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: $(System.DefaultWorkingDirectory)/src/Datadog.Trace.ClrProfiler.Native/bin/$(buildConfiguration)/x64
     artifact: linux-tracer-home
@@ -99,6 +101,9 @@ jobs:
   - download: current
     artifact: linux-tracer-home
 
+  - bash: |
+      echo "##vso[task.setvariable variable=ipaddr]"`ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1`""
+
   - task: CopyFiles@2
     inputs:
       sourceFolder: $(Pipeline.Workspace)/linux-tracer-home
@@ -109,12 +114,16 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) -e publishTargetFramework=$(publishTargetFramework) build
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) -e publishTargetFramework=$(publishTargetFramework) IntegrationTests
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: build_data
     artifact: $(Agent.JobName)_profiler-logs-$(System.JobAttempt)
@@ -175,6 +184,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e buildConfiguration=$(buildConfiguration) Profiler.Alpine
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: $(System.DefaultWorkingDirectory)/src/Datadog.Trace.ClrProfiler.Native/bin/$(buildConfiguration)/x64
     artifact: alpine-linux-tracer-home
@@ -205,11 +216,16 @@ jobs:
       sourceFolder: $(Pipeline.Workspace)/alpine-linux-tracer-home
       targetFolder: $(System.DefaultWorkingDirectory)/src/Datadog.Trace.ClrProfiler.Native/bin/$(buildConfiguration)/x64
 
+  - bash: |
+      echo "##vso[task.setvariable variable=ipaddr]"`ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}' | head -n 1`""
+
   - task: DockerCompose@0
     displayName: docker-compose run build
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) -e publishTargetFramework=$(publishTargetFramework) build
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests.Alpine.Core21
@@ -217,6 +233,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) IntegrationTests.Alpine.Core21
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests.Alpine.Core30
@@ -224,6 +242,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) IntegrationTests.Alpine.Core30
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests.Alpine.Core31
@@ -231,6 +251,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) IntegrationTests.Alpine.Core31
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests.Alpine.Core50
@@ -238,6 +260,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) IntegrationTests.Alpine.Core50
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: build_data
     artifact: $(Agent.JobName)_profiler-logs-$(System.JobAttempt)
@@ -372,6 +396,8 @@ jobs:
       containerregistrytype: Container Registry
       dockerComposeCommand: down
     condition: succeededOrFailed()
+    env:
+      ipaddr: $(ipaddr)
     
 - job: Windows_IIS
   timeoutInMinutes: 100
@@ -482,12 +508,16 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: build --build-arg DOTNET_TRACER_MSI=$(msiOutputDirectory)/*.msi --build-arg ENABLE_32_BIT=$(enable32bit) IntegrationTests.IIS.LoaderOptimizationRegKey
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose start IIS containers
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: up -d IntegrationTests.IIS.LoaderOptimizationRegKey
+    env:
+      ipaddr: $(ipaddr)
 
   - powershell: |
       [System.Reflection.Assembly]::Load("System.EnterpriseServices, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
@@ -548,6 +578,8 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e buildConfiguration=$(buildConfiguration) Profiler
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: $(System.DefaultWorkingDirectory)/src/Datadog.Trace.ClrProfiler.Native/bin/$(buildConfiguration)/x64
     artifact: linux-tracer-home_arm
@@ -577,12 +609,16 @@ jobs:
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) -e publishTargetFramework=net5.0 build.arm64
+    env:
+      ipaddr: $(ipaddr)
 
   - task: DockerCompose@0
     displayName: docker-compose run IntegrationTests.ARM64.Core50
     inputs:
       containerregistrytype: Container Registry
       dockerComposeCommand: run -e TestAllPackageVersions=true -e buildConfiguration=$(buildConfiguration) IntegrationTests.ARM64.Core50
+    env:
+      ipaddr: $(ipaddr)
 
   - publish: build_data
     artifact: $(Agent.JobName)_profiler-logs-$(System.JobAttempt)

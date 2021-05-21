@@ -1,3 +1,8 @@
+// <copyright file="CosmosTests.cs" company="Datadog">
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
+// This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
+// </copyright>
+
 #if !NET452
 using System;
 using System.Collections.Generic;
@@ -43,7 +48,6 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
         [MemberData(nameof(GetCosmosVersions))]
         [Trait("Category", "EndToEnd")]
         [Trait("RunOnWindows", "True")]
-        [Trait("Category", "LinuxUnsupported")]
         [Trait("Category", "ArmUnsupported")]
         public void SubmitsTraces(string packageVersion)
         {

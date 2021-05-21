@@ -125,7 +125,7 @@
     "IntegrationName": "CosmosDb",
     "SampleProjectName": "Samples.CosmosDb",
     "NugetPackageSearchName": "Microsoft.Azure.Cosmos",
-    "MinVersion": "3.6.0",
+    "MinVersion": "3.9.0",
     "MaxVersionExclusive": "4.0.0"
   }
 ]

@@ -13,7 +13,7 @@ namespace Samples.CosmosDb
     class Program
     {
         // The Azure Cosmos DB endpoint for running this sample.
-        private static readonly string EndpointUri = ConfigurationManager.AppSettings["EndPointUri"];
+        private static readonly string EndpointUri = Environment.GetEnvironmentVariable("COSMOSDB_ENDPOINT") ?? ConfigurationManager.AppSettings["EndPointUri"];
 
         // The primary key for the Azure Cosmos account.
         private static readonly string PrimaryKey = ConfigurationManager.AppSettings["PrimaryKey"];
@@ -66,6 +66,17 @@ namespace Samples.CosmosDb
         /// </summary>
         public async Task GetStartedDemoAsync()
         {
+            Func<HttpClient> httpClientFactory = 
+                () => 
+                    {
+                        var handler = new HttpClientHandler()
+                        {
+                            ClientCertificateOptions = ClientCertificateOption.Manual,
+                            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        };
+                        var client = new HttpClient(handler);
+                        return client;
+                    };
             // Create a new instance of the Cosmos Client
             var clientOptions = 
                 new CosmosClientOptions() 
@@ -73,6 +84,7 @@ namespace Samples.CosmosDb
                     ApplicationName = "CosmosDBDotnetQuickstart", 
                     RequestTimeout = TimeSpan.FromMinutes(10),
                     OpenTcpConnectionTimeout = TimeSpan.FromMinutes(1),
+                    HttpClientFactory = httpClientFactory,
                 };
 
             cosmosClient = new CosmosClient(EndpointUri, PrimaryKey, clientOptions);

@@ -36,4 +36,5 @@ wait-for-it mongo:27017 -- \
 wait-for-it postgres:5432 -- \
 wait-for-it -t 60 kafka-zookeeper:2181 -- \
 wait-for-it -t 60 kafka-broker:9092 -- \
+wait-for-it cosmosdb:8081 -- \
 dotnet vstest test/Datadog.Trace.ClrProfiler.IntegrationTests/bin/$buildConfiguration/$publishTargetFramework/publish/Datadog.Trace.ClrProfiler.IntegrationTests.dll --logger:trx --ResultsDirectory:test/Datadog.Trace.ClrProfiler.IntegrationTests/results --TestCaseFilter:Category!=LinuxUnsupported
