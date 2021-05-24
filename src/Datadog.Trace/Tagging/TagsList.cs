@@ -248,9 +248,23 @@ namespace Datadog.Trace.Tagging
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteTag(ref byte[] bytes, ref int offset, byte[] keyUtf8Bytes, string value)
+        {
+            offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, keyUtf8Bytes);
+            offset += MessagePackBinary.WriteString(ref bytes, offset, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void WriteMetric(ref byte[] bytes, ref int offset, string key, double value)
         {
             offset += MessagePackBinary.WriteString(ref bytes, offset, key);
+            offset += MessagePackBinary.WriteDouble(ref bytes, offset, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void WriteMetric(ref byte[] bytes, ref int offset, byte[] keyUtf8Bytes, double value)
+        {
+            offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, keyUtf8Bytes);
             offset += MessagePackBinary.WriteDouble(ref bytes, offset, value);
         }
 
@@ -288,7 +302,7 @@ namespace Datadog.Trace.Tagging
                 if (value != null)
                 {
                     count++;
-                    WriteTag(ref bytes, ref offset, property.Key, value);
+                    WriteTag(ref bytes, ref offset, property.KeyInUtf8Bytes, value);
                 }
             }
 
@@ -335,7 +349,7 @@ namespace Datadog.Trace.Tagging
                 if (value != null)
                 {
                     count++;
-                    WriteMetric(ref bytes, ref offset, property.Key, value.Value);
+                    WriteMetric(ref bytes, ref offset, property.KeyInUtf8Bytes, value.Value);
                 }
             }
 

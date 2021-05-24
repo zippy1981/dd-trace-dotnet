@@ -11,5 +11,7 @@ namespace Datadog.Trace.Tagging
         Func<ITags, TResult> Getter { get; }
 
         Action<ITags, TResult> Setter { get; }
+
+        public byte[] KeyInUtf8Bytes { get; }
     }
 }
