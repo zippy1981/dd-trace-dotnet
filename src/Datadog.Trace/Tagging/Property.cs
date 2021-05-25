@@ -5,11 +5,10 @@ namespace Datadog.Trace.Tagging
 {
     internal class Property<TTags, TResult> : IProperty<TResult>
     {
-        private byte[] _keyInUtf8Bytes = null;
-
         public Property(string key, Func<TTags, TResult> getter, Action<TTags, TResult> setter)
         {
             Key = key;
+            KeyInUtf8Bytes = StringEncoding.UTF8.GetBytes(Key);
             Getter = tags => getter((TTags)tags);
             Setter = (tags, value) => setter((TTags)tags, value);
         }
@@ -22,6 +21,6 @@ namespace Datadog.Trace.Tagging
 
         public Action<ITags, TResult> Setter { get; }
 
-        public byte[] KeyInUtf8Bytes => _keyInUtf8Bytes ?? (_keyInUtf8Bytes = StringEncoding.UTF8.GetBytes(Key));
+        public byte[] KeyInUtf8Bytes { get; }
     }
 }
