@@ -2945,6 +2945,13 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
        ", Arguments=", numArgs,
        "]");
 
+  // First we check if the managed profiler has not been loaded yet
+  if (!ProfilerAssemblyIsLoadedIntoAppDomain(module_metadata->app_domain_id)) {
+    Warn("*** CallTarget_RewriterCallback() skipping method: Method replacement found but the managed profiler has not yet been loaded into AppDomain with id=",
+        module_metadata->app_domain_id, " token=", function_token, " caller_name=", caller->type.name, ".", caller->name, "()");
+    return E_FAIL;
+  }
+
   // *** Create rewriter
   ILRewriter rewriter(this->info_, methodHandler->GetFunctionControl(), module_id, function_token);
   bool modified = false;
