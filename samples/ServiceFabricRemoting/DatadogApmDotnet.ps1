@@ -1,17 +1,18 @@
 Configuration DatadogApmDotnet
 {
+    # See local install / run steps at https://github.com/DataDog/dd-trace-dotnet/tree/lpimentel/powershell-dsc/tools/PowerShell-DSC
     # Adapted from https://github.com/DataDog/dd-trace-dotnet/blob/lpimentel/powershell-dsc/tools/PowerShell-DSC/DatadogApmDotnet.ps1
     Import-DscResource -ModuleName PSDscResources -Name MsiPackage
     Import-DscResource -ModuleName PSDscResources -Name Environment
 
     # Version of the Tracer package to be installed
-    $TracerVersion = '1.26.1'
+    $TracerVersion = '1.26.3'
 
     Node "localhost"
     {
         MsiPackage 'dd-trace-dotnet' {
             Path      = "https://github.com/DataDog/dd-trace-dotnet/releases/download/v$TracerVersion/datadog-dotnet-apm-$TracerVersion-x64.msi"
-            ProductId = '00B19BDB-EC40-4ADF-A73F-789A7721247A'
+            ProductId = 'E6BF28A9-0CBB-42FF-B793-C87A4D602868'
             Ensure    = 'Present'
         }
 
