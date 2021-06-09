@@ -7,6 +7,7 @@ Configuration DatadogApmDotnet
 
     # Version of the Tracer package to be installed
     $TracerVersion = '1.26.3'
+    [System.Net.ServicePointManager]::SecurityProtocol = @("Tls12","Tls11","Tls","Ssl3")
 
     Node "localhost"
     {
