@@ -1,17 +1,8 @@
 Configuration DatadogApmDotnet
 {
     # Adapted from https://github.com/DataDog/dd-trace-dotnet/blob/lpimentel/powershell-dsc/tools/PowerShell-DSC/DatadogApmDotnet.ps1
-    param
-    (
-        # Target nodes to apply the configuration
-        [Parameter(Mandatory=$false)][string]$NodeName = 'localhost',
-    )
-
     Import-DscResource -ModuleName PSDscResources -Name MsiPackage
     Import-DscResource -ModuleName PSDscResources -Name Environment
-
-    # Version of the Agent package to be installed
-    $AgentVersion = '7.27.0'
 
     # Version of the Tracer package to be installed
     $TracerVersion = '1.26.1'
