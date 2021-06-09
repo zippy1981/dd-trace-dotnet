@@ -39,8 +39,9 @@ if ($EnableDotNetFrameworkMachineWide.IsPresent) {
 }
 
 Set-MachineEnvironmentVariable 'CORECLR_PROFILER' '{846F5F1C-F9AE-4B07-969E-05C26BC060D8}'
+Set-MachineEnvironmentVariable 'CORECLR_ENABLE_PROFILING' '1'
 if ($EnableDotNetCoreMachineWide.IsPresent) {
-  Set-MachineEnvironmentVariable 'CORECLR_ENABLE_PROFILING' '1'
+  # Always do it for now
 }
 
 # Set environment variables for all items matching format "name=value"
