@@ -47,9 +47,25 @@ Configuration DatadogApmDotnet
                 Target = @('Machine')
             }
 
+            Environment 'COR_ENABLE_PROFILING' {
+                Name   = 'COR_ENABLE_PROFILING'
+                Value  = '1'
+                Ensure = 'Present'
+                Path   = $false
+                Target = @('Machine')
+            }
+
             Environment 'CORECLR_PROFILER' {
                 Name   = 'CORECLR_PROFILER'
                 Value  = '{846F5F1C-F9AE-4B07-969E-05C26BC060D8}'
+                Ensure = 'Present'
+                Path   = $false
+                Target = @('Machine')
+            }
+
+            Environment 'CORECLR_ENABLE_PROFILING' {
+                Name   = 'CORECLR_ENABLE_PROFILING'
+                Value  = '1'
                 Ensure = 'Present'
                 Path   = $false
                 Target = @('Machine')
