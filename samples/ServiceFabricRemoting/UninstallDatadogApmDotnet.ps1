@@ -17,7 +17,7 @@ Configuration UninstallDatadogApmDotnet
         MsiPackage 'dd-agent' {
             Path      = "https://s3.amazonaws.com/ddagent-windows-stable/ddagent-cli-$AgentVersion.msi"
             ProductId = 'B55FFED6-0CAD-4F94-AA07-5B74A5776C1C'
-            Ensure    = 'Present'
+            Ensure    = 'Absent'
         }
 
         # .NET Tracer msi installer
