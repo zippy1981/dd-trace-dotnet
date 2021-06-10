@@ -3,10 +3,10 @@ Configuration DatadogApmDotnet
     param
     (
         # Determines whether to install the Agent
-        [bool]$InstallAgent = $false,
+        [string]$InstallAgent = "False",
 
         # Determines whether to install the Tracer
-        [bool]$InstallTracer = $false
+        [string]$InstallTracer = "False"
     )
 
     # See local install / run steps at https://github.com/DataDog/dd-trace-dotnet/tree/lpimentel/powershell-dsc/tools/PowerShell-DSC
@@ -23,7 +23,7 @@ Configuration DatadogApmDotnet
     Node 'localhost'
     {
         # Agent msi installer
-        if ($InstallAgent) {
+        if ([System.Convert]::ToBoolean($InstallAgent)) {
             MsiPackage 'dd-agent' {
                 Path      = "https://s3.amazonaws.com/ddagent-windows-stable/ddagent-cli-$AgentVersion.msi"
                 ProductId = 'B55FFED6-0CAD-4F94-AA07-5B74A5776C1C'
@@ -32,7 +32,7 @@ Configuration DatadogApmDotnet
         }
 
         # .NET Tracer msi installer
-        if ($InstallTracer) {
+        if ([System.Convert]::ToBoolean($InstallTracer)) {
             MsiPackage 'dd-trace-dotnet' {
                 Path      = "https://github.com/DataDog/dd-trace-dotnet/releases/download/v$TracerVersion/datadog-dotnet-apm-$TracerVersion-x64.msi"
                 ProductId = '00B19BDB-EC40-4ADF-A73F-789A7721247A'
