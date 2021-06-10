@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LibsqreenVersion>1.1.2.1</LibsqreenVersion>
+  </PropertyGroup>
+  <ItemGroup>
+      <PackageReference Include="libsqreen" 
+                        Version="$(LibsqreenVersion)" 
+                        GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="GetLibsqreenFiles" DependsOnTargets="Restore">
+      <ItemGroup>
+          <_CopyItems Include="$(Pkglibsqreen)\**\*" />
+      </ItemGroup>
+      <Copy SourceFiles="@(_CopyItems)" 
+            DestinationFolder="packages\libsqreen.$(LibsqreenVersion)\%(RecursiveDir)" />
+  </Target>
+</Project>

@@ -245,6 +245,7 @@ elseif(ISLINUX)
     target_link_libraries("Datadog.Trace.ClrProfiler.Native.static"
         ${OUTPUT_DEPS_DIR}/re2/obj/libre2.a
         ${OUTPUT_DEPS_DIR}/fmt/libfmt.a
+        ../../packages/libsqreen.1.1.2.1/build/native/lib/linux/x64/linux-x64-Release/libsqreen.a
         -static-libgcc
         -static-libstdc++
     )
