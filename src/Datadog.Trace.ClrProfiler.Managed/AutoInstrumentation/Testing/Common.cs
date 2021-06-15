@@ -81,6 +81,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing
 
             try
             {
+                Log.Warning("StackTrace: " + Environment.StackTrace);
+
                 var flushThread = new Thread(() => InternalFlush().GetAwaiter().GetResult());
                 flushThread.IsBackground = false;
                 flushThread.Name = "FlushThread";
