@@ -30,6 +30,7 @@ partial class Build
 {
     [Solution("Datadog.Trace.sln")] readonly Solution Solution;
     AbsolutePath MsBuildProject => RootDirectory / "Datadog.Trace.proj";
+    AbsolutePath PackagesCPlusPlus => RootDirectory / "PackagesCPlusPlus.proj";
 
     AbsolutePath OutputDirectory => RootDirectory / "bin";
     AbsolutePath TracerHomeDirectory => TracerHome ?? (OutputDirectory / "tracer-home");
@@ -153,6 +154,11 @@ partial class Build
         .OnlyWhenStatic(() => IsLinux)
         .Executes(() =>
         {
+            DotNetMSBuild(x => x
+                .SetTargetPath(PackagesCPlusPlus)
+                .SetTargets("GetLibsqreenFiles")
+            );
+
             var buildDirectory = NativeProfilerProject.Directory / "build";
             EnsureExistingDirectory(buildDirectory);
 
