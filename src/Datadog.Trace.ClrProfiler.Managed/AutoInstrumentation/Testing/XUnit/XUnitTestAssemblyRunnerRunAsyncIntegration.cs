@@ -4,6 +4,8 @@
 // </copyright>
 
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Datadog.Trace.ClrProfiler.CallTarget;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
@@ -22,6 +24,21 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
     public static class XUnitTestAssemblyRunnerRunAsyncIntegration
     {
         /// <summary>
+        /// OnMethodBegin callback
+        /// </summary>
+        /// <typeparam name="TTarget">Type of the target</typeparam>
+        /// <param name="instance">Instance value, aka `this` of the instrumented method.</param>
+        /// <returns>Calltarget state value</returns>
+        public static CallTargetState OnMethodBegin<TTarget>(TTarget instance)
+        {
+            Common.Log.Warning("[OnMethodBegin] TaskScheduler: " + TaskScheduler.Current?.GetType().FullName ?? "(null)");
+            Common.Log.Warning("[OnMethodBegin] SynchronizationContext: " + SynchronizationContext.Current?.GetType().FullName ?? "(null)");
+            Common.Log.Warning("Xunit.Sdk.TestAssemblyRunner`1.RunAsync[OnMethodBegin] StackTrace: " + Environment.StackTrace);
+
+            return CallTargetState.GetDefault();
+        }
+
+        /// <summary>
         /// OnAsyncMethodEnd callback
         /// </summary>
         /// <typeparam name="TTarget">Type of the target</typeparam>
@@ -33,6 +50,9 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>A response value, in an async scenario will be T of Task of T</returns>
         public static TReturn OnAsyncMethodEnd<TTarget, TReturn>(TTarget instance, TReturn returnValue, Exception exception, CallTargetState state)
         {
+            Common.Log.Warning("[OnAsyncMethodEnd] TaskScheduler: " + TaskScheduler.Current?.GetType().FullName ?? "(null)");
+            Common.Log.Warning("[OnAsyncMethodEnd] SynchronizationContext: " + SynchronizationContext.Current?.GetType().FullName ?? "(null)");
+
             Common.FlushSpans(XUnitIntegration.IntegrationId);
             return returnValue;
         }
