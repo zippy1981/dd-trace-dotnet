@@ -24,10 +24,6 @@ namespace Samples.AspNetCore5
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
-            if (Configuration.GetValue<bool>("CreateDb"))
-            {
-                DatabaseHelper.CreateAndFeedDatabase(Configuration.GetConnectionString("DefaultConnection"));
-            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -43,7 +39,6 @@ namespace Samples.AspNetCore5
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
 
             app.UseRouting();

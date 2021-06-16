@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Nuke.Common;
@@ -30,7 +32,6 @@ partial class Build
 {
     [Solution("Datadog.Trace.sln")] readonly Solution Solution;
     AbsolutePath MsBuildProject => RootDirectory / "Datadog.Trace.proj";
-    AbsolutePath PackagesCPlusPlus => RootDirectory / "PackagesCPlusPlus.proj";
 
     AbsolutePath OutputDirectory => RootDirectory / "bin";
     AbsolutePath TracerHomeDirectory => TracerHome ?? (OutputDirectory / "tracer-home");
@@ -154,11 +155,6 @@ partial class Build
         .OnlyWhenStatic(() => IsLinux)
         .Executes(() =>
         {
-            DotNetMSBuild(x => x
-                .SetTargetPath(PackagesCPlusPlus)
-                .SetTargets("GetLibsqreenFiles")
-            );
-
             var buildDirectory = NativeProfilerProject.Directory / "build";
             EnsureExistingDirectory(buildDirectory);
 
@@ -811,6 +807,7 @@ partial class Build
             // There's nothing specifically linux-y here, it's just that we only build a subset of projects
             // for testing on linux.
             var sampleProjects = RootDirectory.GlobFiles("test/test-applications/integrations/*/*.csproj");
+            var securityProjects = RootDirectory.GlobFiles("test/test-applications/security/*/*.csproj");
             var regressionProjects = RootDirectory.GlobFiles("test/test-applications/regression/*/*.csproj");
             var instrumentationProjects = RootDirectory.GlobFiles("test/test-applications/instrumentation/*/*.csproj");
 
@@ -857,6 +854,7 @@ partial class Build
             };
 
             var projectsToBuild = sampleProjects
+                .Concat(securityProjects)
                 .Concat(regressionProjects)
                 .Concat(instrumentationProjects)
                 .Where(path =>

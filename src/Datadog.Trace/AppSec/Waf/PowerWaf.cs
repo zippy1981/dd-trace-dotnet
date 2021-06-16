@@ -67,8 +67,8 @@ namespace Datadog.Trace.AppSec.Waf
         private Rule NewRule(string rule)
         {
             string message = null;
-            PWConfig args = default;
-            var ruleHandle = Native.pw_initH(rule, ref args, ref message);
+            // PWConfig args = default;
+            var ruleHandle = IntPtr.Zero; // Native.pw_initH(rule, ref args, ref message);
 
             if (ruleHandle == IntPtr.Zero)
             {
@@ -77,7 +77,7 @@ namespace Datadog.Trace.AppSec.Waf
             }
             else
             {
-                Log.Debug("Rules successfully created: {Message}", message);
+                Log.Information("Rules successfully created: {Message}", message);
             }
 
             return new Rule(ruleHandle);

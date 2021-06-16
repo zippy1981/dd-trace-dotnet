@@ -4,13 +4,13 @@ FROM mcr.microsoft.com/dotnet/sdk:$DOTNETSDK_VERSION-buster-slim as base
 # ubuntu image
 # FROM mcr.microsoft.com/dotnet/sdk:$DOTNETSDK_VERSION-focal
 
-RUN apt-get update \
+RUN echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list \
+    && apt-get update \
     && apt-get -y upgrade \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-missing \
         git \
         wget \
         curl \
-        cmake \
         make \
         llvm \
         clang \
@@ -20,8 +20,12 @@ RUN apt-get update \
         ruby \
         ruby-dev \
         rubygems \
+        ssh-client \
+    && DEBIAN_FRONTEND=noninteractive apt-get -t buster-backports install -y --fix-missing \ 
+        cmake \
     && gem install --no-document fpm
 
+RUN --mount=type=ssh mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 ENV CXX=clang++
 ENV CC=clang

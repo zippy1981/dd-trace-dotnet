@@ -115,6 +115,14 @@ if (NOT EXISTS ${OUTPUT_DEPS_DIR}/re2)
     )
 endif()
 
+if (NOT EXISTS ${OUTPUT_DEPS_DIR}/libsqreen)
+    add_custom_command(
+        OUTPUT ${OUTPUT_DEPS_DIR}/libsqreen
+	COMMAND git clone --quiet --branch robert/use-relative-url git@github.com:sqreen/libsqreen.git && cd libsqreen && git submodule update --init --recursive && cmake -DCMAKE_BUILD_TYPE=Release . && make
+        WORKING_DIRECTORY ${OUTPUT_DEPS_DIR}
+    )
+endif()
+
 if (NOT EXISTS ${OUTPUT_DEPS_DIR}/fmt)
     add_custom_command(
         OUTPUT ${OUTPUT_DEPS_DIR}/fmt
@@ -144,13 +152,13 @@ elseif(ISLINUX)
     add_custom_command(
             OUTPUT ${OUTPUT_TMP_DIR}/Datadog.Trace.ClrProfiler.Managed.Loader.dll.o
             COMMAND cp "${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.dll" Datadog.Trace.ClrProfiler.Managed.Loader.dll && ld -r -b binary -o Datadog.Trace.ClrProfiler.Managed.Loader.dll.o Datadog.Trace.ClrProfiler.Managed.Loader.dll
-            DEPENDS ${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.dll ${OUTPUT_DEPS_DIR}/json ${OUTPUT_DEPS_DIR}/re2 ${OUTPUT_DEPS_DIR}/fmt
+            DEPENDS ${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.dll ${OUTPUT_DEPS_DIR}/json ${OUTPUT_DEPS_DIR}/re2 ${OUTPUT_DEPS_DIR}/fmt ${OUTPUT_DEPS_DIR}/libsqreen
             WORKING_DIRECTORY ${OUTPUT_TMP_DIR}
     )
     add_custom_command(
             OUTPUT ${OUTPUT_TMP_DIR}/Datadog.Trace.ClrProfiler.Managed.Loader.pdb.o
             COMMAND cp "${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.pdb" Datadog.Trace.ClrProfiler.Managed.Loader.pdb && ld -r -b binary -o Datadog.Trace.ClrProfiler.Managed.Loader.pdb.o Datadog.Trace.ClrProfiler.Managed.Loader.pdb
-            DEPENDS ${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.pdb ${OUTPUT_DEPS_DIR}/json ${OUTPUT_DEPS_DIR}/re2 ${OUTPUT_DEPS_DIR}/fmt
+            DEPENDS ${MANAGED_LOADER_DIRECTORY}/Datadog.Trace.ClrProfiler.Managed.Loader.pdb ${OUTPUT_DEPS_DIR}/json ${OUTPUT_DEPS_DIR}/re2 ${OUTPUT_DEPS_DIR}/fmt ${OUTPUT_DEPS_DIR}/libsqreen
             WORKING_DIRECTORY ${OUTPUT_TMP_DIR}
     )
 endif()
@@ -233,7 +241,7 @@ target_include_directories("Datadog.Trace.ClrProfiler.Native.static"
         PUBLIC ${OUTPUT_DEPS_DIR}/fmt/include
         PUBLIC ${OUTPUT_DEPS_DIR}/re2
         PUBLIC ${OUTPUT_DEPS_DIR}/json/include
-        PUBLIC ${CMAKE_BINARY_DIR}/../../../packages/libsqreen.1.1.2.1/build/native/include/libsqreen
+	PUBLIC ${OUTPUT_DEPS_DIR}/libsqreen/PowerWAF/include
 )
 
 # Define linker libraries
@@ -246,7 +254,7 @@ elseif(ISLINUX)
     target_link_libraries("Datadog.Trace.ClrProfiler.Native.static"
         ${OUTPUT_DEPS_DIR}/re2/obj/libre2.a
         ${OUTPUT_DEPS_DIR}/fmt/libfmt.a
-        ${CMAKE_BINARY_DIR}/../../../packages/libsqreen.1.1.2.1/build/native/lib/linux/x64/linux-x64-Release/libsqreen.a
+	${OUTPUT_DEPS_DIR}/libsqreen/libsqreen.a
         -static-libgcc
         -static-libstdc++
     )

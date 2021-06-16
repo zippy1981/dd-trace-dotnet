@@ -13,7 +13,8 @@ namespace Samples.AspNetCore5
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+	    Console.WriteLine("Hello curel world");
+	    CreateHostBuilder(args).Build().Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
