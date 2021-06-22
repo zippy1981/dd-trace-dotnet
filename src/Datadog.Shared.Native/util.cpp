@@ -1,11 +1,10 @@
 #include "util.h"
 
 #include "miniutf.hpp"
-#include "pal.h"
 #include <cwctype>
 #include <iterator>
 #include <sstream>
-#include <string> //NOLINT
+#include <string>
 #include <vector>
 
 namespace trace

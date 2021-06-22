@@ -1,5 +1,5 @@
-#ifndef DD_CLR_PROFILER_STRING_H_
-#define DD_CLR_PROFILER_STRING_H_
+#ifndef DD_SHARED_STRING_H_
+#define DD_SHARED_STRING_H_
 
 #include <corhlpr.h>
 #include <sstream>
@@ -32,4 +32,4 @@ WSTRING ToWSTRING(const uint64_t i);
 
 } // namespace trace
 
-#endif // DD_CLR_PROFILER_STRING_H_
+#endif // DD_SHARED_STRING_H_

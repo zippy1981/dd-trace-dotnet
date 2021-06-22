@@ -1,5 +1,5 @@
-﻿#ifndef DD_CLR_PROFILER_COM_PTR_H_
-#define DD_CLR_PROFILER_COM_PTR_H_
+﻿#ifndef DD_SHARED_COM_PTR_H_
+#define DD_SHARED_COM_PTR_H_
 
 #include <cassert>
 #include <windows.h>
@@ -183,4 +183,4 @@ void swap(ComPtr<Interface>& left, ComPtr<Interface>& right) noexcept
     left.Swap(right);
 }
 
-#endif // DD_CLR_PROFILER_COM_PTR_H_
+#endif // DD_SHARED_COM_PTR_H_

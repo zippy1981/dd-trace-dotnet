@@ -1,6 +1,7 @@
 #include "logging.h"
 
 #include "pal.h"
+#include "../Datadog.Shared.Native/pal.h"
 
 #include "spdlog/sinks/null_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"

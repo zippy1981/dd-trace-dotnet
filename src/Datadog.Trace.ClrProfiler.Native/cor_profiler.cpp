@@ -15,7 +15,7 @@
 #include "logging.h"
 #include "metadata_builder.h"
 #include "module_metadata.h"
-#include "pal.h"
+#include "../Datadog.Shared.Native/pal.h"
 #include "resource.h"
 #include "sig_helpers.h"
 #include "stats.h"

@@ -1,5 +1,5 @@
-#ifndef DD_CLR_PROFILER_MACROS_H_
-#define DD_CLR_PROFILER_MACROS_H_
+#ifndef DD_SHARED_MACROS_H_
+#define DD_SHARED_MACROS_H_
 
 #include <corhlpr.h>
 #include <fstream>
@@ -30,4 +30,4 @@
         if ((EXPR) == false) return E_FAIL;                                                                            \
     } while (0)
 
-#endif // DD_CLR_PROFILER_MACROS_H_
+#endif // DD_SHARED_MACROS_H_

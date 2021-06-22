@@ -1,5 +1,5 @@
-#ifndef DD_CLR_PROFILER_UTIL_H_
-#define DD_CLR_PROFILER_UTIL_H_
+#ifndef DD_SHARED_UTIL_H_
+#define DD_SHARED_UTIL_H_
 
 #include <algorithm>
 #include <condition_variable>
@@ -10,7 +10,7 @@
 #include <thread>
 #include <vector>
 
-#include "string.h"
+#include "string_utils.h"
 
 namespace trace
 {
@@ -104,4 +104,4 @@ public:
 
 } // namespace trace
 
-#endif // DD_CLR_PROFILER_UTIL_H_
+#endif // DD_SHARED_UTIL_H_

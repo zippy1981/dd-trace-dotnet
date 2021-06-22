@@ -15,12 +15,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)com_ptr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)macros.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)miniutf.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)miniutfdata.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)string.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)pal.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)string_utils.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)miniutf.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)string.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)string_utils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)util.cpp" />
   </ItemGroup>
 </Project>
