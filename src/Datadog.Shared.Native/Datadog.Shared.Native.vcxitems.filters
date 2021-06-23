@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)com_ptr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)macros.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)pal.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)util.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutf.hpp">
+      <Filter>strings</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutfdata.h">
+      <Filter>strings</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)strings\utils.h">
+      <Filter>strings</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="strings">
+      <UniqueIdentifier>{14c037fb-746a-4ce8-8c95-9195c282ff76}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)util.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)strings\miniutf.cpp">
+      <Filter>strings</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)strings\utils.cpp">
+      <Filter>strings</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

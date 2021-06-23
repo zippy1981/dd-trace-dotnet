@@ -21,6 +21,7 @@
 
 #include "environment_variables.h"
 #include "util.h"
+#include "../Datadog.Shared.Native/pal.h"
 
 namespace trace
 {

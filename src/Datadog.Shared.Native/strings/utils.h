@@ -4,6 +4,7 @@
 #include <corhlpr.h>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
 #define WStr(value) L##value
@@ -29,6 +30,21 @@ std::string ToString(const WSTRING& wstr);
 
 WSTRING ToWSTRING(const std::string& str);
 WSTRING ToWSTRING(const uint64_t i);
+
+template <typename Out>
+void Split(const WSTRING& s, wchar_t delim, Out result);
+
+// Split splits a string by the given delimiter.
+std::vector<WSTRING> Split(const WSTRING& s, wchar_t delim);
+
+// Trim removes space from the beginning and end of a string.
+WSTRING Trim(const WSTRING& str);
+
+// Convert Hex to string
+WSTRING HexStr(const void* data, int len);
+
+// Convert Token to string
+WSTRING TokenStr(const mdToken* token);
 
 } // namespace trace
 

@@ -1,8 +1,7 @@
 #ifndef DD_SHARED_MACROS_H_
 #define DD_SHARED_MACROS_H_
 
-#include <corhlpr.h>
-#include <fstream>
+#include "strings/utils.h"
 
 #define RETURN_IF_FAILED(EXPR)                                                                                         \
     do                                                                                                                 \

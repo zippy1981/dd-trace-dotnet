@@ -20,7 +20,6 @@
 #endif
 
 #include "util.h"
-#include "../Datadog.Shared.Native/pal.h"
 
 namespace trace
 {

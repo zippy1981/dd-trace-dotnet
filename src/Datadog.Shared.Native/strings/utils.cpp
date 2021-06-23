@@ -1,4 +1,4 @@
-#include "string_utils.h"
+#include "utils.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -68,6 +68,79 @@ WSTRING ToWSTRING(const std::string& str)
 WSTRING ToWSTRING(const uint64_t i)
 {
     return WSTRING(reinterpret_cast<const WCHAR*>(std::to_wstring(i).c_str()));
+}
+
+template <typename Out>
+void Split(const WSTRING& s, wchar_t delim, Out result)
+{
+    size_t lpos = 0;
+    for (size_t i = 0; i < s.length(); i++)
+    {
+        if (s[i] == delim)
+        {
+            *(result++) = s.substr(lpos, (i - lpos));
+            lpos = i + 1;
+        }
+    }
+    *(result++) = s.substr(lpos);
+}
+
+std::vector<WSTRING> Split(const WSTRING& s, wchar_t delim)
+{
+    std::vector<WSTRING> elems;
+    Split(s, delim, std::back_inserter(elems));
+    return elems;
+}
+
+WSTRING Trim(const WSTRING& str)
+{
+    if (str.length() == 0)
+    {
+        return WStr("");
+    }
+
+    WSTRING trimmed = str;
+
+    auto lpos = trimmed.find_first_not_of(WStr(" \t"));
+    if (lpos != WSTRING::npos && lpos > 0)
+    {
+        trimmed = trimmed.substr(lpos);
+    }
+
+    auto rpos = trimmed.find_last_not_of(WStr(" \t"));
+    if (rpos != WSTRING::npos)
+    {
+        trimmed = trimmed.substr(0, rpos + 1);
+    }
+
+    return trimmed;
+}
+
+constexpr char HexMap[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+WSTRING HexStr(const void* dataPtr, int len)
+{
+    const unsigned char* data = (unsigned char*) dataPtr;
+    WSTRING s(len * 2, ' ');
+    for (int i = 0; i < len; ++i)
+    {
+        s[2 * i] = HexMap[(data[i] & 0xF0) >> 4];
+        s[2 * i + 1] = HexMap[data[i] & 0x0F];
+    }
+    return s;
+}
+
+WSTRING TokenStr(const mdToken* token)
+{
+    const unsigned char* data = (unsigned char*) token;
+    int len = sizeof(mdToken);
+    WSTRING s(len * 2, ' ');
+    for (int i = 0; i < len; i++)
+    {
+        s[(2 * (len - i)) - 2] = HexMap[(data[i] & 0xF0) >> 4];
+        s[(2 * (len - i)) - 1] = HexMap[data[i] & 0x0F];
+    }
+    return s;
 }
 
 } // namespace trace

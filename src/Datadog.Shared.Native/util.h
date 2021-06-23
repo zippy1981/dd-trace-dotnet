@@ -1,28 +1,15 @@
 #ifndef DD_SHARED_UTIL_H_
 #define DD_SHARED_UTIL_H_
 
-#include <algorithm>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
-#include <sstream>
-#include <string>
-#include <thread>
 #include <vector>
 
-#include "string_utils.h"
+#include "strings/utils.h"
 
 namespace trace
 {
-
-template <typename Out>
-void Split(const WSTRING& s, wchar_t delim, Out result);
-
-// Split splits a string by the given delimiter.
-std::vector<WSTRING> Split(const WSTRING& s, wchar_t delim);
-
-// Trim removes space from the beginning and end of a string.
-WSTRING Trim(const WSTRING& str);
 
 // GetEnvironmentValue returns the environment variable value for the given
 // name. Space is trimmed.
@@ -34,12 +21,6 @@ std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name, const wchar_t del
 
 // GetEnvironmentValues calls GetEnvironmentValues with a semicolon delimiter.
 std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name);
-
-// Convert Hex to string
-WSTRING HexStr(const void* data, int len);
-
-// Convert Token to string
-WSTRING TokenStr(const mdToken* token);
 
 template <class Container>
 bool Contains(const Container& items, const typename Container::value_type& value)
