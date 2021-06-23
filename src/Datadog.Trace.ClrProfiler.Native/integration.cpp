@@ -10,7 +10,7 @@
 
 #include "dd_profiler_constants.h"
 #include "util.h"
-#include "clr_helpers.h"
+#include "cor/clr_helpers.h"
 
 namespace trace
 {

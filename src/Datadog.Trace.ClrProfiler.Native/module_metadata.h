@@ -6,8 +6,8 @@
 #include <unordered_set>
 
 #include "calltarget_tokens.h"
-#include "clr_helpers.h"
 #include "com_ptr.h"
+#include "cor/clr_helpers.h"
 #include "integration.h"
 #include "string.h"
 

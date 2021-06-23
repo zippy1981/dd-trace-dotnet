@@ -1,5 +1,5 @@
-#ifndef DD_CLR_PROFILER_LOGGING_H_
-#define DD_CLR_PROFILER_LOGGING_H_
+#ifndef DD_SHARED_LOGGING_H_
+#define DD_SHARED_LOGGING_H_
 #include "util.h"
 
 #include <spdlog/spdlog.h>
@@ -10,15 +10,15 @@
 namespace trace
 {
 
-extern bool debug_logging_enabled;
-
 class Logger : public Singleton<Logger>
 {
     friend class Singleton<Logger>;
 
 private:
+    static bool _debug_logging_enabled;
+    static std::function<WSTRING(const std::string&)> m_logFilePathFunction;
     std::shared_ptr<spdlog::logger> m_fileout;
-    static std::string GetLogPath(const std::string& file_name_suffix);
+    std::string GetLogPath(const std::string& file_name_suffix);
     Logger();
     ~Logger();
 
@@ -29,9 +29,23 @@ public:
     void Error(const std::string& str);
     void Critical(const std::string& str);
     void Flush();
+
+    static void SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction)
+    {
+        m_logFilePathFunction = logFilePathFunction;
+    }
+
     static void Shutdown()
     {
         spdlog::shutdown();
+    }
+    static bool IsDebugEnabled()
+    {
+        return _debug_logging_enabled;
+    }
+    static void SetDebugEnabled(bool value)
+    {
+        _debug_logging_enabled = value;
     }
 };
 
@@ -52,7 +66,7 @@ std::string LogToString(Args const&... args)
 template <typename... Args>
 void Debug(const Args... args)
 {
-    if (debug_logging_enabled)
+    if (Logger::IsDebugEnabled())
     {
         Logger::Instance()->Debug(LogToString(args...));
     }
@@ -72,4 +86,4 @@ void Warn(const Args... args)
 
 } // namespace trace
 
-#endif // DD_CLR_PROFILER_LOGGING_H_
+#endif // DD_SHARED_LOGGING_H_

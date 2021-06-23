@@ -4,7 +4,7 @@
 #include <corprof.h>
 #include <string>
 
-#include "clr_helpers.h"
+#include "cor/clr_helpers.h"
 #include "dd_profiler_constants.h"
 #include "dllmain.h"
 #include "environment_variables.h"
@@ -38,7 +38,10 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
     auto _ = trace::Stats::Instance()->InitializeMeasure();
 
     // check if debug mode is enabled
-    debug_logging_enabled = IsDebugEnabled();
+    Logger::SetDebugEnabled(IsDebugEnabled());
+    Logger::SetLogFilePathFunction([](const std::string& suffix){
+        return DatadogLogFilePath(suffix);
+    });
 
     // check if dump il rewrite is enabled
     dump_il_rewrite_enabled = IsDumpILRewriteEnabled();
@@ -104,7 +107,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
     for (auto&& env_var : env_vars_to_display)
     {
         WSTRING env_var_value = GetEnvironmentValue(env_var);
-        if (debug_logging_enabled || !env_var_value.empty())
+        if (Logger::IsDebugEnabled() || !env_var_value.empty())
         {
             Info("  ", env_var, "=", env_var_value);
         }
@@ -318,9 +321,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::AssemblyLoadFinished(AssemblyID assembly_
 
     const auto is_instrumentation_assembly = assembly_info.name == WStr("Datadog.Trace.ClrProfiler.Managed");
 
-    if (is_instrumentation_assembly || debug_logging_enabled)
+    if (is_instrumentation_assembly || Logger::IsDebugEnabled())
     {
-        if (debug_logging_enabled)
+        if (Logger::IsDebugEnabled())
         {
             Debug("AssemblyLoadFinished: ", assembly_id, " ", hr_status);
         }
@@ -340,7 +343,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::AssemblyLoadFinished(AssemblyID assembly_
         const auto assembly_import = metadata_interfaces.As<IMetaDataAssemblyImport>(IID_IMetaDataAssemblyImport);
         const auto assembly_metadata = GetAssemblyImportMetadata(assembly_import);
 
-        if (debug_logging_enabled)
+        if (Logger::IsDebugEnabled())
         {
             Debug("AssemblyLoadFinished: AssemblyName=", assembly_info.name,
                   " AssemblyVersion=", assembly_metadata.version.str());
@@ -421,7 +424,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id, HR
         return S_OK;
     }
 
-    if (debug_logging_enabled)
+    if (Logger::IsDebugEnabled())
     {
         Debug("ModuleLoadFinished: ", module_id, " ", module_info.assembly.name, " AppDomain ",
               module_info.assembly.app_domain_id, " ", module_info.assembly.app_domain_name);
@@ -590,7 +593,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleUnloadStarted(ModuleID module_id)
         return S_OK;
     }
 
-    if (debug_logging_enabled)
+    if (Logger::IsDebugEnabled())
     {
         const auto module_info = GetModuleInfo(this->info_, module_id);
 
@@ -742,7 +745,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(FunctionID function
         return S_OK;
     }
 
-    if (debug_logging_enabled)
+    if (Logger::IsDebugEnabled())
     {
         Debug("JITCompilationStarted: function_id=", function_id, " token=", function_token, " name=", caller.type.name,
               ".", caller.name, "()");
@@ -1070,7 +1073,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
             {
                 // wrapper signature must have at least 6 bytes
                 // 0:{CallingConvention}|1:{ParamCount}|2:{ReturnType}|3:{OpCode}|4:{mdToken}|5:{ModuleVersionId}
-                if (debug_logging_enabled)
+                if (Logger::IsDebugEnabled())
                 {
                     Debug("JITCompilationStarted skipping function call: wrapper signature "
                           "too short. function_id=",
@@ -1099,7 +1102,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
             if (expected_number_args != target_arg_count)
             {
                 // Number of arguments does not match our wrapper method
-                if (debug_logging_enabled)
+                if (Logger::IsDebugEnabled())
                 {
                     Debug("JITCompilationStarted skipping function call: argument counts "
                           "don't match. function_id=",
@@ -1150,7 +1153,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
 
             if (!successfully_parsed_signature)
             {
-                if (debug_logging_enabled)
+                if (Logger::IsDebugEnabled())
                 {
                     Debug("JITCompilationStarted skipping function call: failed to parse "
                           "signature. function_id=",
@@ -1165,7 +1168,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
             if (actual_sig.size() != expected_sig.size())
             {
                 // we can't safely assume our wrapper methods handle the types
-                if (debug_logging_enabled)
+                if (Logger::IsDebugEnabled())
                 {
                     Debug("JITCompilationStarted skipping function call: unexpected type "
                           "count. function_id=",
@@ -1188,7 +1191,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
                 if (expected_sig[i] != actual_sig[i])
                 {
                     // we have a type mismatch, drop out
-                    if (debug_logging_enabled)
+                    if (Logger::IsDebugEnabled())
                     {
                         Debug("JITCompilationStarted skipping function call: types don't "
                               "match. function_id=",
@@ -1403,7 +1406,7 @@ HRESULT CorProfiler::ProcessReplacementCalls(ModuleMetadata* module_metadata, co
                                                module_metadata->assembly_emit, corAssemblyProperty, target.id,
                                                target.signature, &typeToken))
             {
-                if (debug_logging_enabled)
+                if (Logger::IsDebugEnabled())
                 {
                     Debug("JITCompilationStarted inserting 'unbox.any ", typeToken,
                           "' instruction after calling target function."
@@ -3212,7 +3215,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
     }
 
     // *** Emit BeginMethod call
-    if (debug_logging_enabled)
+    if (Logger::IsDebugEnabled())
     {
         Debug("Caller Type.Id: ", HexStr(&caller->type.id, sizeof(mdToken)));
         Debug("Caller Type.IsGeneric: ", caller->type.isGeneric);

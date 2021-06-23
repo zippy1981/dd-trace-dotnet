@@ -1,7 +1,7 @@
 ﻿#include <fstream>
 #include <string>
 
-#include "clr_helpers.h"
+#include "cor/clr_helpers.h"
 #include "logging.h"
 #include "macros.h"
 #include "metadata_builder.h"

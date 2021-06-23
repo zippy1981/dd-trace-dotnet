@@ -3,9 +3,10 @@
 #include <cstring>
 #include <set>
 #include <stack>
-#include "macros.h"
-#include "pal.h"
-#include "cor/sig_helpers.h"
+#include "../logging.h"
+#include "../macros.h"
+#include "../pal.h"
+#include "sig_helpers.h"
 
 namespace trace
 {

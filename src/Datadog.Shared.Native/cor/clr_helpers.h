@@ -7,8 +7,8 @@
 #include <utility>
 #include <set>
 
-#include "com_ptr.h"
-#include "util.h"
+#include "../com_ptr.h"
+#include "../util.h"
 
 namespace trace
 {

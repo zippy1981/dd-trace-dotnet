@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 
+#include "cor/clr_helpers.h"
 #include "strings/str_util.h"
 #include "util.h"
 

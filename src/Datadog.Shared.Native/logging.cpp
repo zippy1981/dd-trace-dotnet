@@ -1,7 +1,6 @@
 #include "logging.h"
 
 #include "pal.h"
-#include "../Datadog.Shared.Native/pal.h"
 
 #include "spdlog/sinks/null_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"
@@ -32,7 +31,7 @@ std::string getPathName(const std::string& s)
 
 std::string Logger::GetLogPath(const std::string& file_name_suffix)
 {
-    const auto path = ToString(DatadogLogFilePath(file_name_suffix));
+    const auto path = ToString(m_logFilePathFunction(file_name_suffix));
 
 #ifdef _WIN32
     // on VC++, use std::filesystem (C++ 17) to
@@ -81,7 +80,8 @@ Logger::Logger()
 
     try
     {
-        m_fileout = spdlog::rotating_logger_mt("Logger", GetLogPath(file_name_suffix), 1048576 * 5, 10);
+        m_fileout =
+            spdlog::rotating_logger_mt("Logger", GetLogPath(file_name_suffix), 1048576 * 5, 10);
     }
     catch (...)
     {
