@@ -1,7 +1,7 @@
 #ifndef DD_SHARED_MACROS_H_
 #define DD_SHARED_MACROS_H_
 
-#include "strings/utils.h"
+#include "strings/str_util.h"
 
 #define RETURN_IF_FAILED(EXPR)                                                                                         \
     do                                                                                                                 \

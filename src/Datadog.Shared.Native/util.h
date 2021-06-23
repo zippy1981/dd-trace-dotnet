@@ -6,7 +6,7 @@
 #include <queue>
 #include <vector>
 
-#include "strings/utils.h"
+#include "strings/str_util.h"
 
 namespace trace
 {

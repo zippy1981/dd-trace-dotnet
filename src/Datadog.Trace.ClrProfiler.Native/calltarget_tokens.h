@@ -9,7 +9,7 @@
 
 #include "clr_helpers.h"
 #include "com_ptr.h"
-#include "il_rewriter.h"
+#include "cor/il/il_rewriter.h"
 #include "integration.h"
 #include "string.h" // NOLINT
 

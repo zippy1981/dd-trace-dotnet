@@ -1,5 +1,7 @@
 #include "il_rewriter_wrapper.h"
 
+#include <vector>
+
 ILRewriter* ILRewriterWrapper::GetILRewriter() const
 {
     return m_ILRewriter;

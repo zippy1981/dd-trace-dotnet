@@ -1,7 +1,7 @@
 #ifndef DD_CLR_PROFILER_ENVIRONMENT_VARIABLES_H_
 #define DD_CLR_PROFILER_ENVIRONMENT_VARIABLES_H_
 
-#include "strings/utils.h"
+#include "strings/str_util.h"
 
 namespace trace
 {

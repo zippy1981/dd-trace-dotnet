@@ -1,8 +1,7 @@
-#ifndef DD_CLR_PROFILER_IL_REWRITER_WRAPPER_H_
-#define DD_CLR_PROFILER_IL_REWRITER_WRAPPER_H_
+#ifndef DD_SHARED_IL_REWRITER_WRAPPER_H_
+#define DD_SHARED_IL_REWRITER_WRAPPER_H_
 
 #include "il_rewriter.h"
-#include "module_metadata.h"
 
 class ILRewriterWrapper
 {
@@ -47,4 +46,4 @@ public:
     ILInstr* InitObj(mdTypeRef type_ref) const;
 };
 
-#endif // DD_CLR_PROFILER_IL_REWRITER_WRAPPER_H_
+#endif // DD_SHARED_IL_REWRITER_WRAPPER_H_

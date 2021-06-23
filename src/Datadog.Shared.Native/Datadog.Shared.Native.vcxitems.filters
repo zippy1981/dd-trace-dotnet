@@ -11,13 +11,28 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutfdata.h">
       <Filter>strings</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)strings\utils.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)strings\str_util.h">
       <Filter>strings</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\sig_helpers.h">
+      <Filter>cor</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter.h">
+      <Filter>cor\il</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.h">
+      <Filter>cor\il</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="strings">
       <UniqueIdentifier>{14c037fb-746a-4ce8-8c95-9195c282ff76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cor">
+      <UniqueIdentifier>{cc2b9caf-a4a1-4bbe-8ff3-f075863198e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cor\il">
+      <UniqueIdentifier>{350d45c0-5287-45a1-961d-b2f6e96620b7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -25,8 +40,17 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)strings\miniutf.cpp">
       <Filter>strings</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)strings\utils.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)strings\str_util.cpp">
       <Filter>strings</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\sig_helpers.cpp">
+      <Filter>cor</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter.cpp">
+      <Filter>cor\il</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.cpp">
+      <Filter>cor\il</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -15,16 +15,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)com_ptr.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\sig_helpers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)macros.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)pal.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutf.hpp" />
     <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutfdata.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)strings\utils.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)strings\str_util.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)util.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\sig_helpers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)strings\miniutf.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)strings\utils.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)strings\str_util.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)util.cpp" />
   </ItemGroup>
 </Project>

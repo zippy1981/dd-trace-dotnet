@@ -6,7 +6,7 @@
 #include <sstream>
 #include <vector>
 
-#include "strings/utils.h"
+#include "strings/str_util.h"
 
 #undef major
 #undef minor

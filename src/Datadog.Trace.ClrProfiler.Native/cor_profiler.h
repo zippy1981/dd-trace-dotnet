@@ -11,7 +11,7 @@
 
 #include "cor_profiler_base.h"
 #include "environment_variables.h"
-#include "il_rewriter.h"
+#include "cor/il/il_rewriter.h"
 #include "integration.h"
 #include "module_metadata.h"
 #include "pal.h"

@@ -1,7 +1,7 @@
 #include "calltarget_tokens.h"
 
 #include "dd_profiler_constants.h"
-#include "il_rewriter_wrapper.h"
+#include "cor/il/il_rewriter_wrapper.h"
 #include "logging.h"
 #include "module_metadata.h"
 
