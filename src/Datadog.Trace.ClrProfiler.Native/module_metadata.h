@@ -9,7 +9,6 @@
 #include "com_ptr.h"
 #include "cor/clr_helpers.h"
 #include "integration.h"
-#include "string.h"
 
 namespace trace
 {
