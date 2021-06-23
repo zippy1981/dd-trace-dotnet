@@ -37,12 +37,6 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
 {
     auto _ = trace::Stats::Instance()->InitializeMeasure();
 
-    // check if debug mode is enabled
-    Logger::SetDebugEnabled(IsDebugEnabled());
-    Logger::SetLogFilePathFunction([](const std::string& suffix){
-        return DatadogLogFilePath(suffix);
-    });
-
     // check if dump il rewrite is enabled
     dump_il_rewrite_enabled = IsDumpILRewriteEnabled();
 

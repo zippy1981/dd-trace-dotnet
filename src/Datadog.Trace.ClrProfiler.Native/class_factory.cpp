@@ -6,6 +6,7 @@
 #include "cor_profiler.h"
 #include "logging.h"
 #include "version.h"
+#include "environment_variables_util.h"
 
 ClassFactory::ClassFactory() : refCount(0)
 {
@@ -52,6 +53,10 @@ HRESULT STDMETHODCALLTYPE ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFI
         *ppvObject = nullptr;
         return CLASS_E_NOAGGREGATION;
     }
+
+    // check if debug mode is enabled
+    trace::Logger::SetDebugEnabled(trace::IsDebugEnabled());
+    trace::Logger::SetLogFilePathFunction([](const std::string& suffix) { return trace::DatadogLogFilePath(suffix); });
 
     trace::Info("Datadog CLR Profiler ", PROFILER_VERSION, " on",
 
