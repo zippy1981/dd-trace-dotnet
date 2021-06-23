@@ -1,15 +1,14 @@
 #include "clr_helpers.h"
 
 #include <cstring>
-
-#include "dd_profiler_constants.h"
-#include "environment_variables.h"
-#include "logging.h"
+#include <set>
+#include <stack>
 #include "macros.h"
 #include "pal.h"
 #include "cor/sig_helpers.h"
-#include <set>
-#include <stack>
+
+#include "dd_profiler_constants.h"
+#include "logging.h"
 
 namespace trace
 {

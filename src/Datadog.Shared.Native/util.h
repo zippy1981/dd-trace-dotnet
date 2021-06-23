@@ -2,11 +2,15 @@
 #define DD_SHARED_UTIL_H_
 
 #include <condition_variable>
+#include <iomanip>
 #include <mutex>
 #include <queue>
 #include <vector>
 
 #include "strings/str_util.h"
+
+#undef major
+#undef minor
 
 namespace trace
 {
@@ -22,13 +26,22 @@ std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name, const wchar_t del
 // GetEnvironmentValues calls GetEnvironmentValues with a semicolon delimiter.
 std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name);
 
+
+// ***********************************************************************************************
+
+
+// Contains item in a container
 template <class Container>
 bool Contains(const Container& items, const typename Container::value_type& value)
 {
     return std::find(items.begin(), items.end(), value) != items.end();
 }
 
-// Singleton definition
+
+// ***********************************************************************************************
+
+
+// UnCopyable definition
 class UnCopyable
 {
 protected:
@@ -42,6 +55,7 @@ private:
     UnCopyable& operator=(const UnCopyable&&) = delete;
 };
 
+// Singleton definition
 template <typename T>
 class Singleton : public UnCopyable
 {
@@ -53,6 +67,7 @@ public:
     }
 };
 
+// Blocking Queue definition
 template <typename T>
 class BlockingQueue : public UnCopyable
 {
@@ -82,6 +97,230 @@ public:
         condition_.notify_one();
     }
 };
+
+
+// ***********************************************************************************************
+
+
+const size_t kPublicKeySize = 8;
+
+// PublicKey represents an Assembly Public Key token, which is an 8 byte binary RSA key.
+struct PublicKey
+{
+    const BYTE data[kPublicKeySize];
+
+    PublicKey() : data{0}
+    {
+    }
+    PublicKey(const BYTE (&arr)[kPublicKeySize]) : data{arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7]}
+    {
+    }
+
+    inline bool operator==(const PublicKey& other) const
+    {
+        for (int i = 0; i < kPublicKeySize; i++)
+        {
+            if (data[i] != other.data[i])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    inline WSTRING str() const
+    {
+        std::stringstream ss;
+        for (int i = 0; i < kPublicKeySize; i++)
+        {
+            ss << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(data[i]);
+        }
+        return ToWSTRING(ss.str());
+    }
+};
+
+// Version is an Assembly version in the form Major.Minor.Build.Revision (1.0.0.0)
+struct Version
+{
+    const unsigned short major;
+    const unsigned short minor;
+    const unsigned short build;
+    const unsigned short revision;
+
+    Version() : major(0), minor(0), build(0), revision(0)
+    {
+    }
+    Version(const unsigned short major, const unsigned short minor, const unsigned short build,
+            const unsigned short revision) :
+        major(major), minor(minor), build(build), revision(revision)
+    {
+    }
+
+    inline bool operator==(const Version& other) const
+    {
+        return major == other.major && minor == other.minor && build == other.build && revision == other.revision;
+    }
+
+    inline WSTRING str() const
+    {
+        std::stringstream ss;
+        ss << major << "." << minor << "." << build << "." << revision;
+        return ToWSTRING(ss.str());
+    }
+
+    inline bool operator<(const Version& other) const
+    {
+        if (major < other.major)
+        {
+            return true;
+        }
+        if (major == other.major && minor < other.minor)
+        {
+            return true;
+        }
+        if (major == other.major && minor == other.minor && build < other.build)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    inline bool operator>(const Version& other) const
+    {
+        if (major > other.major)
+        {
+            return true;
+        }
+        if (major == other.major && minor > other.minor)
+        {
+            return true;
+        }
+        if (major == other.major && minor == other.minor && build > other.build)
+        {
+            return true;
+        }
+        return false;
+    }
+};
+
+// An AssemblyReference is a reference to a .Net assembly. In general it will look like:
+//     Some.Assembly.Name, Version=1.0.0.0, Culture=neutral, PublicKeyToken=abcdef0123456789
+struct AssemblyReference
+{
+    const WSTRING name;
+    const Version version;
+    const WSTRING locale;
+    const PublicKey public_key;
+
+    AssemblyReference()
+    {
+    }
+    AssemblyReference(const WSTRING& str);
+
+    inline bool operator==(const AssemblyReference& other) const
+    {
+        return name == other.name && version == other.version && locale == other.locale &&
+               public_key == other.public_key;
+    }
+
+    inline WSTRING str() const
+    {
+        const auto ss = name + WStr(", Version=") + version.str() + WStr(", Culture=") + locale +
+                        WStr(", PublicKeyToken=") + public_key.str();
+        return ss;
+    }
+};
+
+// A MethodSignature is a byte array. The format is:
+// [calling convention, number of parameters, return type, parameter type...]
+// For types see CorElementType
+struct MethodSignature
+{
+public:
+    const std::vector<BYTE> data;
+
+    MethodSignature()
+    {
+    }
+    MethodSignature(const std::vector<BYTE>& data) : data(data)
+    {
+    }
+
+    inline bool operator==(const MethodSignature& other) const
+    {
+        return data == other.data;
+    }
+
+    CorCallingConvention CallingConvention() const
+    {
+        return CorCallingConvention(data.empty() ? 0 : data[0]);
+    }
+
+    size_t NumberOfTypeArguments() const
+    {
+        if (data.size() > 1 && (CallingConvention() & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0)
+        {
+            return data[1];
+        }
+        return 0;
+    }
+
+    size_t NumberOfArguments() const
+    {
+        if (data.size() > 2 && (CallingConvention() & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0)
+        {
+            return data[2];
+        }
+        if (data.size() > 1)
+        {
+            return data[1];
+        }
+        return 0;
+    }
+
+    bool ReturnTypeIsObject() const
+    {
+        if (data.size() > 2 && (CallingConvention() & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0)
+        {
+            return data[3] == ELEMENT_TYPE_OBJECT;
+        }
+        if (data.size() > 1)
+        {
+            return data[2] == ELEMENT_TYPE_OBJECT;
+        }
+
+        return false;
+    }
+
+    size_t IndexOfReturnType() const
+    {
+        if (data.size() > 2 && (CallingConvention() & IMAGE_CEE_CS_CALLCONV_GENERIC) != 0)
+        {
+            return 3;
+        }
+        if (data.size() > 1)
+        {
+            return 2;
+        }
+        return 0;
+    }
+
+    WSTRING str() const
+    {
+        std::stringstream ss;
+        for (auto& b : data)
+        {
+            ss << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(b);
+        }
+        return ToWSTRING(ss.str());
+    }
+
+    BOOL IsInstanceMethod() const
+    {
+        return (CallingConvention() & IMAGE_CEE_CS_CALLCONV_HASTHIS) != 0;
+    }
+};
+
 
 } // namespace trace
 

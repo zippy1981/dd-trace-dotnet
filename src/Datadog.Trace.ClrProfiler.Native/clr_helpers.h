@@ -5,11 +5,12 @@
 #include <corprof.h>
 #include <functional>
 #include <utility>
+#include <set>
+
+#include "integration.h"
 
 #include "com_ptr.h"
-#include "integration.h"
 #include "util.h"
-#include <set>
 
 namespace trace
 {
