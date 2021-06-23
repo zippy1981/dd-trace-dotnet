@@ -124,6 +124,32 @@ struct IntegrationMethod
     }
 };
 
+// FilterIntegrationsByName removes integrations whose names are specified in
+// disabled_integration_names
+std::vector<Integration> FilterIntegrationsByName(const std::vector<Integration>& integrations,
+                                                  const std::vector<WSTRING>& disabled_integration_names);
+
+// FlattenIntegrations flattens integrations to per method structures
+std::vector<IntegrationMethod> FlattenIntegrations(const std::vector<Integration>& integrations,
+                                                   bool is_calltarget_enabled);
+
+// FilterIntegrationsByCaller removes any integrations which have a caller and
+// its not set to the module
+std::vector<IntegrationMethod> FilterIntegrationsByCaller(const std::vector<IntegrationMethod>& integration_methods,
+                                                          const AssemblyInfo assembly);
+
+// FilterIntegrationsByTarget removes any integrations which have a target not
+// referenced by the module's assembly import
+std::vector<IntegrationMethod> FilterIntegrationsByTarget(const std::vector<IntegrationMethod>& integration_methods,
+                                                          const ComPtr<IMetaDataAssemblyImport>& assembly_import);
+
+// FilterIntegrationsByTargetAssemblyName removes any integrations which target any
+// of the specified assemblies
+std::vector<IntegrationMethod>
+FilterIntegrationsByTargetAssemblyName(const std::vector<IntegrationMethod>& integration_methods,
+                                       const std::vector<WSTRING>& excluded_assembly_names);
+
+
 namespace
 {
 

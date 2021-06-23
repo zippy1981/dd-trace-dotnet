@@ -5,9 +5,10 @@
 
 namespace trace
 {
+    extern bool dump_il_rewrite_enabled;
+
 namespace environment
 {
-
     // Sets whether the profiler is enabled. Default is true.
     // Setting this to false disabled the profiler entirely.
     const WSTRING tracing_enabled = WStr("DD_TRACE_ENABLED");

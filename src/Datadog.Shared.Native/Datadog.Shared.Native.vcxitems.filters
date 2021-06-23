@@ -23,6 +23,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.h">
       <Filter>cor\il</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)clr_helpers.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="strings">
@@ -52,5 +53,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)cor\il\il_rewriter_wrapper.cpp">
       <Filter>cor\il</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)clr_helpers.cpp" />
   </ItemGroup>
 </Project>

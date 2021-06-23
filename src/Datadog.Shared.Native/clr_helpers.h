@@ -1,13 +1,11 @@
-#ifndef DD_CLR_PROFILER_CLR_HELPERS_H_
-#define DD_CLR_PROFILER_CLR_HELPERS_H_
+#ifndef DD_SHARED_CLR_HELPERS_H_
+#define DD_SHARED_CLR_HELPERS_H_
 
 #include <corhlpr.h>
 #include <corprof.h>
 #include <functional>
 #include <utility>
 #include <set>
-
-#include "integration.h"
 
 #include "com_ptr.h"
 #include "util.h"
@@ -497,8 +495,6 @@ RuntimeInformation GetRuntimeInformation(ICorProfilerInfo4* info);
 
 AssemblyInfo GetAssemblyInfo(ICorProfilerInfo4* info, const AssemblyID& assembly_id);
 
-AssemblyMetadata GetAssemblyMetadata(const ModuleID& module_id, const ComPtr<IMetaDataAssemblyImport>& assembly_import);
-
 AssemblyMetadata GetAssemblyImportMetadata(const ComPtr<IMetaDataAssemblyImport>& assembly_import);
 
 AssemblyMetadata GetReferencedAssemblyMetadata(const ComPtr<IMetaDataAssemblyImport>& assembly_import,
@@ -511,31 +507,6 @@ ModuleInfo GetModuleInfo(ICorProfilerInfo4* info, const ModuleID& module_id);
 TypeInfo GetTypeInfo(const ComPtr<IMetaDataImport2>& metadata_import, const mdToken& token);
 
 mdAssemblyRef FindAssemblyRef(const ComPtr<IMetaDataAssemblyImport>& assembly_import, const WSTRING& assembly_name);
-
-// FilterIntegrationsByName removes integrations whose names are specified in
-// disabled_integration_names
-std::vector<Integration> FilterIntegrationsByName(const std::vector<Integration>& integrations,
-                                                  const std::vector<WSTRING>& disabled_integration_names);
-
-// FlattenIntegrations flattens integrations to per method structures
-std::vector<IntegrationMethod> FlattenIntegrations(const std::vector<Integration>& integrations,
-                                                   bool is_calltarget_enabled);
-
-// FilterIntegrationsByCaller removes any integrations which have a caller and
-// its not set to the module
-std::vector<IntegrationMethod> FilterIntegrationsByCaller(const std::vector<IntegrationMethod>& integration_methods,
-                                                          const AssemblyInfo assembly);
-
-// FilterIntegrationsByTarget removes any integrations which have a target not
-// referenced by the module's assembly import
-std::vector<IntegrationMethod> FilterIntegrationsByTarget(const std::vector<IntegrationMethod>& integration_methods,
-                                                          const ComPtr<IMetaDataAssemblyImport>& assembly_import);
-
-// FilterIntegrationsByTargetAssemblyName removes any integrations which target any
-// of the specified assemblies
-std::vector<IntegrationMethod>
-FilterIntegrationsByTargetAssemblyName(const std::vector<IntegrationMethod>& integration_methods,
-                                       const std::vector<WSTRING>& excluded_assembly_names);
 
 mdMethodSpec DefineMethodSpec(const ComPtr<IMetaDataEmit2>& metadata_emit, const mdToken& token,
                               const MethodSignature& signature);
@@ -560,4 +531,4 @@ bool FindTypeDefByName(const trace::WSTRING instrumentationTargetMethodTypeName,
                        const ComPtr<IMetaDataImport2>& metadata_import, mdTypeDef& typeDef);
 } // namespace trace
 
-#endif // DD_CLR_PROFILER_CLR_HELPERS_H_
+#endif // DD_SHARED_CLR_HELPERS_H_

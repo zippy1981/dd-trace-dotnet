@@ -11,7 +11,6 @@ namespace trace
 {
 
 extern bool debug_logging_enabled;
-extern bool dump_il_rewrite_enabled;
 
 class Logger : public Singleton<Logger>
 {
