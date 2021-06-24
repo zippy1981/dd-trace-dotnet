@@ -18,7 +18,7 @@ namespace environment
         ToBooleanWithDefault(GetEnvironmentValue(environment::clr_enable_inlining), defaultValue);
     }
 
-    bool IsCallTargetEnabled()
+    bool IsCallTargetEnabled(bool defaultValue)
     {
 #if defined(ARM64) || defined(ARM)
         //
@@ -26,7 +26,7 @@ namespace environment
         //
         ToBooleanWithDefault(GetEnvironmentValue(environment::calltarget_enabled), true);
 #else
-        ToBooleanWithDefault(GetEnvironmentValue(environment::calltarget_enabled), false);
+        ToBooleanWithDefault(GetEnvironmentValue(environment::calltarget_enabled), defaultValue);
 #endif
     }
 

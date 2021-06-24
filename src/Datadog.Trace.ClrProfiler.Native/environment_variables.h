@@ -113,7 +113,7 @@ namespace environment
 
     bool DisableOptimizations();
     bool EnableInlining(bool defaultValue);
-    bool IsCallTargetEnabled();
+    bool IsCallTargetEnabled(bool defaultValue);
     bool IsDebugEnabled();
     bool IsDumpILRewriteEnabled();
     bool IsTracingDisabled();
