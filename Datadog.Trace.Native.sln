@@ -32,6 +32,7 @@ EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\Datadog.Shared.Native\Datadog.Shared.Native.vcxitems*{91b6272f-5780-4c94-8071-dbba7b4f67f3}*SharedItemsImports = 4
+		src\Datadog.Shared.Native\Datadog.Shared.Native.vcxitems*{c0c8d381-d6b9-4c76-9428-f40f2fa93a9a}*SharedItemsImports = 4
 		src\Datadog.Shared.Native\Datadog.Shared.Native.vcxitems*{d99167c8-a7a4-44cf-8def-cb26ea0d01a7}*SharedItemsImports = 9
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -14,10 +14,11 @@ private:
     std::atomic<int> ref_count_;
 
 protected:
+    HINSTANCE dllInstance;
     ICorProfilerInfo4* info_;
 
 public:
-    CorProfilerBase();
+    CorProfilerBase(HINSTANCE instance);
     virtual ~CorProfilerBase();
 
     HRESULT STDMETHODCALLTYPE Initialize(IUnknown* pICorProfilerInfoUnk) override;

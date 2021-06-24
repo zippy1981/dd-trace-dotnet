@@ -5,10 +5,6 @@
 #include "dllmain.h"
 #include "class_factory.h"
 
-const IID IID_IUnknown = {0x00000000, 0x0000, 0x0000, {0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}};
-
-const IID IID_IClassFactory = {0x00000001, 0x0000, 0x0000, {0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}};
-
 HINSTANCE DllHandle;
 
 extern "C"
@@ -29,12 +25,14 @@ extern "C"
             return E_FAIL;
         }
 
-        auto factory = new ClassFactory;
+        auto factory = new TracerClassFactory;
 
         if (factory == NULL)
         {
             return E_FAIL;
         }
+
+        factory->SetDllInstance(DllHandle);
 
         return factory->QueryInterface(riid, ppv);
     }

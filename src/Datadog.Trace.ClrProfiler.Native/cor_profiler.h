@@ -9,12 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cor_profiler_base.h"
-#include "environment_variables.h"
-#include "cor/il/il_rewriter.h"
+#include "cor/cor_profiler_base.h"
 #include "integration.h"
 #include "module_metadata.h"
-#include "pal.h"
 #include "rejit_handler.h"
 
 namespace trace
@@ -39,6 +36,8 @@ private:
     bool in_azure_app_services = false;
     bool is_desktop_iis = false;
     bool is_net46_or_greater = false;
+
+    bool dump_il_rewrite_enabled;
 
     //
     // CallTarget Members
@@ -89,7 +88,9 @@ private:
     HRESULT CallTarget_RewriterCallback(RejitHandlerModule* moduleHandler, RejitHandlerModuleMethod* methodHandler);
 
 public:
-    CorProfiler() = default;
+    CorProfiler(HINSTANCE instance) : CorProfilerBase(instance)
+    {
+    }
 
     bool IsAttached() const;
 

@@ -60,8 +60,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="Shared">
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -203,6 +201,9 @@
       <Project>{91b6272f-5780-4c94-8071-dbba7b4f67f3}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ImportGroup Label="Shared">
+    <Import Project="..\Datadog.Shared.Native\Datadog.Shared.Native.vcxitems" Label="Shared" />
+  </ImportGroup>
   <ItemGroup>
     <None Include="Datadog.Trace.ClrProfiler.Native.def" />
   </ItemGroup>

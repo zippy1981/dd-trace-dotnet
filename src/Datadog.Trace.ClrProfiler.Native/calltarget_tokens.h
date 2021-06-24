@@ -7,11 +7,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "com_ptr.h"
 #include "cor/clr_helpers.h"
 #include "cor/il/il_rewriter.h"
-#include "integration.h"
-#include "string.h" // NOLINT
+#include "strings/str_util.h"
 
 #define FASTPATH_COUNT 9
 

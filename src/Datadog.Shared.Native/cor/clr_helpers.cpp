@@ -5,7 +5,7 @@
 #include <stack>
 #include "../logging.h"
 #include "../macros.h"
-#include "../pal.h"
+#include "../pal_base.h"
 #include "sig_helpers.h"
 
 namespace trace

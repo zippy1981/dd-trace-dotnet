@@ -15,10 +15,11 @@ class Logger : public Singleton<Logger>
     friend class Singleton<Logger>;
 
 private:
-    static bool _debug_logging_enabled;
-    static std::function<WSTRING(const std::string&)> m_logFilePathFunction;
+    bool _debug_logging_enabled;
+    std::function<WSTRING(const std::string&)> m_logFilePathFunction;
     std::shared_ptr<spdlog::logger> m_fileout;
     std::string GetLogPath(const std::string& file_name_suffix);
+
     Logger();
     ~Logger();
 
@@ -30,23 +31,10 @@ public:
     void Critical(const std::string& str);
     void Flush();
 
-    static void SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction)
-    {
-        m_logFilePathFunction = logFilePathFunction;
-    }
-
-    static void Shutdown()
-    {
-        spdlog::shutdown();
-    }
-    static bool IsDebugEnabled()
-    {
-        return _debug_logging_enabled;
-    }
-    static void SetDebugEnabled(bool value)
-    {
-        _debug_logging_enabled = value;
-    }
+    bool IsDebugEnabled();
+    void SetDebugEnabled(bool value);
+    void SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction);
+    static void Shutdown();
 };
 
 template <typename Arg>
@@ -66,7 +54,7 @@ std::string LogToString(Args const&... args)
 template <typename... Args>
 void Debug(const Args... args)
 {
-    if (Logger::IsDebugEnabled())
+    if (Logger::Instance()->IsDebugEnabled())
     {
         Logger::Instance()->Debug(LogToString(args...));
     }

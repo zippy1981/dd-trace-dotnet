@@ -3,61 +3,21 @@
 // license information.
 
 #include "class_factory.h"
-#include "cor_profiler.h"
+
+#include "environment_variables.h"
 #include "logging.h"
+
+#include "pal.h"
+#include "cor_profiler.h"
 #include "version.h"
-#include "environment_variables_util.h"
-
-ClassFactory::ClassFactory() : refCount(0)
-{
-}
-
-ClassFactory::~ClassFactory()
-{
-}
-
-HRESULT STDMETHODCALLTYPE ClassFactory::QueryInterface(REFIID riid, void** ppvObject)
-{
-    if (riid == IID_IUnknown || riid == IID_IClassFactory)
-    {
-        *ppvObject = this;
-        this->AddRef();
-        return S_OK;
-    }
-
-    *ppvObject = nullptr;
-    return E_NOINTERFACE;
-}
-
-ULONG STDMETHODCALLTYPE ClassFactory::AddRef()
-{
-    return std::atomic_fetch_add(&this->refCount, 1) + 1;
-}
-
-ULONG STDMETHODCALLTYPE ClassFactory::Release()
-{
-    int count = std::atomic_fetch_sub(&this->refCount, 1) - 1;
-    if (count <= 0)
-    {
-        delete this;
-    }
-
-    return count;
-}
 
 // profiler entry point
-HRESULT STDMETHODCALLTYPE ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
+HRESULT STDMETHODCALLTYPE TracerClassFactory::OnCreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject,
+                                                               HINSTANCE dllInstance)
 {
-    if (pUnkOuter != nullptr)
-    {
-        *ppvObject = nullptr;
-        return CLASS_E_NOAGGREGATION;
-    }
-
     // check if debug mode is enabled
-    trace::Logger::SetDebugEnabled(trace::IsDebugEnabled());
-    trace::Logger::SetLogFilePathFunction([](const std::string& suffix) { return trace::DatadogLogFilePath(suffix); });
-
+    trace::Logger::Instance()->SetDebugEnabled(trace::environment::IsDebugEnabled());
+    trace::Logger::Instance()->SetLogFilePathFunction([](const std::string& suffix) { return trace::DatadogLogFilePath(suffix); });
     trace::Info("Datadog CLR Profiler ", PROFILER_VERSION, " on",
 
 #ifdef _WIN32
@@ -83,11 +43,6 @@ HRESULT STDMETHODCALLTYPE ClassFactory::CreateInstance(IUnknown* pUnkOuter, REFI
     );
     trace::Debug("ClassFactory::CreateInstance");
 
-    auto profiler = new trace::CorProfiler();
+    auto profiler = new trace::CorProfiler(dllInstance);
     return profiler->QueryInterface(riid, ppvObject);
-}
-
-HRESULT STDMETHODCALLTYPE ClassFactory::LockServer(BOOL fLock)
-{
-    return S_OK;
 }

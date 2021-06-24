@@ -1,26 +1,12 @@
-#ifndef DD_CLR_PROFILER_CLASS_FACTORY_H_
-#define DD_CLR_PROFILER_CLASS_FACTORY_H_
+#ifndef DD_CLR_PROFILER_TRACER_CLASS_FACTORY_H_
+#define DD_CLR_PROFILER_TRACER_CLASS_FACTORY_H_
 
-// Copyright (c) .NET Foundation and contributors. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full
-// license information.
+#include "class_factory_base.h"
 
-#include "unknwn.h"
-#include <atomic>
-
-class ClassFactory : public IClassFactory
+class TracerClassFactory : public ClassFactory
 {
 private:
-    std::atomic<int> refCount;
-
-public:
-    ClassFactory();
-    virtual ~ClassFactory();
-    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObject) override;
-    ULONG STDMETHODCALLTYPE AddRef(void) override;
-    ULONG STDMETHODCALLTYPE Release(void) override;
-    HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject) override;
-    HRESULT STDMETHODCALLTYPE LockServer(BOOL fLock) override;
+    HRESULT STDMETHODCALLTYPE OnCreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject, HINSTANCE dllInstance) override;
 };
 
-#endif // DD_CLR_PROFILER_CLASS_FACTORY_H_
+#endif // DD_CLR_PROFILER_TRACER_CLASS_FACTORY_H_

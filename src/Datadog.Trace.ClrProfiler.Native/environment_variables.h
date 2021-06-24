@@ -5,8 +5,6 @@
 
 namespace trace
 {
-    extern bool dump_il_rewrite_enabled;
-
 namespace environment
 {
     // Sets whether the profiler is enabled. Default is true.
@@ -110,6 +108,18 @@ namespace environment
 
     // Sets whether to enable the CallTarget instrumentation mode
     const WSTRING calltarget_enabled = WStr("DD_TRACE_CALLTARGET_ENABLED");
+
+    // Methods
+
+    bool DisableOptimizations();
+    bool EnableInlining(bool defaultValue);
+    bool IsCallTargetEnabled();
+    bool IsDebugEnabled();
+    bool IsDumpILRewriteEnabled();
+    bool IsTracingDisabled();
+    bool IsAzureAppServices();
+    bool IsNetstandardEnabled();
+    bool IsDomainNeutralInstrumentation();
 
 } // namespace environment
 } // namespace trace

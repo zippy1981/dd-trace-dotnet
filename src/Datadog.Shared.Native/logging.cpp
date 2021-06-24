@@ -1,6 +1,6 @@
 #include "logging.h"
 
-#include "pal.h"
+#include "pal_base.h"
 
 #include "spdlog/sinks/null_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"
@@ -11,9 +11,6 @@ typedef struct stat Stat;
 
 namespace trace
 {
-
-bool debug_logging_enabled = false;
-bool dump_il_rewrite_enabled = false;
 
 #ifndef _WIN32
 // for linux and osx we need a function to get the path from a filepath
@@ -104,7 +101,7 @@ Logger::~Logger()
 
 void Logger::Debug(const std::string& str)
 {
-    if (debug_logging_enabled)
+    if (_debug_logging_enabled)
     {
         m_fileout->debug(str);
     }
@@ -129,4 +126,25 @@ void Logger::Flush()
 {
     m_fileout->flush();
 }
+
+
+bool Logger::IsDebugEnabled()
+{
+    return _debug_logging_enabled;
+}
+void Logger::SetDebugEnabled(bool value)
+{
+    _debug_logging_enabled = value;
+}
+
+void Logger::SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction)
+{
+    m_logFilePathFunction = logFilePathFunction;
+}
+
+void Logger::Shutdown()
+{
+    spdlog::shutdown();
+}
+
 } // namespace trace

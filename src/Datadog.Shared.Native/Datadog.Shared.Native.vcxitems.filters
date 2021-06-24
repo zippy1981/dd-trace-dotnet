@@ -3,7 +3,7 @@
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)com_ptr.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)macros.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)pal.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)pal_base.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)util.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)strings\miniutf.hpp">
       <Filter>strings</Filter>
@@ -25,6 +25,10 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)logging.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)cor\clr_helpers.h">
+      <Filter>cor</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)class_factory_base.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)cor\cor_profiler_base.h">
       <Filter>cor</Filter>
     </ClInclude>
   </ItemGroup>
@@ -58,6 +62,10 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)logging.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)cor\clr_helpers.cpp">
+      <Filter>cor</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)class_factory_base.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)cor\cor_profiler_base.cpp">
       <Filter>cor</Filter>
     </ClCompile>
   </ItemGroup>
