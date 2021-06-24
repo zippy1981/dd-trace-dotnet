@@ -29,7 +29,6 @@
         if ((EXPR) == false) return E_FAIL;                                                                            \
     } while (0)
 
-
 #define CheckIfTrue(EXPR)                                                                                              \
     static int sValue = -1;                                                                                            \
     if (sValue == -1)                                                                                                  \
@@ -68,6 +67,4 @@
     }                                                                                                                  \
     return sValue == 1;
 
-
 #endif // DD_SHARED_MACROS_H_
-

@@ -4,16 +4,16 @@
 #include <corprof.h>
 
 #include "cor/clr_helpers.h"
+#include "cor/il/il_rewriter_wrapper.h"
+#include "cor/sig_helpers.h"
 #include "dd_profiler_constants.h"
 #include "environment_variables.h"
-#include "cor/il/il_rewriter_wrapper.h"
 #include "integration_loader.h"
 #include "logging.h"
 #include "metadata_builder.h"
 #include "module_metadata.h"
 #include "pal_base.h"
 #include "resource.h"
-#include "cor/sig_helpers.h"
 #include "stats.h"
 #include "util.h"
 #include "version.h"
@@ -95,14 +95,15 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
         return E_FAIL;
     }
 
-  // get ICorProfilerInfo6 for net46+
-  ICorProfilerInfo6* info6;
-  hr = cor_profiler_info_unknown->QueryInterface(__uuidof(ICorProfilerInfo6), (void**)&info6);
+    // get ICorProfilerInfo6 for net46+
+    ICorProfilerInfo6* info6;
+    hr = cor_profiler_info_unknown->QueryInterface(__uuidof(ICorProfilerInfo6), (void**) &info6);
 
-  if (SUCCEEDED(hr)) {
-    Debug("Interface ICorProfilerInfo6 found.");
-    is_net46_or_greater = true;
-  }
+    if (SUCCEEDED(hr))
+    {
+        Debug("Interface ICorProfilerInfo6 found.");
+        is_net46_or_greater = true;
+    }
 
     Info("Environment variables:");
     for (auto&& env_var : env_vars_to_display)
@@ -149,7 +150,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
         return E_FAIL;
     }
 
-  const auto is_calltarget_enabled = environment::IsCallTargetEnabled(is_net46_or_greater);
+    const auto is_calltarget_enabled = environment::IsCallTargetEnabled(is_net46_or_greater);
 
     // Initialize ReJIT handler and define the Rewriter Callback
     if (is_calltarget_enabled)
@@ -232,10 +233,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::Initialize(IUnknown* cor_profiler_info_un
         instrument_domain_neutral_assemblies = true;
     }
 
-
-  // set event mask to subscribe to events and disable NGEN images
-  if (is_net46_or_greater) 
-  {
+    // set event mask to subscribe to events and disable NGEN images
+    if (is_net46_or_greater)
+    {
         hr = info6->SetEventMask2(event_mask, COR_PRF_HIGH_ADD_ASSEMBLY_REFERENCES);
 
         if (instrument_domain_neutral_assemblies)
@@ -501,9 +501,10 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id, HR
         }
     }
 
-  std::vector<IntegrationMethod> filtered_integrations = 
-        environment::IsCallTargetEnabled(is_net46_or_greater) ? integration_methods_ 
-                            : FilterIntegrationsByCaller(integration_methods_, module_info.assembly);
+    std::vector<IntegrationMethod> filtered_integrations =
+        environment::IsCallTargetEnabled(is_net46_or_greater)
+            ? integration_methods_
+            : FilterIntegrationsByCaller(integration_methods_, module_info.assembly);
 
     if (filtered_integrations.empty())
     {
@@ -722,11 +723,11 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCompilationStarted(FunctionID function
         return S_OK;
     }
 
-  // We check if we are in CallTarget mode and the loader was already injected.
-  const bool is_calltarget_enabled = environment::IsCallTargetEnabled(is_net46_or_greater);
-  const bool has_loader_injected_in_appdomain =
-      first_jit_compilation_app_domains.find(module_metadata->app_domain_id) !=
-      first_jit_compilation_app_domains.end();
+    // We check if we are in CallTarget mode and the loader was already injected.
+    const bool is_calltarget_enabled = environment::IsCallTargetEnabled(is_net46_or_greater);
+    const bool has_loader_injected_in_appdomain =
+        first_jit_compilation_app_domains.find(module_metadata->app_domain_id) !=
+        first_jit_compilation_app_domains.end();
 
     if (is_calltarget_enabled && has_loader_injected_in_appdomain)
     {

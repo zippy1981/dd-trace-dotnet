@@ -26,9 +26,7 @@ std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name, const wchar_t del
 // GetEnvironmentValues calls GetEnvironmentValues with a semicolon delimiter.
 std::vector<WSTRING> GetEnvironmentValues(const WSTRING& name);
 
-
 // ***********************************************************************************************
-
 
 // Contains item in a container
 template <class Container>
@@ -37,9 +35,7 @@ bool Contains(const Container& items, const typename Container::value_type& valu
     return std::find(items.begin(), items.end(), value) != items.end();
 }
 
-
 // ***********************************************************************************************
-
 
 // UnCopyable definition
 class UnCopyable
@@ -98,9 +94,7 @@ public:
     }
 };
 
-
 // ***********************************************************************************************
-
 
 const size_t kPublicKeySize = 8;
 
@@ -320,7 +314,6 @@ public:
         return (CallingConvention() & IMAGE_CEE_CS_CALLCONV_HASTHIS) != 0;
     }
 };
-
 
 } // namespace trace
 

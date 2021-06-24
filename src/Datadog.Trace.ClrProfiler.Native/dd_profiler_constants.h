@@ -1,8 +1,8 @@
 #ifndef DD_PROFILER_CONSTANTS_H
 #define DD_PROFILER_CONSTANTS_H
 
-#include <string>
 #include "environment_variables.h"
+#include <string>
 
 namespace trace
 {

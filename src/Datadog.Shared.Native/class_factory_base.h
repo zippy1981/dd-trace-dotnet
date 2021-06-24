@@ -14,7 +14,8 @@ private:
     std::atomic<int> refCount;
     HINSTANCE dllInstance;
 
-    virtual HRESULT STDMETHODCALLTYPE OnCreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject, HINSTANCE dllInstance) = 0;
+    virtual HRESULT STDMETHODCALLTYPE OnCreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject,
+                                                       HINSTANCE dllInstance) = 0;
 
 public:
     ClassFactory();

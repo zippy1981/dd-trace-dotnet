@@ -8,9 +8,9 @@
 #endif
 #include <sstream>
 
+#include "cor/clr_helpers.h"
 #include "dd_profiler_constants.h"
 #include "util.h"
-#include "cor/clr_helpers.h"
 
 namespace trace
 {
@@ -22,7 +22,6 @@ AssemblyReference::AssemblyReference(const WSTRING& str) :
     public_key(GetPublicKeyFromAssemblyReferenceString(str))
 {
 }
-
 
 std::vector<Integration> FilterIntegrationsByName(const std::vector<Integration>& integrations,
                                                   const std::vector<WSTRING>& disabled_integration_names)
@@ -179,8 +178,6 @@ FilterIntegrationsByTargetAssemblyName(const std::vector<IntegrationMethod>& int
 
     return methods;
 }
-
-
 
 namespace
 {

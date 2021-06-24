@@ -150,7 +150,6 @@ std::vector<IntegrationMethod>
 FilterIntegrationsByTargetAssemblyName(const std::vector<IntegrationMethod>& integration_methods,
                                        const std::vector<WSTRING>& excluded_assembly_names);
 
-
 namespace
 {
 

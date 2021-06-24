@@ -4,8 +4,8 @@
 #include <corhlpr.h>
 #include <corprof.h>
 #include <functional>
-#include <utility>
 #include <set>
+#include <utility>
 
 #include "../com_ptr.h"
 #include "../util.h"

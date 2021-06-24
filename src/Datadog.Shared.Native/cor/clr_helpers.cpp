@@ -1,12 +1,12 @@
 #include "clr_helpers.h"
 
-#include <cstring>
-#include <set>
-#include <stack>
 #include "../logging.h"
 #include "../macros.h"
 #include "../pal_base.h"
 #include "sig_helpers.h"
+#include <cstring>
+#include <set>
+#include <stack>
 
 namespace trace
 {

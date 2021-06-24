@@ -7,8 +7,8 @@
 #include "environment_variables.h"
 #include "logging.h"
 
-#include "pal.h"
 #include "cor_profiler.h"
+#include "pal.h"
 #include "version.h"
 
 // profiler entry point

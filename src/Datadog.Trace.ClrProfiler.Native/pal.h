@@ -3,10 +3,10 @@
 
 #ifdef _WIN32
 
-#include <windows.h>
 #include <filesystem>
 #include <process.h>
 #include <string>
+#include <windows.h>
 
 #else
 
@@ -20,8 +20,8 @@
 #endif
 
 #include "environment_variables.h"
-#include "util.h"
 #include "pal_base.h"
+#include "util.h"
 
 namespace trace
 {

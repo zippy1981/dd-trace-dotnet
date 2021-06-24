@@ -57,9 +57,7 @@ std::string Logger::GetLogPath(const std::string& file_name_suffix)
     return path;
 }
 
-Logger::Logger()
-{
-};
+Logger::Logger(){};
 
 Logger::~Logger()
 {
@@ -132,7 +130,6 @@ void Logger::Flush()
 {
     m_fileout->flush();
 }
-
 
 bool Logger::IsDebugEnabled()
 {
