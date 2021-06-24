@@ -13,7 +13,7 @@ namespace Samples.AspNetCore5
     {
         public static void Main(string[] args)
         {
-	    Console.WriteLine("Hello curel world");
+	    Console.WriteLine("Hello cruel world");
 	    CreateHostBuilder(args).Build().Run();
         }
 
