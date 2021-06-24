@@ -59,6 +59,19 @@ std::string Logger::GetLogPath(const std::string& file_name_suffix)
 
 Logger::Logger()
 {
+};
+
+Logger::~Logger()
+{
+    m_fileout->flush();
+    spdlog::shutdown();
+};
+
+void Logger::Initialize(bool isDebugEnabled, std::function<WSTRING(const std::string&)> logFilePathFunction)
+{
+    _debug_logging_enabled = isDebugEnabled;
+    m_logFilePathFunction = logFilePathFunction;
+
     spdlog::set_error_handler([](const std::string& msg) {
         // By writing into the stderr was changing the behavior in a CI scenario.
         // There's not a good way to report errors when trying to create the log file.
@@ -77,8 +90,7 @@ Logger::Logger()
 
     try
     {
-        m_fileout =
-            spdlog::rotating_logger_mt("Logger", GetLogPath(file_name_suffix), 1048576 * 5, 10);
+        m_fileout = spdlog::rotating_logger_mt("Logger", GetLogPath(file_name_suffix), 1048576 * 5, 10);
     }
     catch (...)
     {
@@ -91,13 +103,7 @@ Logger::Logger()
     m_fileout->set_pattern("%D %I:%M:%S.%e %p [%P|%t] [%l] %v");
 
     m_fileout->flush_on(spdlog::level::info);
-};
-
-Logger::~Logger()
-{
-    m_fileout->flush();
-    spdlog::shutdown();
-};
+}
 
 void Logger::Debug(const std::string& str)
 {
@@ -131,15 +137,6 @@ void Logger::Flush()
 bool Logger::IsDebugEnabled()
 {
     return _debug_logging_enabled;
-}
-void Logger::SetDebugEnabled(bool value)
-{
-    _debug_logging_enabled = value;
-}
-
-void Logger::SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction)
-{
-    m_logFilePathFunction = logFilePathFunction;
 }
 
 void Logger::Shutdown()

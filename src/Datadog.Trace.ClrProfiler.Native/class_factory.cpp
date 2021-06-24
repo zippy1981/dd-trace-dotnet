@@ -16,8 +16,9 @@ HRESULT STDMETHODCALLTYPE TracerClassFactory::OnCreateInstance(IUnknown* pUnkOut
                                                                HINSTANCE dllInstance)
 {
     // check if debug mode is enabled
-    trace::Logger::Instance()->SetDebugEnabled(trace::environment::IsDebugEnabled());
-    trace::Logger::Instance()->SetLogFilePathFunction([](const std::string& suffix) { return trace::DatadogLogFilePath(suffix); });
+    trace::Logger::Instance()->Initialize(trace::environment::IsDebugEnabled(),
+                                          [](const std::string& suffix) { return trace::DatadogLogFilePath(suffix); });
+
     trace::Info("Datadog CLR Profiler ", PROFILER_VERSION, " on",
 
 #ifdef _WIN32

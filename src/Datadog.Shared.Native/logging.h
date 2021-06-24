@@ -24,6 +24,8 @@ private:
     ~Logger();
 
 public:
+    void Initialize(bool isDebugEnabled, std::function<WSTRING(const std::string&)> logFilePathFunction);
+
     void Debug(const std::string& str);
     void Info(const std::string& str);
     void Warn(const std::string& str);
@@ -32,8 +34,6 @@ public:
     void Flush();
 
     bool IsDebugEnabled();
-    void SetDebugEnabled(bool value);
-    void SetLogFilePathFunction(std::function<WSTRING(const std::string&)> logFilePathFunction);
     static void Shutdown();
 };
 
