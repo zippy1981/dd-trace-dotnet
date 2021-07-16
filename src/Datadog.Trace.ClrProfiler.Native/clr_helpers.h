@@ -312,12 +312,57 @@ struct ModuleInfo
     const WSTRING path;
     const AssemblyInfo assembly;
     const DWORD flags;
+    const LPCBYTE base_load_address;
 
-    ModuleInfo() : id(0), path(WStr("")), assembly({}), flags(0)
+private:
+    static ULONG AlignUp(ULONG value, UINT alignment)
+    {
+        return (value + alignment - 1) & ~(alignment - 1);
+    }
+
+    LPCBYTE GetRvaData(DWORD rva, LPCBYTE pntHeaders) const
+    {
+        if (IsFlatLayout())
+        {
+            const auto ntHeaders = (IMAGE_NT_HEADERS*) pntHeaders;
+            IMAGE_SECTION_HEADER* sectionRet = NULL;
+            const auto pSection = pntHeaders + FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+                                  VAL16(ntHeaders->FileHeader.SizeOfOptionalHeader);
+            auto section = (IMAGE_SECTION_HEADER*) pSection;
+            const auto sectionEnd = (IMAGE_SECTION_HEADER*) (pSection + VAL16(ntHeaders->FileHeader.NumberOfSections));
+            while (section < sectionEnd)
+            {
+                const auto alignUpValue = AlignUp((UINT) VAL32(section->Misc.VirtualSize),
+                                                  (UINT) VAL32(ntHeaders->OptionalHeader.SectionAlignment));
+
+                if (rva < VAL32(section->VirtualAddress) + alignUpValue)
+                {
+                    if (rva < VAL32(section->VirtualAddress))
+                    {
+                        sectionRet = NULL;
+                    }
+                    else
+                    {
+                        sectionRet = section;
+                    }
+                }
+                section++;
+            }
+            if (sectionRet == NULL)
+            {
+                return base_load_address + rva;
+            }
+            return base_load_address + rva - VAL32(sectionRet->VirtualAddress) + VAL32(sectionRet->PointerToRawData);
+        }
+        return base_load_address + rva;
+    }
+
+public:
+    ModuleInfo() : id(0), path(WStr("")), assembly({}), flags(0), base_load_address(nullptr)
     {
     }
-    ModuleInfo(ModuleID id, WSTRING path, AssemblyInfo assembly, DWORD flags) :
-        id(id), path(path), assembly(assembly), flags(flags)
+    ModuleInfo(ModuleID id, WSTRING path, AssemblyInfo assembly, DWORD flags, LPCBYTE baseLoadAddress) :
+        id(id), path(path), assembly(assembly), flags(flags), base_load_address(baseLoadAddress)
     {
     }
 
@@ -329,6 +374,49 @@ struct ModuleInfo
     bool IsWindowsRuntime() const
     {
         return ((flags & COR_PRF_MODULE_WINDOWS_RUNTIME) != 0);
+    }
+
+    bool IsFlatLayout() const
+    {
+        return ((flags & COR_PRF_MODULE_FLAT_LAYOUT) != 0);
+    }
+
+    bool IsResource() const
+    {
+        return ((flags & COR_PRF_MODULE_RESOURCE) != 0);
+    }
+
+    bool IsDynamic() const
+    {
+        return ((flags & COR_PRF_MODULE_DYNAMIC) != 0);
+    }
+
+    bool IsNGEN() const
+    {
+        return ((flags & COR_PRF_MODULE_NGEN) != 0);
+    }
+
+    mdToken GetEntryPointToken() const
+    {
+        if (base_load_address == nullptr || !IsValid())
+        {
+            return mdTokenNil;
+        }
+
+        const auto pntHeaders = base_load_address + VAL32(((IMAGE_DOS_HEADER*) base_load_address)->e_lfanew);
+        const auto ntHeaders = (IMAGE_NT_HEADERS64*) pntHeaders;
+        IMAGE_DATA_DIRECTORY directoryEntry;
+        if (ntHeaders->OptionalHeader.Magic == VAL16(IMAGE_NT_OPTIONAL_HDR32_MAGIC))
+        {
+            directoryEntry =
+                ((IMAGE_NT_HEADERS32*) pntHeaders)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COMHEADER];
+        }
+        else
+        {
+            directoryEntry = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_COMHEADER];
+        }
+        const auto corHeader = (IMAGE_COR20_HEADER*) GetRvaData(VAL32(directoryEntry.VirtualAddress), pntHeaders);
+        return corHeader->EntryPointToken;
     }
 };
 

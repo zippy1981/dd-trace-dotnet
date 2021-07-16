@@ -430,7 +430,15 @@ HRESULT STDMETHODCALLTYPE CorProfiler::ModuleLoadFinished(ModuleID module_id, HR
     if (debug_logging_enabled)
     {
         Debug("ModuleLoadFinished: ", module_id, " ", module_info.assembly.name, " AppDomain ",
-              module_info.assembly.app_domain_id, " ", module_info.assembly.app_domain_name);
+              module_info.assembly.app_domain_id, " ", module_info.assembly.app_domain_name,
+            "[IsValid=", module_info.IsValid(),
+            ",IsWindowsRuntime=", module_info.IsWindowsRuntime(),
+            ",IsFlatLayout=", module_info.IsFlatLayout(),
+            ",IsResource=", module_info.IsResource(),
+            ",IsDynamic=", module_info.IsDynamic(),
+            ",IsNGEN=", module_info.IsNGEN(),
+            ",EntryPoint=", module_info.GetEntryPointToken(),
+            "]");
     }
 
     AppDomainID app_domain_id = module_info.assembly.app_domain_id;
