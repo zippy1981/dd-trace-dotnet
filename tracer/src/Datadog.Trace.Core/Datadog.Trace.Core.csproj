@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>1.28.1-prerelease</Version>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <RootNamespace>Datadog.Trace</RootNamespace>
+
+    <!-- temporary -->
+    <NoWarn>1701;1702;CS1591;SA1600</NoWarn>
+  </PropertyGroup>
+
+</Project>

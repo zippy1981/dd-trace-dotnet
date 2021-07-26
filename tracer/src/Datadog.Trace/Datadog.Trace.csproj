@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="AppSec\Waf\rule-set.json" />
+    <ProjectReference Include="../Datadog.Trace.Core/Datadog.Trace.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="AppSec\Waf\rule-set.json" />
     <EmbeddedResource Include="AppSec\Waf\rule-set.json" />
   </ItemGroup>
 
