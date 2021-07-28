@@ -69,7 +69,7 @@ bool IsCallTargetEnabled(bool defaultValue) {
 
 bool IsNGENEnabled()
 {
-    ToBooleanWithDefault(GetEnvironmentValue(environment::clr_enable_ngen), false);
+    ToBooleanWithDefault(GetEnvironmentValue(environment::clr_enable_ngen), true);
 }
 
 bool IsDebugEnabled()
