@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -101,13 +103,84 @@ namespace Datadog.Trace.Tools.Runner
                 {
                     Console.WriteLine("Running: " + cmdLine);
 
+                    // Check if the agent is listening
+                    ProcessStartInfo agentProcessInfo = null;
+                    if (!Utils.IsAgentRunning())
+                    {
+                        // Start a new agent instance
+                        Console.WriteLine("Starting datadog agent...");
+
+                        string homeFolder = Utils.GetTracerHomeFolder(RunnerFolder, options);
+                        string agentPath = null;
+                        string agentArgs = null;
+
+                        if (Platform == Platform.Windows)
+                        {
+                            agentArgs = "-config .\\home\\datadog.yaml";
+
+                            if (RuntimeInformation.OSArchitecture == Architecture.X64)
+                            {
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "win-x64", "trace-agent.exe"));
+                            }
+                            else
+                            {
+                                Console.Error.WriteLine($"ERROR: Agent is not available for Windows {RuntimeInformation.OSArchitecture}.");
+                                return 1;
+                            }
+                        }
+                        else if (Platform == Platform.Linux)
+                        {
+                            agentArgs = "-c ./home/datadog.yaml";
+
+                            if (RuntimeInformation.OSArchitecture == Architecture.X64)
+                            {
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-x64", "agent"));
+                            }
+                            else if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+                            {
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-arm64", "agent"));
+                            }
+                            else
+                            {
+                                Console.Error.WriteLine($"ERROR: Agent is not available for Linux {RuntimeInformation.OSArchitecture}.");
+                                return 1;
+                            }
+                        }
+                        else if (Platform == Platform.MacOS)
+                        {
+                            agentArgs = "-c ./home/datadog.yaml";
+
+                            if (RuntimeInformation.OSArchitecture == Architecture.X64)
+                            {
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "osx-x64", "agent"));
+                            }
+                            else
+                            {
+                                Console.Error.WriteLine($"ERROR: Agent is not available for MacOS {RuntimeInformation.OSArchitecture}.");
+                                return 1;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(agentPath))
+                        {
+                            agentProcessInfo = new ProcessStartInfo(agentPath, agentArgs)
+                            {
+                                UseShellExecute = false,
+                                WorkingDirectory = Environment.CurrentDirectory,
+                                RedirectStandardOutput = false,
+                                RedirectStandardInput = true,
+                                RedirectStandardError = false,
+                            };
+                        }
+                    }
+
                     ProcessStartInfo processInfo = Utils.GetProcessStartInfo(args[0], Environment.CurrentDirectory, profilerEnvironmentVariables);
                     if (args.Length > 1)
                     {
                         processInfo.Arguments = string.Join(' ', args.Skip(1).ToArray());
                     }
 
-                    return Utils.RunProcess(processInfo, _tokenSource.Token);
+                    return Utils.RunProcess(processInfo, agentProcessInfo, _tokenSource.Token);
                 }
             }
 

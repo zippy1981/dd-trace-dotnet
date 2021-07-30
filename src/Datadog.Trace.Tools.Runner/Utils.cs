@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -18,7 +20,7 @@ namespace Datadog.Trace.Tools.Runner
     {
         public const string PROFILERID = "{846F5F1C-F9AE-4B07-969E-05C26BC060D8}";
 
-        public static Dictionary<string, string> GetProfilerEnvironmentVariables(string runnerFolder, Platform platform, Options options)
+        public static string GetTracerHomeFolder(string runnerFolder, Options options = null)
         {
             // In the current nuspec structure RunnerFolder has the following format:
             //  C:\Users\[user]\.dotnet\tools\.store\datadog.trace.tools.runner\[version]\datadog.trace.tools.runner\[version]\tools\netcoreapp3.1\any
@@ -27,16 +29,25 @@ namespace Datadog.Trace.Tools.Runner
             //  C:\Users\[user]\.dotnet\tools\.store\datadog.trace.tools.runner\[version]\datadog.trace.tools.runner\[version]\home
             // So we have to go up 3 folders.
             string tracerHome = null;
-            if (!string.IsNullOrEmpty(options.TracerHomeFolder))
+            if (options is not null)
             {
-                tracerHome = options.TracerHomeFolder;
-                if (!Directory.Exists(tracerHome))
+                if (!string.IsNullOrEmpty(options.TracerHomeFolder))
                 {
-                    Console.Error.WriteLine("ERROR: The specified home folder doesn't exist.");
+                    tracerHome = options.TracerHomeFolder;
+                    if (!Directory.Exists(tracerHome))
+                    {
+                        Console.Error.WriteLine("ERROR: The specified home folder doesn't exist.");
+                    }
                 }
             }
 
             tracerHome ??= DirectoryExists("Home", Path.Combine(runnerFolder, "..", "..", "..", "home"), Path.Combine(runnerFolder, "home"));
+            return tracerHome;
+        }
+
+        public static Dictionary<string, string> GetProfilerEnvironmentVariables(string runnerFolder, Platform platform, Options options)
+        {
+            string tracerHome = GetTracerHomeFolder(runnerFolder, options);
             string tracerMsBuild = FileExists(Path.Combine(tracerHome, "netstandard2.0", "Datadog.Trace.MSBuild.dll"));
             string tracerIntegrations = FileExists(Path.Combine(tracerHome, "integrations.json"));
             string tracerProfiler32 = string.Empty;
@@ -210,10 +221,23 @@ namespace Datadog.Trace.Tools.Runner
             return processInfo;
         }
 
-        public static int RunProcess(ProcessStartInfo startInfo, CancellationToken cancellationToken)
+        public static int RunProcess(ProcessStartInfo startInfo, ProcessStartInfo parentStartInfo, CancellationToken cancellationToken)
         {
             try
             {
+                Process parentProcess = null;
+                if (parentStartInfo != null)
+                {
+                    parentProcess = new Process();
+                    parentProcess.StartInfo = parentStartInfo;
+                    parentProcess.EnableRaisingEvents = true;
+                    parentProcess.Start();
+                    while (!IsAgentRunning() && !parentProcess.HasExited)
+                    {
+                        Thread.Sleep(200);
+                    }
+                }
+
                 using (Process childProcess = new Process())
                 {
                     childProcess.StartInfo = startInfo;
@@ -233,6 +257,22 @@ namespace Datadog.Trace.Tools.Runner
                     }))
                     {
                         childProcess.WaitForExit();
+                        if (parentProcess != null)
+                        {
+                            try
+                            {
+                                if (!parentProcess.HasExited)
+                                {
+                                    Thread.Sleep(5000);
+                                    parentProcess.Kill();
+                                }
+                            }
+                            catch
+                            {
+                                // .
+                            }
+                        }
+
                         return cancellationToken.IsCancellationRequested ? 1 : childProcess.ExitCode;
                     }
                 }
@@ -243,6 +283,24 @@ namespace Datadog.Trace.Tools.Runner
             }
 
             return 1;
+        }
+
+        public static bool IsAgentRunning()
+        {
+            try
+            {
+                using (var socket = new Socket(SocketType.Stream, ProtocolType.Tcp))
+                {
+                    socket.Connect(new IPEndPoint(IPAddress.Loopback, 8126));
+                    socket.Disconnect(true);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public static string[] SplitArgs(string command, bool keepQuote = false)
