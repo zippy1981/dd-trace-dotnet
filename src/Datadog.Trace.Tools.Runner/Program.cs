@@ -130,7 +130,7 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.Linux)
                         {
-                            agentArgs = "-c ./home/datadog.yaml";
+                            agentArgs = "run -c ./home/datadog.yaml";
 
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
@@ -148,7 +148,7 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.MacOS)
                         {
-                            agentArgs = "-c ./home/datadog.yaml";
+                            agentArgs = "run -c ./home/datadog.yaml";
 
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
