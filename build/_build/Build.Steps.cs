@@ -230,7 +230,13 @@ partial class Build
         .OnlyWhenStatic(() => IsLinux)
         .Executes(() =>
         {
-            Logger.Error("We don't currently run unit tests on Linux");
+            var buildDirectory = TestsDirectory / "Datadog.Trace.ClrProfiler.Native.Tests" / "build";
+            EnsureExistingDirectory(buildDirectory);
+
+            CMake.Value(
+                arguments: "../ -DCMAKE_BUILD_TYPE=Release",
+                workingDirectory: buildDirectory);
+            Make.Value(workingDirectory: buildDirectory);
         });
 
     Target CompileNativeTests => _ => _
