@@ -65,6 +65,9 @@ stages:
     steps:
     - template: steps/install-dotnet-5-sdk.yml
 
+    - pwsh: |
+        ls env:
+
     - script: build.cmd BuildTracerHome
       displayName: Build tracer home
 
@@ -630,7 +633,7 @@ stages:
 
 - stage: benchmarks
   condition: and(succeeded(), ne(variables['isNgenTestBuild'], 'True'))
-  dependsOn: build_windows  
+  dependsOn: build_windows
   jobs:
 
   #### Windows
