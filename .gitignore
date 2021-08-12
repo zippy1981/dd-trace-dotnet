@@ -287,3 +287,11 @@ src/Datadog.Trace.ClrProfiler.Native/tmp.*
 src/Datadog.Trace.ClrProfiler.Native/Makefile
 src/Datadog.Trace.ClrProfiler.Native/CMakeCache.txt
 src/Datadog.Trace.ClrProfiler.Native/cmake_install.cmake
+
+test/Datadog.Trace.ClrProfiler.Native.Tests/build/
+test/Datadog.Trace.ClrProfiler.Native.Tests/deps/
+test/Datadog.Trace.ClrProfiler.Native.Tests/CMakeFiles/
+test/Datadog.Trace.ClrProfiler.Native.Tests/tmp.*
+test/Datadog.Trace.ClrProfiler.Native.Tests/Makefile
+test/Datadog.Trace.ClrProfiler.Native.Tests/CMakeCache.txt
+test/Datadog.Trace.ClrProfiler.Native.Tests/cmake_install.cmake

@@ -185,6 +185,9 @@ if(ISLINUX)
 endif()
 
 # Sets compiler options
+add_compile_options(-stdlib=libstdc++ -DLINUX -Wno-pragmas)
+add_compile_options(-DPAL_STDCPP_COMPAT -DPLATFORM_UNIX -DUNICODE)
+add_compile_options(-fms-extensions)
 if (BIT64)
     add_compile_options(-DBIT64 -DHOST_64BIT)
 endif()
@@ -216,8 +219,13 @@ endif()
 # Define static target
 # ******************************************************
 add_executable("Datadog.Trace.ClrProfiler.Native.Tests"
-        version_struct_test.cpp
-        ${GENERATED_OBJ_FILES}
+    clr_helper_test.cpp
+    clr_helper_type_check_test.cpp
+    integration_loader_test.cpp
+    integration_test.cpp
+    metadata_builder_test.cpp
+    version_struct_test.cpp
+    ${GENERATED_OBJ_FILES}
 )
 
 set_target_properties("Datadog.Trace.ClrProfiler.Native.Tests" PROPERTIES
@@ -227,8 +235,18 @@ set_target_properties("Datadog.Trace.ClrProfiler.Native.Tests" PROPERTIES
     CXX_EXTENSIONS NO
     POSITION_INDEPENDENT_CODE 1)
 
-target_link_libraries(Datadog.Trace.ClrProfiler.Native.Tests ${CMAKE_SOURCE_DIR}/../../src/Datadog.Trace.ClrProfiler.Native/build/bin/Datadog.Trace.ClrProfiler.Native.static)
-
+target_link_libraries(Datadog.Trace.ClrProfiler.Native.Tests
+    ${CMAKE_SOURCE_DIR}/../../src/Datadog.Trace.ClrProfiler.Native/build/bin/Datadog.Trace.ClrProfiler.Native.static.a
+    ${OUTPUT_DEPS_DIR}/re2/obj/libre2.a
+    ${OUTPUT_DEPS_DIR}/fmt/libfmt.a
+    ${OUTPUT_DEPS_DIR}/fmt/libfmt.a
+    ${OUTPUT_DEPS_DIR}/googletest/googlemock/gtest/libgtest.a
+    ${OUTPUT_DEPS_DIR}/googletest/googlemock/gtest/libgtest_main.a
+    -static-libgcc
+    -static-libstdc++
+    -lstdc++fs
+    -pthread
+)
 
 set_target_properties("Datadog.Trace.ClrProfiler.Native.Tests" PROPERTIES PREFIX "")
 
