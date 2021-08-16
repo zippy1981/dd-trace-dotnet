@@ -130,15 +130,15 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.Linux)
                         {
-                            agentArgs = "run -c ./home/datadog.yaml";
+                            agentArgs = "-config ./home/datadog.yaml";
 
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
-                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-x64", "agent"));
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-x64", "trace-agent"));
                             }
                             else if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
                             {
-                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-arm64", "agent"));
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-arm64", "trace-agent"));
                             }
                             else
                             {
