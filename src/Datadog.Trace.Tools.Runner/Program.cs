@@ -148,11 +148,11 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.MacOS)
                         {
-                            agentArgs = "run -c ./home/datadog.yaml";
+                            agentArgs = "-config ./home/datadog.yaml";
 
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
-                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "osx-x64", "agent"));
+                                agentPath = Utils.FileExists(Path.Combine(homeFolder, "osx-x64", "trace-agent"));
                             }
                             else
                             {
