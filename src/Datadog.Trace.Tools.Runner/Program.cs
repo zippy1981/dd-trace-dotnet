@@ -111,13 +111,12 @@ namespace Datadog.Trace.Tools.Runner
                         Console.WriteLine("Starting datadog agent...");
 
                         string homeFolder = Utils.GetTracerHomeFolder(RunnerFolder, options);
+                        string configyaml = Utils.FileExists(Path.Combine(homeFolder, "datadog.yaml"));
                         string agentPath = null;
-                        string agentArgs = null;
+                        string agentArgs = "-config " + configyaml;
 
                         if (Platform == Platform.Windows)
                         {
-                            agentArgs = "-config .\\home\\datadog.yaml";
-
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
                                 agentPath = Utils.FileExists(Path.Combine(homeFolder, "win-x64", "trace-agent.exe"));
@@ -130,8 +129,6 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.Linux)
                         {
-                            agentArgs = "-config ./home/datadog.yaml";
-
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
                                 agentPath = Utils.FileExists(Path.Combine(homeFolder, "linux-x64", "trace-agent"));
@@ -148,8 +145,6 @@ namespace Datadog.Trace.Tools.Runner
                         }
                         else if (Platform == Platform.MacOS)
                         {
-                            agentArgs = "-config ./home/datadog.yaml";
-
                             if (RuntimeInformation.OSArchitecture == Architecture.X64)
                             {
                                 agentPath = Utils.FileExists(Path.Combine(homeFolder, "osx-x64", "trace-agent"));
