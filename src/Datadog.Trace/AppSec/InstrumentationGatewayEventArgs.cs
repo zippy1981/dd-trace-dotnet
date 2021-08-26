@@ -6,19 +6,20 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Trace.AppSec.Transport;
+using Datadog.Trace.AppSec.Waf.NativeBindings;
 
 namespace Datadog.Trace.AppSec
 {
     internal class InstrumentationGatewayEventArgs : EventArgs
     {
-        public InstrumentationGatewayEventArgs(IDictionary<string, object> eventData, ITransport transport, Span relatedSpan)
+        public InstrumentationGatewayEventArgs(PWArgs eventData, ITransport transport, Span relatedSpan)
         {
             EventData = eventData;
             Transport = transport;
             RelatedSpan = relatedSpan;
         }
 
-        public IDictionary<string, object> EventData { get; }
+        public PWArgs EventData { get; }
 
         public ITransport Transport { get; }
 

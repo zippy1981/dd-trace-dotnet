@@ -649,6 +649,7 @@ namespace Datadog.Trace.DiagnosticListeners
 
                 if (shouldSecure)
                 {
+                    using var scope = tracer.StartActiveWithTags("dd.appsec");
                     RaiseIntrumentationEvent(security, httpContext, request, span);
                 }
             }

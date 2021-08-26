@@ -26,19 +26,20 @@ namespace Datadog.Trace.AppSec.Waf
             Dispose(false);
         }
 
-        public IReturn Run(IDictionary<string, object> args)
+        public IReturn Run(PWArgs pwArgs)
         {
             // do not add a using or call dispose in some other way here
             // when passing args to pw_runAdditive it will take ownership and free them
-            var pwArgs = Encoder.Encode(args);
+            ////var pwArgs = Encoder.Encode(args);
 
-            var retNative = Native.pw_runAdditive(contextHandle, pwArgs.RawArgs, 1000000);
+            var retNative = Native.pw_runAdditive(contextHandle, pwArgs, 1000000);
             var ret = new Return(retNative);
 
             // in these two specific case we need to explicitly free the pwArgs
             if (ret.ReturnCode == ReturnCode.ErrorTimeout || ret.ReturnCode == ReturnCode.ErrorInvalidCall)
             {
-                pwArgs.Dispose();
+                Native.pw_freeArg(ref pwArgs);
+                ////pwArgs.Dispose();
             }
 
             return ret;

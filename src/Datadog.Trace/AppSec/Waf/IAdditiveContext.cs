@@ -6,11 +6,12 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Datadog.Trace.AppSec.Waf.NativeBindings;
 
 namespace Datadog.Trace.AppSec.Waf
 {
     internal interface IAdditiveContext : IDisposable
     {
-        IReturn Run(IDictionary<string, object> args);
+        IReturn Run(PWArgs args);
     }
 }

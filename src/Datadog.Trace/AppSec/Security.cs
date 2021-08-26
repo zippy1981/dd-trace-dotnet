@@ -12,6 +12,7 @@ using Datadog.Trace.AppSec.Agent;
 using Datadog.Trace.AppSec.EventModel;
 using Datadog.Trace.AppSec.Transport;
 using Datadog.Trace.AppSec.Waf;
+using Datadog.Trace.AppSec.Waf.NativeBindings;
 using Datadog.Trace.Logging;
 
 namespace Datadog.Trace.AppSec
@@ -118,7 +119,7 @@ namespace Datadog.Trace.AppSec
             }
         }
 
-        private void RunWafAndReact(IDictionary<string, object> args, ITransport transport, Span span)
+        private void RunWafAndReact(PWArgs args, ITransport transport, Span span)
         {
             void Report(ITransport transport, Span span, Waf.ReturnTypes.Managed.Return result)
             {
@@ -135,10 +136,13 @@ namespace Datadog.Trace.AppSec
             }
 
             // run the WAF and execute the results
+            var scope = Tracer.Instance.StartActiveWithTags("dd.appsec.waf_run");
             using var wafResult = additiveContext.Run(args);
+            scope.Dispose();
+
             if (wafResult.ReturnCode == ReturnCode.Monitor || wafResult.ReturnCode == ReturnCode.Block)
             {
-                Log.Warning($"AppSec: Attack detected! Action: {wafResult.ReturnCode} " + string.Join(", ", args.Select(x => $"{x.Key}: {x.Value}. Blocking enabled : {_settings.BlockingEnabled}")));
+                Log.Information($"AppSec: Attack detected! Action: {wafResult.ReturnCode}, Blocking enabled : {_settings.BlockingEnabled}");
                 var managedWafResult = Waf.ReturnTypes.Managed.Return.From(wafResult);
                 if (_settings.BlockingEnabled && wafResult.ReturnCode == ReturnCode.Block)
                 {

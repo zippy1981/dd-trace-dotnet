@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Trace.AppSec.Transport;
+using Datadog.Trace.AppSec.Waf.NativeBindings;
 
 namespace Datadog.Trace.AppSec
 {
@@ -13,7 +14,7 @@ namespace Datadog.Trace.AppSec
     {
         public event EventHandler<InstrumentationGatewayEventArgs> InstrumentationGatewayEvent;
 
-        public void RaiseEvent(IDictionary<string, object> eventData, ITransport transport, Span relatedSpan)
+        public void RaiseEvent(PWArgs eventData, ITransport transport, Span relatedSpan)
         {
             InstrumentationGatewayEvent?.Invoke(this, new InstrumentationGatewayEventArgs(eventData, transport, relatedSpan));
         }
