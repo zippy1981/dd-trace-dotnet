@@ -22,7 +22,7 @@ namespace Datadog.Trace.Tests.Sampling
         {
             var traceContext = new TraceContext(new Tracer());
             var spanContext = new SpanContext(null, traceContext, "Weeeee");
-            var span = new Span(spanContext, null);
+            var span = new SpanImpl(spanContext, null);
             var rateLimiter = new RateLimiter(maxTracesPerInterval: null);
             var allowed = rateLimiter.Allowed(span);
             Assert.True(allowed);
@@ -112,7 +112,7 @@ namespace Datadog.Trace.Tests.Sampling
         {
             var traceContext = new TraceContext(new Tracer());
             var spanContext = new SpanContext(null, traceContext, "Weeeee");
-            var span = new Span(spanContext, null);
+            var span = new SpanImpl(spanContext, null);
 
             var remaining = howManyTimes;
             var allowedCount = 0;
@@ -164,7 +164,7 @@ namespace Datadog.Trace.Tests.Sampling
                                 var spanContext = new SpanContext(traceId: 1, spanId: 1, serviceName: "Weeeee");
 
                                 // pass a specific start time since there is no TraceContext
-                                var span = new Span(spanContext, DateTimeOffset.UtcNow);
+                                var span = new SpanImpl(spanContext, DateTimeOffset.UtcNow);
 
                                 Interlocked.Increment(ref totalAttempted);
 

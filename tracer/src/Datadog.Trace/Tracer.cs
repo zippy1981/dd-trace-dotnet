@@ -427,7 +427,7 @@ namespace Datadog.Trace
         {
             var spanContext = CreateSpanContext(parent, serviceName, ignoreActiveScope, spanId);
 
-            var span = new Span(spanContext, startTime, tags)
+            var span = new SpanImpl(spanContext, startTime, tags)
             {
                 OperationName = operationName,
             };
