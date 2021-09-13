@@ -1,4 +1,4 @@
-// <copyright file="Scope.cs" company="Datadog">
+﻿// <copyright file="Scope.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
@@ -7,13 +7,7 @@ using System;
 
 namespace Datadog.Trace
 {
-    /// <summary>
-    /// A scope is a handle used to manage the concept of an active span.
-    /// Meaning that at a given time at most one span is considered active and
-    /// all newly created spans that are not created with the ignoreActiveSpan
-    /// parameter will be automatically children of the active span.
-    /// </summary>
-    public class Scope : IDisposable
+    public sealed class Scope : IDisposable
     {
         private readonly IScopeManager _scopeManager;
         private readonly bool _finishOnClose;
@@ -27,16 +21,20 @@ namespace Datadog.Trace
         }
 
         /// <summary>
-        /// Gets the active span wrapped in this scope
+        /// Gets the span associated with this scope.
         /// </summary>
         public Span Span { get; }
 
+        /// <summary>
+        /// Gets the parent scope or null if there is no parent.
+        /// </summary>
         internal Scope Parent { get; }
 
         internal Scope Root => Parent?.Root ?? this;
 
         /// <summary>
-        /// Closes the current scope and makes its parent scope active
+        /// Closes the current scope. If it is was the active scope,
+        /// its parent becomes the new active scope.
         /// </summary>
         public void Close()
         {
@@ -49,7 +47,8 @@ namespace Datadog.Trace
         }
 
         /// <summary>
-        /// Closes the current scope and makes its parent scope active
+        /// Closes the current scope. If it is was the active scope,
+        /// its parent becomes the new active scope.
         /// </summary>
         public void Dispose()
         {
