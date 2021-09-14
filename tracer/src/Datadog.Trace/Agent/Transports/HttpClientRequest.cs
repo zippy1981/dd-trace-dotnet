@@ -6,6 +6,7 @@
 #if NETCOREAPP
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -33,16 +34,19 @@ namespace Datadog.Trace.Agent.Transports
         public async Task<IApiResponse> PostAsJsonAsync(IEvent events, JsonSerializer serializer)
         {
             var ms = new MemoryStream();
-            var sw = new StreamWriter(ms, leaveOpen: true);
-            using (var content = new StreamContent(ms))
+            var gzipStream = new GZipStream(ms, CompressionLevel.Optimal);
+            var sw = new StreamWriter(gzipStream, leaveOpen: true);
+            using (JsonWriter writer = new JsonTextWriter(sw))
             {
-                using (JsonWriter writer = new JsonTextWriter(sw) { CloseOutput = true })
+                serializer.Serialize(writer, events);
+                ms.Seek(0, SeekOrigin.Begin);
+                await writer.FlushAsync();
+                gzipStream.Flush();
+                using (var content = new StreamContent(ms))
                 {
-                    serializer.Serialize(writer, events);
                     content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    content.Headers.ContentEncoding.Add("gzip");
                     _request.Content = content;
-                    await writer.FlushAsync();
-                    ms.Seek(0, SeekOrigin.Begin);
                     var response = await _client.SendAsync(_request).ConfigureAwait(false);
                     return new HttpClientResponse(response);
                 }

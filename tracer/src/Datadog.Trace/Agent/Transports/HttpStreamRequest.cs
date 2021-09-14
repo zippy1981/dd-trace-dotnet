@@ -5,6 +5,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using Datadog.Trace.AppSec;
 using Datadog.Trace.HttpOverStreams;
@@ -43,8 +44,9 @@ namespace Datadog.Trace.Agent.Transports
         public async Task<IApiResponse> PostAsJsonAsync(IEvent events, JsonSerializer serializer)
         {
             var memoryStream = new MemoryStream();
-            var sw = new StreamWriter(memoryStream);
-            using (JsonWriter writer = new JsonTextWriter(sw))
+            var sw = new StreamWriter(new GZipStream(memoryStream, CompressionLevel.Optimal));
+            _headers.Add("Content-Encoding", "gzip");
+            using (var writer = new JsonTextWriter(sw))
             {
                 serializer.Serialize(writer, events);
                 await writer.FlushAsync();

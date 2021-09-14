@@ -5,6 +5,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Threading.Tasks;
 using Datadog.Trace.AppSec;
@@ -59,10 +60,11 @@ namespace Datadog.Trace.Agent.Transports
         {
             _request.Method = "POST";
             _request.ContentType = "application/json";
+            _request.Headers[HttpRequestHeader.ContentEncoding] = "gzip";
 
             using (var requestStream = await _request.GetRequestStreamAsync().ConfigureAwait(false))
             {
-                using (var writer = new JsonTextWriter(new StreamWriter(requestStream)))
+                using (var writer = new JsonTextWriter(new StreamWriter(new GZipStream(requestStream, CompressionLevel.Optimal))))
                 {
                     serializer.Serialize(writer, events);
                     await writer.FlushAsync();
@@ -82,3 +84,6 @@ namespace Datadog.Trace.Agent.Transports
         }
     }
 }
+
+
+
