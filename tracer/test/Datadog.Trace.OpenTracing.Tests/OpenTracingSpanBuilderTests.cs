@@ -48,7 +48,7 @@ namespace Datadog.Trace.OpenTracing.Tests
             var ddSpanContext = span.Context.Context as SpanContext;
 
             Assert.NotNull(ddSpanContext);
-            Assert.Null(ddSpanContext.ParentId);
+            Assert.Null(ddSpanContext.Parent?.SpanId);
             Assert.NotEqual<ulong>(0, ddSpanContext.SpanId);
             Assert.NotEqual<ulong>(0, ddSpanContext.TraceId);
         }
@@ -61,10 +61,10 @@ namespace Datadog.Trace.OpenTracing.Tests
                                                 .AsChildOf(root)
                                                 .Start();
 
-            Assert.Null(root.DDSpan.Context.ParentId);
+            Assert.Null(root.DDSpan.Context.Parent?.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.TraceId);
-            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.ParentId);
+            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.Parent?.SpanId);
             Assert.Equal(root.DDSpan.Context.TraceId, child.DDSpan.Context.TraceId);
             Assert.NotEqual<ulong>(0, child.DDSpan.Context.SpanId);
         }
@@ -77,10 +77,10 @@ namespace Datadog.Trace.OpenTracing.Tests
                                                 .AsChildOf(root.Context)
                                                 .Start();
 
-            Assert.Null(root.DDSpan.Context.ParentId);
+            Assert.Null(root.DDSpan.Context.Parent?.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.TraceId);
-            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.ParentId);
+            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.Parent?.SpanId);
             Assert.Equal(root.DDSpan.Context.TraceId, child.DDSpan.Context.TraceId);
             Assert.NotEqual<ulong>(0, child.DDSpan.Context.SpanId);
         }
@@ -93,10 +93,10 @@ namespace Datadog.Trace.OpenTracing.Tests
                                                 .AddReference(References.ChildOf, root.Context)
                                                 .Start();
 
-            Assert.Null(root.DDSpan.Context.ParentId);
+            Assert.Null(root.DDSpan.Context.Parent?.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.SpanId);
             Assert.NotEqual<ulong>(0, root.DDSpan.Context.TraceId);
-            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.ParentId);
+            Assert.Equal(root.DDSpan.Context.SpanId, child.DDSpan.Context.Parent?.SpanId);
             Assert.Equal(root.DDSpan.Context.TraceId, child.DDSpan.Context.TraceId);
             Assert.NotEqual<ulong>(0, child.DDSpan.Context.SpanId);
         }

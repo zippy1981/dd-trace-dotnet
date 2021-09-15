@@ -10,7 +10,7 @@ namespace Datadog.Trace
 {
     public abstract class Span : IDisposable
     {
-        protected Span(SpanContext context)
+        internal Span(ISpanContextBase context)
         {
             Context = context;
         }
@@ -51,17 +51,19 @@ namespace Datadog.Trace
         /// </summary>
         public abstract bool Error { get; set; }
 
-        internal SpanContext Context { get; }
+        internal abstract ISpanContextBase Context { get; set; }
 
         internal abstract ITags Tags { get; }
 
-        protected internal DateTimeOffset StartTime { get; protected set; }
+        internal abstract DateTimeOffset StartTime { get; set; }
 
-        protected internal TimeSpan Duration { get; protected set; }
+        internal abstract TimeSpan Duration { get; set; }
 
         internal abstract bool IsRootSpan { get; }
 
         internal abstract bool IsTopLevel { get; }
+
+        internal abstract bool IsFinished { get; set; }
 
         /// <summary>
         /// Sets a string tag in this span using the specified key and value pair.

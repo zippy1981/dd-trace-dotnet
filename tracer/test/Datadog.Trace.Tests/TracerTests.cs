@@ -155,7 +155,7 @@ namespace Datadog.Trace.Tests
             Assert.Equal(parentId, parent.SpanId);
             Assert.Null(parent.TraceContext);
             Assert.Equal(parent, child.Span.Context.Parent);
-            Assert.Equal(parentId, child.Span.Context.ParentId);
+            Assert.Equal(parentId, child.Span.Context.Parent?.SpanId);
             Assert.NotNull(child.Span.Context.TraceContext);
             Assert.Equal(samplingPriority, child.Span.Context.TraceContext.SamplingPriority);
         }

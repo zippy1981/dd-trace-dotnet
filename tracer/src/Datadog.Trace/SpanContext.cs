@@ -3,6 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using System;
 using Datadog.Trace.Util;
 
 namespace Datadog.Trace
@@ -10,8 +11,10 @@ namespace Datadog.Trace
     /// <summary>
     /// The SpanContext contains all the information needed to express relationships between spans inside or outside the process boundaries.
     /// </summary>
-    public class SpanContext : ISpanContext
+    public class SpanContext : ISpanContextBase
     {
+        private readonly ITraceContext _traceContext;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SpanContext"/> class
         /// from a propagated context. <see cref="Parent"/> will be null
@@ -59,7 +62,8 @@ namespace Datadog.Trace
         {
             SpanId = spanId ?? SpanIdGenerator.ThreadInstance.CreateNew();
             Parent = parent;
-            TraceContext = traceContext;
+            _traceContext = traceContext;
+
             if (parent is SpanContext spanContext)
             {
                 Origin = spanContext.Origin;
@@ -88,6 +92,7 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets the span id of the parent span
         /// </summary>
+        [Obsolete("Use Parent.SpanId")]
         public ulong? ParentId => Parent?.SpanId;
 
         /// <summary>
@@ -103,18 +108,18 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets or sets the origin of the trace
         /// </summary>
-        internal string Origin { get; set; }
+        public string Origin { get; set; }
 
         /// <summary>
         /// Gets the trace context.
         /// Returns null for contexts created from incoming propagated context.
         /// </summary>
-        internal ITraceContext TraceContext { get; }
+        ITraceContext ISpanContextBase.TraceContext => _traceContext;
 
         /// <summary>
         /// Gets the sampling priority for contexts created from incoming propagated context.
         /// Returns null for local contexts.
         /// </summary>
-        internal SamplingPriority? SamplingPriority { get; }
+        public SamplingPriority? SamplingPriority { get; }
     }
 }

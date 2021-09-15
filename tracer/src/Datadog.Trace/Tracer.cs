@@ -401,7 +401,7 @@ namespace Datadog.Trace
             // try to get the trace context (from local spans) or
             // sampling priority (from propagated spans),
             // otherwise start a new trace context
-            if (parent is SpanContext parentSpanContext)
+            if (parent is ISpanContextBase parentSpanContext)
             {
                 traceContext = parentSpanContext.TraceContext ??
                     new TraceContext(this) { SamplingPriority = parentSpanContext.SamplingPriority };
@@ -425,7 +425,7 @@ namespace Datadog.Trace
 
         internal Span StartSpan(string operationName, ITags tags, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, ulong? spanId = null)
         {
-            var spanContext = CreateSpanContext(parent, serviceName, ignoreActiveScope, spanId);
+            ISpanContextBase spanContext = CreateSpanContext(parent, serviceName, ignoreActiveScope, spanId);
 
             var span = new SpanImpl(spanContext, startTime, tags)
             {

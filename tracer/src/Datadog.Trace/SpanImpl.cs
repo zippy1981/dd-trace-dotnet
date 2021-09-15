@@ -26,7 +26,7 @@ namespace Datadog.Trace
 
         private readonly object _lock = new();
 
-        public SpanImpl(SpanContext context, DateTimeOffset? start, ITags tags = null)
+        public SpanImpl(ISpanContextBase context, DateTimeOffset? start, ITags tags = null)
             : base(context)
         {
             Tags = tags ?? new CommonTags();
@@ -36,7 +36,7 @@ namespace Datadog.Trace
             Log.Debug(
                 "Span started: [s_id: {SpanID}, p_id: {ParentId}, t_id: {TraceId}]",
                 context.SpanId,
-                Context.ParentId,
+                context.Parent.SpanId,
                 context.TraceId);
         }
 
@@ -119,9 +119,9 @@ namespace Datadog.Trace
 
         internal override bool IsTopLevel => Context.Parent == null || Context.Parent.ServiceName != ServiceName;
 
-        private new SpanContext Context { get; }
+        internal override ISpanContextBase Context { get; }
 
-        private bool IsFinished { get; set; }
+        internal override bool IsFinished { get; set; }
 
         /// <summary>
         /// Returns a <see cref="string" /> that represents this instance.
@@ -133,7 +133,7 @@ namespace Datadog.Trace
         {
             var sb = new StringBuilder();
             sb.AppendLine($"TraceId: {Context.TraceId}");
-            sb.AppendLine($"ParentId: {Context.ParentId}");
+            sb.AppendLine($"ParentId: {Context.Parent.SpanId}");
             sb.AppendLine($"SpanId: {Context.SpanId}");
             sb.AppendLine($"Origin: {Context.Origin}");
             sb.AppendLine($"ServiceName: {ServiceName}");
@@ -371,7 +371,7 @@ namespace Datadog.Trace
                         new object[]
                         {
                             Context.SpanId,
-                            Context.ParentId,
+                            Context.Parent.SpanId,
                             Context.TraceId,
                             Context.ServiceName,
                             ResourceName,
