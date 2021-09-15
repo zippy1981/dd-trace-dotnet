@@ -13,11 +13,11 @@ namespace Datadog.Trace
 
         SamplingPriority? SamplingPriority { get; set; }
 
-        Span RootSpan { get; }
+        ISpan RootSpan { get; }
 
-        void AddSpan(Span span);
+        void AddSpan(ISpan span);
 
-        void CloseSpan(Span span);
+        void CloseSpan(ISpan span);
 
         void LockSamplingPriority();
 
