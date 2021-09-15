@@ -19,30 +19,37 @@ namespace Datadog.Trace
     /// tracks the duration of an operation as well as associated metadata in
     /// the form of a resource name, a service name, and user defined tags.
     /// </summary>
-    public class Span : ISpan, IDisposable
+    public class Span : ISpanInternal
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<Span>();
         private static readonly bool IsLogLevelDebugEnabled = Log.IsEnabled(LogEventLevel.Debug);
 
         private readonly object _lock = new object();
+        private readonly ISpanContextInternal _context;
+        private readonly ITags _tags;
 
-        internal Span(SpanContext context, DateTimeOffset? start)
-            : this(context, start, null)
+        internal Span(ISpanContextInternal context, DateTimeOffset? start)
+            : this(context, start, tags: null)
         {
         }
 
-        internal Span(SpanContext context, DateTimeOffset? start, ITags tags)
+        internal Span(ISpanContextInternal context, DateTimeOffset? start, ITags tags)
         {
-            Tags = tags ?? new CommonTags();
-            Context = context;
-            StartTime = start ?? Context.TraceContext.UtcNow;
+            _tags = tags ?? new CommonTags();
+            _context = context;
+            StartTime = start ?? context.TraceContext.UtcNow;
 
             Log.Debug(
                 "Span started: [s_id: {SpanID}, p_id: {ParentId}, t_id: {TraceId}]",
                 SpanId,
-                Context.ParentId,
+                context.Parent.SpanId,
                 TraceId);
         }
+
+        /// <summary>
+        /// Gets the span's context.
+        /// </summary>
+        public ISpanContext Context => _context;
 
         /// <summary>
         /// Gets or sets operation name
@@ -71,19 +78,29 @@ namespace Datadog.Trace
         /// </summary>
         public string ServiceName
         {
-            get => Context.ServiceName;
-            set => Context.ServiceName = value;
+            get => _context.ServiceName;
+            set => _context.ServiceName = value;
         }
 
         /// <summary>
         /// Gets the trace's unique identifier.
         /// </summary>
-        public ulong TraceId => Context.TraceId;
+        public ulong TraceId => _context.TraceId;
 
         /// <summary>
         /// Gets the span's unique identifier.
         /// </summary>
-        public ulong SpanId => Context.SpanId;
+        public ulong SpanId => _context.SpanId;
+
+        /// <summary>
+        /// Gets the span's tags collection.
+        /// </summary>
+        ITags ISpanInternal.Tags => _tags;
+
+        /// <summary>
+        /// Gets the span's context for internal usage.
+        /// </summary>
+        ISpanContextInternal ISpanInternal.Context => _context;
 
         /// <summary>
         /// Gets <i>local root span id</i>, i.e. the <c>SpanId</c> of the span that is the root of the local, non-reentrant
@@ -105,17 +122,25 @@ namespace Datadog.Trace
 
         internal ITags Tags { get; set; }
 
-        internal SpanContext Context { get; }
+        internal DateTimeOffset StartTime { get; set; }
 
-        internal DateTimeOffset StartTime { get; private set; }
+        /// <summary>
+        /// Gets the span's start time.
+        /// </summary>
+        DateTimeOffset ISpanInternal.StartTime => StartTime;
 
-        internal TimeSpan Duration { get; private set; }
+        internal TimeSpan Duration { get; set; }
+
+        /// <summary>
+        /// Gets the span's duration.
+        /// </summary>
+        TimeSpan ISpanInternal.Duration => Duration;
 
         internal bool IsFinished { get; private set; }
 
-        internal bool IsRootSpan => Context.TraceContext?.RootSpan == this;
+        internal bool IsRootSpan => _context.TraceContext?.RootSpan == this;
 
-        internal bool IsTopLevel => Context.Parent == null || Context.Parent.ServiceName != ServiceName;
+        internal bool IsTopLevel => _context.Parent == null || _context.Parent.ServiceName != ServiceName;
 
         /// <summary>
         /// Returns a <see cref="string" /> that represents this instance.
@@ -126,10 +151,10 @@ namespace Datadog.Trace
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"TraceId: {Context.TraceId}");
-            sb.AppendLine($"ParentId: {Context.ParentId}");
-            sb.AppendLine($"SpanId: {Context.SpanId}");
-            sb.AppendLine($"Origin: {Context.Origin}");
+            sb.AppendLine($"TraceId: {_context.TraceId}");
+            sb.AppendLine($"ParentId: {_context.Parent.SpanId}");
+            sb.AppendLine($"SpanId: {_context.SpanId}");
+            sb.AppendLine($"Origin: {_context.Origin}");
             sb.AppendLine($"ServiceName: {ServiceName}");
             sb.AppendLine($"OperationName: {OperationName}");
             sb.AppendLine($"Resource: {ResourceName}");
@@ -137,18 +162,18 @@ namespace Datadog.Trace
             sb.AppendLine($"Start: {StartTime}");
             sb.AppendLine($"Duration: {Duration}");
             sb.AppendLine($"Error: {Error}");
-            sb.AppendLine($"Meta: {Tags}");
+            sb.AppendLine($"Meta: {_tags}");
 
             return sb.ToString();
         }
 
         /// <summary>
-        /// Add a the specified tag to this span.
+        /// Adds the specified tag to this span.
         /// </summary>
         /// <param name="key">The tag's key.</param>
         /// <param name="value">The tag's value.</param>
         /// <returns>This span to allow method chaining.</returns>
-        public Span SetTag(string key, string value)
+        public ISpan SetTag(string key, string value)
         {
             if (IsFinished)
             {
@@ -160,14 +185,14 @@ namespace Datadog.Trace
             switch (key)
             {
                 case Trace.Tags.Origin:
-                    Context.Origin = value;
+                    _context.Origin = value;
                     break;
                 case Trace.Tags.SamplingPriority:
                     if (Enum.TryParse(value, out SamplingPriority samplingPriority) &&
                         Enum.IsDefined(typeof(SamplingPriority), samplingPriority))
                     {
                         // allow setting the sampling priority via a tag
-                        Context.TraceContext.SamplingPriority = samplingPriority;
+                        _context.TraceContext.SamplingPriority = samplingPriority;
                     }
 
                     break;
@@ -177,7 +202,7 @@ namespace Datadog.Trace
                     if (value?.ToBoolean() == true)
                     {
                         // user-friendly tag to set UserKeep priority
-                        Context.TraceContext.SamplingPriority = SamplingPriority.UserKeep;
+                        _context.TraceContext.SamplingPriority = SamplingPriority.UserKeep;
                     }
 
                     break;
@@ -186,7 +211,7 @@ namespace Datadog.Trace
                     if (value?.ToBoolean() == true)
                     {
                         // user-friendly tag to set UserReject priority
-                        Context.TraceContext.SamplingPriority = SamplingPriority.UserReject;
+                        _context.TraceContext.SamplingPriority = SamplingPriority.UserReject;
                     }
 
                     break;
@@ -255,7 +280,7 @@ namespace Datadog.Trace
 
                     break;
                 default:
-                    Tags.SetTag(key, value);
+                    _tags.SetTag(key, value);
                     break;
             }
 
@@ -268,7 +293,7 @@ namespace Datadog.Trace
         /// </summary>
         public void Finish()
         {
-            Finish(Context.TraceContext.ElapsedSince(StartTime));
+            Finish(_context.TraceContext.ElapsedSince(StartTime));
         }
 
         /// <summary>
@@ -324,11 +349,11 @@ namespace Datadog.Trace
             switch (key)
             {
                 case Trace.Tags.SamplingPriority:
-                    return ((int?)(Context.TraceContext?.SamplingPriority ?? Context.SamplingPriority))?.ToString();
+                    return ((int?)(_context.TraceContext?.SamplingPriority ?? _context.SamplingPriority))?.ToString();
                 case Trace.Tags.Origin:
-                    return Context.Origin;
+                    return _context.Origin;
                 default:
-                    return Tags.GetTag(key);
+                    return _tags.GetTag(key);
             }
         }
 
@@ -354,32 +379,63 @@ namespace Datadog.Trace
 
             if (shouldCloseSpan)
             {
-                Context.TraceContext.CloseSpan(this);
+                _context.TraceContext.CloseSpan(this);
 
                 if (IsLogLevelDebugEnabled)
                 {
                     Log.Debug(
                         "Span closed: [s_id: {SpanId}, p_id: {ParentId}, t_id: {TraceId}] for (Service: {ServiceName}, Resource: {ResourceName}, Operation: {OperationName}, Tags: [{Tags}])",
-                        new object[] { SpanId, Context.ParentId, TraceId, ServiceName, ResourceName, OperationName, Tags });
+                        new object[] { SpanId, _context.Parent.SpanId, TraceId, ServiceName, ResourceName, OperationName, _tags });
                 }
             }
         }
 
+        /// <summary>
+        /// Gets the value of the specified numeric tag.
+        /// </summary>
+        /// <param name="key">The tag's key.</param>
+        /// <returns>The tag's value.</returns>
         internal double? GetMetric(string key)
         {
-            return Tags.GetMetric(key);
+            return _tags.GetMetric(key);
         }
 
-        internal Span SetMetric(string key, double? value)
+        /// <summary>
+        /// Gets the value of the specified numeric tag.
+        /// </summary>
+        /// <param name="key">The tag's key.</param>
+        /// <returns>The tag's value.</returns>
+        double? ISpanInternal.GetMetric(string key)
         {
-            Tags.SetMetric(key, value);
+            return GetMetric(key);
+        }
 
+        /// <summary>
+        /// Adds or sets the value of the specified numeric tag.
+        /// </summary>
+        /// <param name="key">The tag's key.</param>
+        /// <param name="value">The tag's value.</param>
+        /// <returns>This span for chaining.</returns>
+        internal ISpanInternal SetMetric(string key, double? value)
+        {
+            _tags.SetMetric(key, value);
             return this;
+        }
+
+        /// <summary>
+        /// Adds or sets the value of the specified numeric tag.
+        /// </summary>
+        /// <param name="key">The tag's key.</param>
+        /// <param name="value">The tag's value.</param>
+        /// <returns>This span for chaining.</returns>
+        ISpanInternal ISpanInternal.SetMetric(string key, double? value)
+        {
+            return SetMetric(key, value);
         }
 
         internal void ResetStartTime()
         {
-            StartTime = Context.TraceContext.UtcNow;
+            StartTime = _context.TraceContext.UtcNow;
         }
     }
 }

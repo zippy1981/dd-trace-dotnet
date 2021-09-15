@@ -17,11 +17,12 @@ namespace Datadog.Trace
     {
         private readonly IScopeManager _scopeManager;
         private readonly bool _finishOnClose;
+        private readonly ISpanInternal _span;
 
-        internal Scope(Scope parent, ISpan span, IScopeManager scopeManager, bool finishOnClose)
+        internal Scope(Scope parent, ISpanInternal span, IScopeManager scopeManager, bool finishOnClose)
         {
             Parent = parent;
-            Span = span;
+            _span = span;
             _scopeManager = scopeManager;
             _finishOnClose = finishOnClose;
         }
@@ -29,7 +30,9 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets the active span wrapped in this scope
         /// </summary>
-        public ISpan Span { get; }
+        public ISpan Span => _span;
+
+        internal ISpanInternal SpanInternal => _span;
 
         internal Scope Parent { get; }
 

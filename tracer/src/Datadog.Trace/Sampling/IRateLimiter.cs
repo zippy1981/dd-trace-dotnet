@@ -7,7 +7,7 @@ namespace Datadog.Trace.Sampling
 {
     internal interface IRateLimiter
     {
-        bool Allowed(Span span);
+        bool Allowed(ISpan span);
 
         float GetEffectiveRate();
     }

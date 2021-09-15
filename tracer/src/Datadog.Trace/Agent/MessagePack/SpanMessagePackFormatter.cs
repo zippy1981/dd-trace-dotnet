@@ -10,7 +10,7 @@ using Datadog.Trace.Vendors.MessagePack.Formatters;
 
 namespace Datadog.Trace.Agent.MessagePack
 {
-    internal class SpanMessagePackFormatter : IMessagePackFormatter<Span>
+    internal class SpanMessagePackFormatter : IMessagePackFormatter<ISpanInternal>
     {
         private static byte[] _traceIdBytes = StringEncoding.UTF8.GetBytes("trace_id");
         private static byte[] _spanIdBytes = StringEncoding.UTF8.GetBytes("span_id");
@@ -23,13 +23,15 @@ namespace Datadog.Trace.Agent.MessagePack
         private static byte[] _parentIdBytes = StringEncoding.UTF8.GetBytes("parent_id");
         private static byte[] _errorBytes = StringEncoding.UTF8.GetBytes("error");
 
-        public int Serialize(ref byte[] bytes, int offset, Span value, IFormatterResolver formatterResolver)
+        public int Serialize(ref byte[] bytes, int offset, ISpanInternal value, IFormatterResolver formatterResolver)
         {
             // First, pack array length (or map length).
             // It should be the number of members of the object to be serialized.
             var len = 8;
 
-            if (value.Context.ParentId != null)
+            ulong? parentSpanId = value.Context.Parent?.SpanId;
+
+            if (parentSpanId != null)
             {
                 len++;
             }
@@ -69,10 +71,10 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _durationBytes);
             offset += MessagePackBinary.WriteInt64(ref bytes, offset, value.Duration.ToNanoseconds());
 
-            if (value.Context.ParentId != null)
+            if (parentSpanId != null)
             {
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _parentIdBytes);
-                offset += MessagePackBinary.WriteUInt64(ref bytes, offset, (ulong)value.Context.ParentId);
+                offset += MessagePackBinary.WriteUInt64(ref bytes, offset, (ulong)parentSpanId);
             }
 
             if (value.Error)
@@ -86,7 +88,7 @@ namespace Datadog.Trace.Agent.MessagePack
             return offset - originalOffset;
         }
 
-        public Span Deserialize(byte[] bytes, int offset, IFormatterResolver formatterResolver, out int readSize)
+        public ISpanInternal Deserialize(byte[] bytes, int offset, IFormatterResolver formatterResolver, out int readSize)
         {
             throw new NotImplementedException();
         }

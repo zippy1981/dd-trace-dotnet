@@ -18,7 +18,7 @@ namespace Datadog.Trace
 
         private readonly DateTimeOffset _utcStart = DateTimeOffset.UtcNow;
         private readonly long _timestamp = Stopwatch.GetTimestamp();
-        private ArrayBuilder<Span> _spans;
+        private ArrayBuilder<ISpanInternal> _spans;
 
         private int _openSpans;
         private SamplingPriority? _samplingPriority;
@@ -29,7 +29,7 @@ namespace Datadog.Trace
             Tracer = tracer;
         }
 
-        public Span RootSpan { get; private set; }
+        public ISpanInternal RootSpan { get; private set; }
 
         public DateTimeOffset UtcNow => _utcStart.Add(Elapsed);
 
@@ -54,7 +54,7 @@ namespace Datadog.Trace
 
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
-        public void AddSpan(Span span)
+        public void AddSpan(ISpanInternal span)
         {
             lock (this)
             {
@@ -87,7 +87,7 @@ namespace Datadog.Trace
             }
         }
 
-        public void CloseSpan(Span span)
+        public void CloseSpan(ISpanInternal span)
         {
             bool ShouldTriggerPartialFlush() => Tracer.Settings.PartialFlushEnabled && _spans.Count >= Tracer.Settings.PartialFlushMinSpans;
 
@@ -106,7 +106,7 @@ namespace Datadog.Trace
                 }
             }
 
-            ArraySegment<Span> spansToWrite = default;
+            ArraySegment<ISpanInternal> spansToWrite = default;
 
             bool shouldPropagateMetadata = false;
 
@@ -137,7 +137,7 @@ namespace Datadog.Trace
                     // Making the assumption that, if the number of closed spans was big enough to trigger partial flush,
                     // the number of remaining spans is probably big as well.
                     // Therefore, we bypass the resize logic and immediately allocate the array to its maximum size
-                    _spans = new ArrayBuilder<Span>(spansToWrite.Count);
+                    _spans = new ArrayBuilder<ISpanInternal>(spansToWrite.Count);
                 }
             }
 
@@ -200,7 +200,7 @@ namespace Datadog.Trace
             }
         }
 
-        private void DecorateRootSpan(Span span)
+        private void DecorateRootSpan(ISpanInternal span)
         {
             if (AzureAppServices.Metadata.IsRelevant)
             {

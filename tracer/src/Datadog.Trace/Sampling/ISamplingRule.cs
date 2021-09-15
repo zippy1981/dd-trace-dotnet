@@ -19,8 +19,8 @@ namespace Datadog.Trace.Sampling
         /// </summary>
         int Priority { get; }
 
-        bool IsMatch(Span span);
+        bool IsMatch(ISpan span);
 
-        float GetSamplingRate(Span span);
+        float GetSamplingRate(ISpan span);
     }
 }

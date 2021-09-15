@@ -10,8 +10,11 @@ namespace Datadog.Trace
     /// <summary>
     /// The SpanContext contains all the information needed to express relationships between spans inside or outside the process boundaries.
     /// </summary>
-    public class SpanContext : ISpanContext
+    public class SpanContext : ISpanContextInternal
     {
+        private readonly ITraceContext _traceContext;
+        private string _origin;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SpanContext"/> class
         /// from a propagated context. <see cref="Parent"/> will be null
@@ -43,7 +46,7 @@ namespace Datadog.Trace
         {
             SpanId = spanId;
             SamplingPriority = samplingPriority;
-            Origin = origin;
+            _origin = origin;
         }
 
         /// <summary>
@@ -59,10 +62,11 @@ namespace Datadog.Trace
         {
             SpanId = spanId ?? SpanIdGenerator.ThreadInstance.CreateNew();
             Parent = parent;
-            TraceContext = traceContext;
-            if (parent is SpanContext spanContext)
+            _traceContext = traceContext;
+
+            if (parent is ISpanContextInternal spanContext)
             {
-                Origin = spanContext.Origin;
+                _origin = spanContext.Origin;
             }
         }
 
@@ -86,9 +90,10 @@ namespace Datadog.Trace
         public ulong TraceId { get; }
 
         /// <summary>
-        /// Gets the span id of the parent span
+        /// Gets the trace context.
+        /// Returns null for contexts created from incoming propagated context.
         /// </summary>
-        public ulong? ParentId => Parent?.SpanId;
+        ITraceContext ISpanContextInternal.TraceContext => _traceContext;
 
         /// <summary>
         /// Gets the span id
@@ -103,18 +108,22 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets or sets the origin of the trace
         /// </summary>
-        internal string Origin { get; set; }
-
-        /// <summary>
-        /// Gets the trace context.
-        /// Returns null for contexts created from incoming propagated context.
-        /// </summary>
-        internal ITraceContext TraceContext { get; }
+        string ISpanContextInternal.Origin
+        {
+            get => _origin;
+            set => _origin = value;
+        }
 
         /// <summary>
         /// Gets the sampling priority for contexts created from incoming propagated context.
         /// Returns null for local contexts.
         /// </summary>
         internal SamplingPriority? SamplingPriority { get; }
+
+        /// <summary>
+        /// Gets the sampling priority for contexts created from incoming propagated context.
+        /// Returns null for local contexts.
+        /// </summary>
+        SamplingPriority? ISpanContextInternal.SamplingPriority => SamplingPriority;
     }
 }

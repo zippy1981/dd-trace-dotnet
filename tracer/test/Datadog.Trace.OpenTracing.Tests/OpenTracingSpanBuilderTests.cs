@@ -48,7 +48,7 @@ namespace Datadog.Trace.OpenTracing.Tests
             var ddSpanContext = span.Context.Context as SpanContext;
 
             Assert.NotNull(ddSpanContext);
-            Assert.Null(ddSpanContext.ParentId);
+            Assert.Null(ddSpanContext.Parent?.SpanId);
             Assert.NotEqual<ulong>(0, ddSpanContext.SpanId);
             Assert.NotEqual<ulong>(0, ddSpanContext.TraceId);
         }

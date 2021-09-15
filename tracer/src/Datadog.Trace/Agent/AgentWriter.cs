@@ -105,7 +105,7 @@ namespace Datadog.Trace.Agent
             return _api.SendTracesAsync(EmptyPayload, 0);
         }
 
-        public void WriteTrace(ArraySegment<Span> trace)
+        public void WriteTrace(ArraySegment<ISpanInternal> trace)
         {
             if (trace.Count == 0)
             {
@@ -329,7 +329,7 @@ namespace Datadog.Trace.Agent
             }
         }
 
-        private void SerializeTrace(ArraySegment<Span> trace)
+        private void SerializeTrace(ArraySegment<ISpanInternal> trace)
         {
             // Declaring as inline method because only safe to invoke in the context of SerializeTrace
             SpanBuffer SwapBuffers()
@@ -463,10 +463,10 @@ namespace Datadog.Trace.Agent
 
         private readonly struct WorkItem
         {
-            public readonly ArraySegment<Span> Trace;
+            public readonly ArraySegment<ISpanInternal> Trace;
             public readonly Action Callback;
 
-            public WorkItem(ArraySegment<Span> trace)
+            public WorkItem(ArraySegment<ISpanInternal> trace)
             {
                 Trace = trace;
                 Callback = null;

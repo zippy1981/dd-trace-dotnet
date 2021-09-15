@@ -3,10 +3,74 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using System;
+
 namespace Datadog.Trace
 {
-    public interface ISpan
+    public interface ISpan : IDisposable
     {
+        /// <summary>
+        /// Gets the trace's unique identifier.
+        /// </summary>
+        ulong TraceId { get; }
+
+        /// <summary>
+        /// Gets the span's unique identifier.
+        /// </summary>
+        ulong SpanId { get; }
+
+        /// <summary>
+        /// Gets the span's context.
+        /// </summary>
+        ISpanContext Context { get; }
+
+        /// <summary>
+        /// Gets or sets operation name
+        /// </summary>
+        string OperationName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resource name
+        /// </summary>
+        string ResourceName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the type of request this span represents (ex: web, db).
+        /// Not to be confused with span kind.
+        /// </summary>
+        string Type { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this span represents an error
+        /// </summary>
+        bool Error { get; set; }
+
+        /// <summary>
+        /// Gets or sets the service name.
+        /// </summary>
+        string ServiceName { get; set; }
+
         void Finish();
+
+        /// <summary>
+        /// Add a the specified tag to this span.
+        /// </summary>
+        /// <param name="key">The tag's key.</param>
+        /// <param name="value">The tag's value.</param>
+        /// <returns>This span to allow method chaining.</returns>
+        ISpan SetTag(string key, string value);
+
+        /// <summary>
+        /// Gets the value (or default/null if the key is not a valid tag) of a tag with the key value passed
+        /// </summary>
+        /// <param name="key">The tag's key</param>
+        /// <returns> The value for the tag with the key specified, or null if the tag does not exist</returns>
+        string GetTag(string key);
+
+        /// <summary>
+        /// Add the StackTrace and other exception metadata to the span
+        /// </summary>
+        /// <param name="exception">The exception.</param>
+        void SetException(Exception exception);
     }
 }

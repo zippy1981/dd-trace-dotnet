@@ -6,7 +6,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using Datadog.Trace.ExtensionMethods;
@@ -56,18 +55,20 @@ namespace Datadog.Trace
             if (headers == null) { throw new ArgumentNullException(nameof(headers)); }
 
             // lock sampling priority when span propagates.
-            context.TraceContext?.LockSamplingPriority();
+            var spanContextInternal = (ISpanContextInternal)context;
+            var traceContext = spanContextInternal.TraceContext;
+            traceContext?.LockSamplingPriority();
 
             headers.Set(HttpHeaderNames.TraceId, context.TraceId.ToString(InvariantCulture));
             headers.Set(HttpHeaderNames.ParentId, context.SpanId.ToString(InvariantCulture));
 
             // avoid writing origin header if not set, keeping the previous behavior.
-            if (context.Origin != null)
+            if (spanContextInternal.Origin != null)
             {
-                headers.Set(HttpHeaderNames.Origin, context.Origin);
+                headers.Set(HttpHeaderNames.Origin, spanContextInternal.Origin);
             }
 
-            var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);
+            var samplingPriority = (int?)(traceContext?.SamplingPriority ?? context.SamplingPriority);
 
             if (samplingPriority != null)
             {
@@ -94,18 +95,20 @@ namespace Datadog.Trace
             if (setter == null) { throw new ArgumentNullException(nameof(setter)); }
 
             // lock sampling priority when span propagates.
-            context.TraceContext?.LockSamplingPriority();
+            var spanContextInternal = (ISpanContextInternal)context;
+            var traceContext = spanContextInternal.TraceContext;
+            traceContext?.LockSamplingPriority();
 
             setter(carrier, HttpHeaderNames.TraceId, context.TraceId.ToString(InvariantCulture));
             setter(carrier, HttpHeaderNames.ParentId, context.SpanId.ToString(InvariantCulture));
 
             // avoid writing origin header if not set, keeping the previous behavior.
-            if (context.Origin != null)
+            if (spanContextInternal.Origin != null)
             {
-                setter(carrier, HttpHeaderNames.Origin, context.Origin);
+                setter(carrier, HttpHeaderNames.Origin, spanContextInternal.Origin);
             }
 
-            var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);
+            var samplingPriority = (int?)(traceContext?.SamplingPriority ?? context.SamplingPriority);
 
             if (samplingPriority != null)
             {

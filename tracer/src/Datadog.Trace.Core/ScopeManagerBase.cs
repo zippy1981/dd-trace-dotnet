@@ -29,7 +29,7 @@ namespace Datadog.Trace
             set => Active = value;
         }
 
-        public Scope Activate(ISpan span, bool finishOnClose)
+        public Scope Activate(ISpanInternal span, bool finishOnClose)
         {
             var newParent = Active;
             var scope = new Scope(newParent, span, this, finishOnClose);
