@@ -5,15 +5,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Datadog.Trace.AppSec.Waf.NativeBindings;
-using Datadog.Trace.Logging;
 
 namespace Datadog.Trace.AppSec.Waf
 {
     internal class Context : IContext
     {
-        private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<Context>();
         private readonly IntPtr contextHandle;
         private readonly List<Obj> argCache = new List<Obj>();
         private bool disposed = false;
