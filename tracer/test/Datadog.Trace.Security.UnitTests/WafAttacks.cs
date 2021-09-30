@@ -13,7 +13,7 @@ namespace Datadog.Trace.Security.UnitTests
     public class WafAttacks
     {
         [Fact]
-        public void Test1()
+        public void BasicUrlAttack()
         {
             var args = new Dictionary<string, object>()
             {
@@ -26,6 +26,8 @@ namespace Datadog.Trace.Security.UnitTests
             var waf = Waf.Initialize("rule-set.json");
             using var context = waf.CreateContext();
             var result = context.Run(args);
+            Assert.Equal(ReturnCode.Monitor, result.ReturnCode);
+            Assert.Equal("[{\"ret_code\":1,\"flow\":\"nosqli\",\"rule\":\"crs-942-290\",\"filter\":[{\"operator\":\"match_regex\",\"operator_value\":\"(?i:(?:\\\\[\\\\$(?:ne|eq|lte?|gte?|n?in|mod|all|size|exists|type|slice|x?or|div|like|between|and)\\\\]))\",\"binding_accessor\":\"server.request.query\",\"manifest_key\":\"server.request.query\",\"key_path\":[\"args\",0],\"resolved_value\":\"[$slice]\",\"match_status\":\"[$slice]\"}]}]", result.Data);
         }
     }
 }

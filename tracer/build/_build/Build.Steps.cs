@@ -289,7 +289,7 @@ partial class Build
         {
             if (IsWin)
             {
-                foreach (var architecture in new[] {"win-x86", "win-x64"})
+                foreach (var architecture in new[] { "win-x86", "win-x64" })
                 {
                     var source = LibDdwafDirectory / "runtimes" / architecture / "native" / "ddwaf.dll";
                     var dest = TracerHomeDirectory / architecture;
@@ -306,7 +306,6 @@ partial class Build
                 var dest = TracerHomeDirectory;
                 Logger.Info($"Copying '{source}' to '{dest}'");
                 CopyFileToDirectory(source, dest, FileExistsPolicy.Overwrite);
-
             }
         });
 
@@ -619,6 +618,49 @@ partial class Build
                 .SetTargets("BuildCsharpUnitTests"));
         });
 
+    Target BuildWafUnitTests => _ => _
+       .Unlisted()
+       .OnlyWhenStatic(() => !IsArm64) // not supported yet
+       .After(BuildTracerHome)
+       .After(CompileNativeSrc)
+       .Executes(() =>
+       {
+           var testProjects = TracerDirectory.GlobFiles("test/**/*Security.UnitTests.csproj")
+               .Select(x => Solution.GetProject(x))
+               .FirstOrDefault();
+
+           EnsureResultsDirectory(testProjects);
+           foreach (var fmk in testProjects.GetTargetFrameworks())
+           {
+               if (IsWin)
+               {
+                   foreach (var architecture in new[] { "win-x86", "win-x64" })
+                   {
+                       var sourceNative = NativeProfilerProject.Directory / "bin" / BuildConfiguration / architecture.Split('-')[1].ToString() / $"{NativeProfilerProject.Name}.dll";
+                       var source = LibDdwafDirectory / "runtimes" / architecture / "native" / "ddwaf.dll";
+                       var dest = testProjects.Directory / "bin" / BuildConfiguration / fmk / architecture;
+                       Logger.Info($"Copying '{source}' to '{dest}'");
+                       CopyFileToDirectory(source, dest, FileExistsPolicy.Overwrite);
+                       CopyFileToDirectory(sourceNative, dest, FileExistsPolicy.Overwrite);
+                   }
+               }
+               else
+               {
+                   // todo test this one
+                   var (architecture, ext) = GetUnixArchitectureAndExtension(includeMuslSuffixOnAlpine: true);
+                   var ddwafFileName = $"libddwaf.{ext}";
+
+                   var source = LibDdwafDirectory / "runtimes" / architecture / "native" / ddwafFileName;
+                   var dest = testProjects.Directory / "bin" / BuildConfiguration / architecture;
+                   Logger.Info($"Copying '{source}' to '{dest}'");
+                   CopyFileToDirectory(source, dest, FileExistsPolicy.Overwrite);
+                   CopyFileToDirectory(NativeProfilerProject.Directory / "build" / "bin" / $"{NativeProfilerProject.Name}.{ext}", dest, FileExistsPolicy.Overwrite);
+               }
+           }
+
+           DotNetBuild(x => x.SetConfiguration(BuildConfiguration).SetProjectFile(testProjects));
+       });
+
     Target RunManagedUnitTests => _ => _
         .Unlisted()
         .After(CompileManagedUnitTests)
@@ -801,7 +843,7 @@ partial class Build
 
             var exclude = TracerDirectory.GlobFiles("test/test-applications/integrations/dependency-libs/**/*.csproj");
 
-            var projects =  includeIntegration
+            var projects = includeIntegration
                 .Concat(includeSecurity)
                 .Where(projectPath =>
                 projectPath switch
@@ -809,7 +851,7 @@ partial class Build
                     _ when exclude.Contains(projectPath) => false,
                     _ when projectPath.ToString().Contains("Samples.OracleMDA") => false,
                     _ when !string.IsNullOrWhiteSpace(SampleName) => projectPath.ToString().Contains(SampleName),
-                     _ => true,
+                    _ => true,
                 }
             );
 
@@ -1221,17 +1263,17 @@ partial class Build
     // the integration tests need their own copy of the profiler, this achived through build.props on Windows, but doesn't seem to work under Linux
     private void IntegrationTestLinuxProfilerDirFudge(string project)
     {
-            // Not sure if/why this is necessary, and we can't just point to the correct output location
-            var src = TracerHomeDirectory;
-            var testProject = Solution.GetProject(project).Directory;
-            var dest = testProject / "bin" / BuildConfiguration / Framework / "profiler-lib";
-            CopyDirectoryRecursively(src, dest, DirectoryExistsPolicy.Merge, FileExistsPolicy.Overwrite);
+        // Not sure if/why this is necessary, and we can't just point to the correct output location
+        var src = TracerHomeDirectory;
+        var testProject = Solution.GetProject(project).Directory;
+        var dest = testProject / "bin" / BuildConfiguration / Framework / "profiler-lib";
+        CopyDirectoryRecursively(src, dest, DirectoryExistsPolicy.Merge, FileExistsPolicy.Overwrite);
 
-            // not sure exactly where this is supposed to go, may need to change the original build
-            foreach (var linuxDir in TracerHomeDirectory.GlobDirectories("linux-*"))
-            {
-                CopyDirectoryRecursively(linuxDir, dest, DirectoryExistsPolicy.Merge, FileExistsPolicy.Overwrite);
-            }
+        // not sure exactly where this is supposed to go, may need to change the original build
+        foreach (var linuxDir in TracerHomeDirectory.GlobDirectories("linux-*"))
+        {
+            CopyDirectoryRecursively(linuxDir, dest, DirectoryExistsPolicy.Merge, FileExistsPolicy.Overwrite);
+        }
     }
 
     private void MoveLogsToBuildData()

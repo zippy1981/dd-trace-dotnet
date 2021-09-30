@@ -39,6 +39,10 @@ partial class Build : NukeBuild
 
     [Parameter("The location to create the tracer home directory. Default is ./bin/tracer-home ")]
     readonly AbsolutePath TracerHome;
+
+    [Parameter("A way of specifying another folder ")]
+    readonly AbsolutePath CustomDirectory;
+
     [Parameter("The location to create the dd-trace home directory. Default is ./bin/dd-tracer-home ")]
     readonly AbsolutePath DDTracerHome;
     [Parameter("The location to place NuGet packages and other packages. Default is ./bin/artifacts ")]

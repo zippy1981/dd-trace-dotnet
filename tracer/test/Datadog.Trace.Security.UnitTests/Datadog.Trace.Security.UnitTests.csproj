@@ -3,7 +3,9 @@
     <None Remove="rule-set.json" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="rule-set.json" />
+    <Content Include="rule-set.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Datadog.Trace\Datadog.Trace.csproj" />
