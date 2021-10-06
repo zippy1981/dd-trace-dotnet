@@ -657,6 +657,17 @@ namespace shared
             return S_FALSE;
         }
         WSTRING functionNameString = WSTRING(functionName);
+        if (functionNameString != SpecificMethodToInjectName)
+        {
+            if (ExtraVerboseLogging && _loaderOptions.LogDebugIsEnabled)
+            {
+                Debug("Loader::HandleJitCachedFunctionSearchStarted:"
+                      " (functionId=" + ToString(functionId) + ") "
+                      " resulted in disableNGenForFunction=False.");
+            }
+            return S_OK;
+        }
+
 
         WCHAR typeName[NameBuffSize]{};
         DWORD typeNameLength = 0;
@@ -668,22 +679,28 @@ namespace shared
             return S_FALSE;
         }
         WSTRING typeNameString = WSTRING(functionName);
-
-        bool disableNGenForFunction = functionNameString == SpecificMethodToInjectName && typeNameString == SpecificTypeToInjectName;
-        if (disableNGenForFunction)
+        if (typeNameString != SpecificTypeToInjectName)
         {
-            _specificMethodToInjectFunctionId = functionId;
+            if (ExtraVerboseLogging && _loaderOptions.LogDebugIsEnabled)
+            {
+                Debug("Loader::HandleJitCachedFunctionSearchStarted:"
+                      " (functionId=" + ToString(functionId) + ","
+                      " functionMoniker=\"" + ToString(typeName) + "." + ToString(functionName) + "\")"
+                      " resulted in disableNGenForFunction=False.");
+            }
+            return S_OK;
         }
 
-        if ((ExtraVerboseLogging || disableNGenForFunction) && _loaderOptions.LogDebugIsEnabled)
+        _specificMethodToInjectFunctionId = functionId;
+
+        if (ExtraVerboseLogging && _loaderOptions.LogDebugIsEnabled)
         {
             Debug("Loader::HandleJitCachedFunctionSearchStarted:"
                   " (functionId=" + ToString(functionId) + ","
                   " functionMoniker=\"" + ToString(typeName) + "." + ToString(functionName) + "\")"
-                  " resulted in disableNGenForFunction=" + (disableNGenForFunction ? "True" : "False") + ".");
+                  " resulted in disableNGenForFunction=True.");
         }
-
-        *pbUseCachedFunction = *pbUseCachedFunction && !disableNGenForFunction;
+        *pbUseCachedFunction = false;
         return S_OK;
     }
 
