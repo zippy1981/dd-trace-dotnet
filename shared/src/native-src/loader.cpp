@@ -37,8 +37,8 @@ namespace shared
         WStr("Datadog.AutoInstrumentation.Profiler.Managed"),
     };
 
-    constexpr const WCHAR* SpecificTypeToInjectName = WStr("System.AppDomain");
-    constexpr const WCHAR* SpecificMethodToInjectName = WStr("IsCompatibilitySwitchSet");
+    const WSTRING SpecificTypeToInjectName = WStr("System.AppDomain");
+    const WSTRING SpecificMethodToInjectName = WStr("IsCompatibilitySwitchSet");
 
 
     static Enumerator<mdMethodDef> EnumMethodsWithName(
@@ -656,6 +656,7 @@ namespace shared
             Error("Loader::HandleJitCachedFunctionSearchStarted: Call to GetMemberProps(..) returned a FAILED HResult: " + ToString(hr) + ".");
             return S_FALSE;
         }
+        WSTRING functionNameString = WSTRING(functionName);
 
         WCHAR typeName[NameBuffSize]{};
         DWORD typeNameLength = 0;
@@ -666,10 +667,9 @@ namespace shared
             Error("Loader::HandleJitCachedFunctionSearchStarted: Call to GetTypeDefProps(..) returned a FAILED HResult: " + ToString(hr) + ".");
             return S_FALSE;
         }
+        WSTRING typeNameString = WSTRING(functionName);
 
-        bool disableNGenForFunction = (0 == memcmp(functionName, SpecificMethodToInjectName, sizeof(WCHAR) * (std::min)(NameBuffSize, functionNameLength)))
-                                        && (0 == memcmp(typeName, SpecificTypeToInjectName, sizeof(WCHAR) * (std::min)(NameBuffSize, typeNameLength)));
-
+        bool disableNGenForFunction = functionNameString == SpecificMethodToInjectName && typeNameString == SpecificTypeToInjectName;
         if (disableNGenForFunction)
         {
             _specificMethodToInjectFunctionId = functionId;
