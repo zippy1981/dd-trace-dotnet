@@ -28,7 +28,7 @@ namespace Datadog.Trace.Tools.Runner
             //  C:\Users\[user]\.dotnet\tools\.store\datadog.trace.tools.runner\[version]\datadog.trace.tools.runner\[version]\home
             // So we have to go up 3 folders.
             string tracerHome = null;
-            if (!string.IsNullOrEmpty(options.TracerHomeFolder))
+            if (!string.IsNullOrEmpty(options?.TracerHomeFolder))
             {
                 tracerHome = options.TracerHomeFolder;
                 if (!Directory.Exists(tracerHome))

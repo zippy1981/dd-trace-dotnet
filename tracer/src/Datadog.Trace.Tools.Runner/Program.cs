@@ -115,6 +115,13 @@ namespace Datadog.Trace.Tools.Runner
                 {
                     // Enable CI Visibility mode by configuration
                     profilerEnvironmentVariables[Configuration.ConfigurationKeys.CIVisibilityEnabled] = "1";
+
+                    // We try a connection with the agent
+                    var agentChecker = ParsedDiagnosticsOptions(new DiagnosticsOptions { AgentUrl = options.AgentUrl, CheckAgentConnection = true });
+                    if (agentChecker != 0)
+                    {
+                        return agentChecker;
+                    }
                 }
 
                 if (options.SetEnvironmentVariables)
@@ -154,6 +161,32 @@ namespace Datadog.Trace.Tools.Runner
 
         private static int ParsedDiagnosticsOptions(DiagnosticsOptions options)
         {
+            if (options.CheckAgentConnection)
+            {
+                var env = new Dictionary<string, string>();
+                if (!string.IsNullOrWhiteSpace(options.AgentUrl))
+                {
+                    env["DD_TRACE_AGENT_URL"] = options.AgentUrl;
+                }
+
+                var tracerSettings = new Configuration.TracerSettings(new DictionaryConfigurationSource(env));
+
+                using (var tcpClient = new System.Net.Sockets.TcpClient())
+                {
+                    try
+                    {
+                        tcpClient.Connect(tracerSettings.AgentUri.Host, tracerSettings.AgentUri.Port);
+                        AnsiConsole.MarkupLine($"[green]Connection with the Datadog Agent on {tracerSettings.AgentUri} was successful.[/]");
+                    }
+                    catch (Exception ex)
+                    {
+                        AnsiConsole.MarkupLine($"[red]Error connecting to the Datadog Agent on {tracerSettings.AgentUri}.[/]");
+                        AnsiConsole.WriteException(ex);
+                        return 1;
+                    }
+                }
+            }
+
             return 0;
         }
 
