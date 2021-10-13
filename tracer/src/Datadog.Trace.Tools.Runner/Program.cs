@@ -5,7 +5,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,6 +15,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using CommandLine;
 using CommandLine.Text;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace Datadog.Trace.Tools.Runner
 {
@@ -24,8 +28,18 @@ namespace Datadog.Trace.Tools.Runner
 
         private static Platform Platform { get; set; }
 
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
+            AnsiConsole.Write(
+                new FigletText("Datadog")
+                    .LeftAligned()
+                    .Color(Color.Purple));
+
+            var app = new CommandApp();
+            app.SetDefaultCommand<OptionCommand>();
+            return app.Run(args);
+
+            /*
             // Initializing
             RunnerFolder = AppContext.BaseDirectory;
             if (string.IsNullOrEmpty(RunnerFolder))
@@ -68,6 +82,7 @@ namespace Datadog.Trace.Tools.Runner
 
             ParserResult<Options> result = parser.ParseArguments<Options>(args);
             Environment.ExitCode = result.MapResult(ParsedOptions, errors => ParsedErrors(result, errors));
+            */
         }
 
         private static int ParsedOptions(Options options)
@@ -178,6 +193,59 @@ namespace Datadog.Trace.Tools.Runner
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             _tokenSource.Cancel();
+        }
+
+        public class OptionSettings : CommandSettings
+        {
+            [Description("Command to be wrapped by the cli tool.")]
+            [CommandArgument(0, "[Command]")]
+            public string Command { get; set; }
+
+            [Description("Setup the clr profiler environment variables for the CI job and exit. (only supported in Azure Pipelines)")]
+            [CommandOption("--set-ci")]
+            [DefaultValue(false)]
+            public bool SetCI { get; set; }
+
+            [Description("Run the command in CI Visibility Mode")]
+            [CommandOption("--ci-visibility")]
+            [DefaultValue(false)]
+            public bool CIVisibility { get; set; }
+
+            [Description("Sets the environment name for the unified service tagging.")]
+            [CommandOption("--dd-env <Environment>")]
+            public string Environment { get; set; }
+
+            [Description("Sets the service name for the unified service tagging.")]
+            [CommandOption("--dd-service <ServiceName>")]
+            public string Service { get; set; }
+
+            [Description("Sets the version name for the unified service tagging.")]
+            [CommandOption("--dd-version <Version>")]
+            public string Version { get; set; }
+
+            [Description("Datadog trace agent url.")]
+            [CommandOption("--agent-url <Url>")]
+            public string AgentUrl { get; set; }
+
+            [Description("Sets the tracer home folder path.")]
+            [CommandOption("--tracer-home <Path>")]
+            public string TracerHomeFolder { get; set; }
+
+            [Description("Sets environment variables to the target command.")]
+            [CommandOption("--env-vars <Values>")]
+            public string EnvironmentValues { get; set; }
+
+            [Description("Import crank Json results file.")]
+            [CommandOption("--crank-import <FilePath>")]
+            public string CrankImportFile { get; set; }
+        }
+
+        public class OptionCommand : Command<OptionSettings>
+        {
+            public override int Execute(CommandContext context, OptionSettings settings)
+            {
+                return 0;
+            }
         }
     }
 }

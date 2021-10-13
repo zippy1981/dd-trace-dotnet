@@ -17,7 +17,10 @@ using Datadog.Trace.Vendors.Newtonsoft.Json;
 
 namespace Datadog.Trace.Tools.Runner.Crank
 {
-    internal class Importer
+    /// <summary>
+    /// Crank Importer class
+    /// </summary>
+    public class Importer
     {
         private static readonly IResultConverter[] Converters = new IResultConverter[]
         {
@@ -64,6 +67,11 @@ namespace Datadog.Trace.Tools.Runner.Crank
             new BombardierRawConverter("bombardier/raw"),
         };
 
+        /// <summary>
+        /// Process crank json file
+        /// </summary>
+        /// <param name="jsonFilePath">JSON FilePath</param>
+        /// <returns>ExitCode from the process</returns>
         public static int Process(string jsonFilePath)
         {
             Console.WriteLine("Importing Crank json result file...");

@@ -12,7 +12,7 @@ namespace Datadog.Trace.Tools.Runner.Crank.Models
     {
         public Dictionary<string, object> Results { get; set; } = new();
 
-        public ResultMetadata[] Metadata { get; set; } = Array.Empty<ResultMetadata>();
+        public ResultMetadata[] Metadata { get; set; } = new ResultMetadata[0];
 
         public List<Measurement[]> Measurements { get; set; } = new();
 

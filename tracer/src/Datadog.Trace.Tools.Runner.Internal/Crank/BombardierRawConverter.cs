@@ -48,7 +48,7 @@ namespace Datadog.Trace.Tools.Runner.Crank
                     if (double.TryParse(name, out _))
                     {
                         // avoid the string to number conversion in the ui.
-                        if (prefix.Contains("percentiles", StringComparison.OrdinalIgnoreCase))
+                        if (prefix.IndexOf("percentiles", StringComparison.OrdinalIgnoreCase) != -1)
                         {
                             name = "p" + name;
                         }
