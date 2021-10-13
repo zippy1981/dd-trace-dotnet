@@ -37,6 +37,7 @@ namespace Datadog.Trace.Tools.Runner
 
             var app = new CommandApp();
             app.SetDefaultCommand<OptionCommand>();
+            app.Configure(cfg => cfg.SetApplicationName("dd-trace"));
             return app.Run(args);
 
             /*
