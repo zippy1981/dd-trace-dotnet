@@ -30,11 +30,43 @@ namespace Datadog.Trace.Tools.Runner
 
         private static int Main(string[] args)
         {
-            AnsiConsole.Write(
-                new FigletText("Datadog")
-                    .LeftAligned()
-                    .Color(Color.Purple));
-
+            // AnsiConsole.MarkupLine("[purple]                                      ``..--:://++ossyo[/]");
+            AnsiConsole.MarkupLine("[purple]                     ``..--:://++ossyyyyyyyyyyyyyyyyyyy[/]");
+            AnsiConsole.MarkupLine("[purple]         -:://++oosyyyyyyyyyyyyyyyyyyyyy/.-.+yyyyyyyyyy`[/]");
+            AnsiConsole.MarkupLine("[purple]         oyyyyyyyys+:-:oyyyyyyyossyyyyo-  -: `+yyyyyyyy-[/]");
+            AnsiConsole.MarkupLine("[purple]         /yyyyyys-`   `.-+so+:. ``````    `s.  :yyyyyyy/[/]");
+            AnsiConsole.MarkupLine("[purple]         .yyyyy/`      /` ``            `--+s:  /yyyyyy+[/]");
+            AnsiConsole.MarkupLine("[purple]          yyyys`       .+                 .+yys/+yyyyyys[/]");
+            AnsiConsole.MarkupLine("[purple]          oyyys`        s.                .-:yyyyyyyyyyy`[/]");
+            AnsiConsole.MarkupLine("[purple]          /yyyys-      `s/     .:/:       syo/yyyyyyyyyy.[/]");
+            AnsiConsole.MarkupLine("[purple]          -yyyyyyo:.`.-oy:    /yyyy`      .//-yyyyyyyyyy:[/]");
+            AnsiConsole.MarkupLine("[purple]          `yyyyyyyyo:++/-     :so+/           /yyyyyyyyy+[/]");
+            AnsiConsole.MarkupLine("[purple]           syyyyyyy+           `             ` -syyyyyyys[/]");
+            AnsiConsole.MarkupLine("[purple]           +yyyyyyys`                    ./ooo+ -yyyyyyyy[/]");
+            AnsiConsole.MarkupLine("[purple]           -yyyyyyyy:                    -oyys- `yyyyyyyy.[/]");
+            AnsiConsole.MarkupLine("[purple]           `yyyyyyyys+.       .`           `-`  :yyyyyyyys+[/]");
+            AnsiConsole.MarkupLine("[purple]            syyyyyyyyyy+`      -/:.`      .+o-:/sso+/:--.oy[/]");
+            AnsiConsole.MarkupLine("[purple]            +yyyyyyyyyyy+      .-/syo+//+so:-.`        ` /y.[/]");
+            AnsiConsole.MarkupLine("[purple]            :yyyyyyyyyyyy      oo..`.-:::.            `s.-y:[/]");
+            AnsiConsole.MarkupLine("[purple]            `yyyyyyyyyyy:      /s              ``    `sy:.y/[/]");
+            AnsiConsole.MarkupLine("[purple]             yyyyyyyyy+.       .y`            .syo:``oyy/ yo[/]");
+            AnsiConsole.MarkupLine("[purple]             +yyyyyy+.``..`     y-           -yyyyyysyyyo sy[/]");
+            AnsiConsole.MarkupLine("[purple]             :yyyy/`     `:+-   o/    `//:-`:yyyyyyyyyyyy oy.[/]");
+            AnsiConsole.MarkupLine("[purple]             .yyy-         `+o` /o   .syyyyyyyyyyyyyyyyyy`/y:[/]");
+            AnsiConsole.MarkupLine("[purple]              yyy            oo.:y  -yyyyyyyyyyyyyysoo+/:`:y/[/]");
+            AnsiConsole.MarkupLine("[purple]              oyy+.          .ysoy..yyyysso++/::--:://+oosyyo[/]");
+            AnsiConsole.MarkupLine("[purple]              :ysso:          y: s:`::::://++ossssssoo++//:--[/]");
+            AnsiConsole.MarkupLine("[purple]              `.```          :y` /o++++///:--...````[/]");
+            AnsiConsole.MarkupLine("[purple]                      .....-+s:   `[/]");
+            // AnsiConsole.MarkupLine("[purple]                       .:///-`[/]");
+            AnsiConsole.MarkupLine("[purple][/]");
+            AnsiConsole.MarkupLine("[purple]::::::-`     `::`  .:::::::.  .::`    `::::::-`    `-::::.`    `-::::-[/]");
+            AnsiConsole.MarkupLine("[purple]yy:::/oy+   `oyyo` .::oyo::. `ssyo    .ys:::/sy:  /ys/::+ys. `oyo/::/+[/]");
+            AnsiConsole.MarkupLine("[purple]yy     +y:  +y--y+    /y:    oy.:y+   .yo    `yy`-yo     -ys +y/   ```[/]");
+            AnsiConsole.MarkupLine("[purple]yy     /y: /y/-:sy/   /y:   /y:-:sy:  .yo     sy.:y+     `yy oy-  :oyy[/]");
+            AnsiConsole.MarkupLine("[purple]yy    -yy`-y+ ://sy:  /y:  :y+`///sy- .yo   `/yo `yy-   `oy/ -ys.   yy[/]");
+            AnsiConsole.MarkupLine("[purple]yysssys/`.ys`    `sy. /y: .yo     `sy..yysssyo/   `/syssso:   .+syssys[/]");
+            AnsiConsole.MarkupLine("[purple][/]");
             var app = new CommandApp();
             app.SetDefaultCommand<OptionCommand>();
             app.Configure(cfg => cfg.SetApplicationName("dd-trace"));
