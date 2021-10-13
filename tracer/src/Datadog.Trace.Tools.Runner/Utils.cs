@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Spectre.Console;
 
 namespace Datadog.Trace.Tools.Runner
 {
@@ -32,11 +33,17 @@ namespace Datadog.Trace.Tools.Runner
                 tracerHome = options.TracerHomeFolder;
                 if (!Directory.Exists(tracerHome))
                 {
-                    Console.Error.WriteLine("ERROR: The specified home folder doesn't exist.");
+                    AnsiConsole.MarkupLine("[red]ERROR: The specified home folder doesn't exist.[/]");
+                    return null;
                 }
             }
 
             tracerHome ??= DirectoryExists("Home", Path.Combine(runnerFolder, "..", "..", "..", "home"), Path.Combine(runnerFolder, "home"));
+            if (tracerHome == null)
+            {
+                return null;
+            }
+
             string tracerMsBuild = FileExists(Path.Combine(tracerHome, "netstandard2.0", "Datadog.Trace.MSBuild.dll"));
             string tracerIntegrations = FileExists(Path.Combine(tracerHome, "integrations.json"));
             string tracerProfiler32 = string.Empty;
@@ -51,7 +58,7 @@ namespace Datadog.Trace.Tools.Runner
                 }
                 else
                 {
-                    Console.Error.WriteLine($"ERROR: Windows {RuntimeInformation.OSArchitecture} architecture is not supported.");
+                    AnsiConsole.MarkupLine($"[red]ERROR: Windows {RuntimeInformation.OSArchitecture} architecture is not supported.[/]");
                     return null;
                 }
             }
@@ -67,7 +74,7 @@ namespace Datadog.Trace.Tools.Runner
                 }
                 else
                 {
-                    Console.Error.WriteLine($"ERROR: Linux {RuntimeInformation.OSArchitecture} architecture is not supported.");
+                    AnsiConsole.MarkupLine($"[red]ERROR: Linux {RuntimeInformation.OSArchitecture} architecture is not supported.[/]");
                     return null;
                 }
             }
@@ -79,7 +86,7 @@ namespace Datadog.Trace.Tools.Runner
                 }
                 else
                 {
-                    Console.Error.WriteLine($"ERROR: macOS {RuntimeInformation.OSArchitecture} architecture is not supported.");
+                    AnsiConsole.MarkupLine($"[red]ERROR: macOS {RuntimeInformation.OSArchitecture} architecture is not supported.[/]");
                     return null;
                 }
             }
@@ -154,12 +161,12 @@ namespace Datadog.Trace.Tools.Runner
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: The '{name}' directory check thrown an exception: {ex}");
+                AnsiConsole.MarkupLine($"[red]Error: The '{name}' directory check thrown an exception: {ex}[/]");
             }
 
             if (folderName == null)
             {
-                Console.Error.WriteLine($"Error: The '{name}' directory can't be found.");
+                AnsiConsole.MarkupLine($"[red]Error: The '{name}' directory cannot be found.[/]");
             }
 
             return folderName;
@@ -171,12 +178,12 @@ namespace Datadog.Trace.Tools.Runner
             {
                 if (!File.Exists(filePath))
                 {
-                    Console.Error.WriteLine($"Error: The file '{filePath}' can't be found.");
+                    AnsiConsole.MarkupLine($"[red]Error: The file '{filePath}' can't be found.[/]");
                 }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error: The file '{filePath}' check thrown an exception: {ex}");
+                AnsiConsole.MarkupLine($"[red]Error: The file '{filePath}' check thrown an exception: {ex}[/]");
             }
 
             return filePath;
@@ -277,7 +284,7 @@ namespace Datadog.Trace.Tools.Runner
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error while reading environment variable {key}: {ex}");
+                AnsiConsole.MarkupLine($"[red]Error while reading environment variable {key}: {ex}[/]");
             }
 
             return defaultValue;

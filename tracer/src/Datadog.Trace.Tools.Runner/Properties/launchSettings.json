@@ -2,7 +2,7 @@
   "profiles": {
     "Datadog.Trace.Tools.Runner": {
       "commandName": "Project",
-      "commandLineArgs": "--dd-env=ci --dd-service=service --dd-version=321 --ci-visibility \"mu apppgfdgfd gfdgfd gfd\""
+      "commandLineArgs": "--help"
     }
   }
 }

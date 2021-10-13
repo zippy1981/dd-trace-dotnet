@@ -9,6 +9,7 @@ using CommandLine.Text;
 
 namespace Datadog.Trace.Tools.Runner
 {
+    [Verb("run", isDefault: true, HelpText = "Execute a command with auto instrumentation.")]
     internal class Options
     {
         [Usage(ApplicationAlias = "dd-trace")]

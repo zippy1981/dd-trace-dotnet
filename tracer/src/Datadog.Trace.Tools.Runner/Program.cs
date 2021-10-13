@@ -28,51 +28,8 @@ namespace Datadog.Trace.Tools.Runner
 
         private static Platform Platform { get; set; }
 
-        private static int Main(string[] args)
+        private static void Main(string[] args)
         {
-            // AnsiConsole.MarkupLine("[purple]                                      ``..--:://++ossyo[/]");
-            AnsiConsole.MarkupLine("[purple]                     ``..--:://++ossyyyyyyyyyyyyyyyyyyy[/]");
-            AnsiConsole.MarkupLine("[purple]         -:://++oosyyyyyyyyyyyyyyyyyyyyy/.-.+yyyyyyyyyy`[/]");
-            AnsiConsole.MarkupLine("[purple]         oyyyyyyyys+:-:oyyyyyyyossyyyyo-  -: `+yyyyyyyy-[/]");
-            AnsiConsole.MarkupLine("[purple]         /yyyyyys-`   `.-+so+:. ``````    `s.  :yyyyyyy/[/]");
-            AnsiConsole.MarkupLine("[purple]         .yyyyy/`      /` ``            `--+s:  /yyyyyy+[/]");
-            AnsiConsole.MarkupLine("[purple]          yyyys`       .+                 .+yys/+yyyyyys[/]");
-            AnsiConsole.MarkupLine("[purple]          oyyys`        s.                .-:yyyyyyyyyyy`[/]");
-            AnsiConsole.MarkupLine("[purple]          /yyyys-      `s/     .:/:       syo/yyyyyyyyyy.[/]");
-            AnsiConsole.MarkupLine("[purple]          -yyyyyyo:.`.-oy:    /yyyy`      .//-yyyyyyyyyy:[/]");
-            AnsiConsole.MarkupLine("[purple]          `yyyyyyyyo:++/-     :so+/           /yyyyyyyyy+[/]");
-            AnsiConsole.MarkupLine("[purple]           syyyyyyy+           `             ` -syyyyyyys[/]");
-            AnsiConsole.MarkupLine("[purple]           +yyyyyyys`                    ./ooo+ -yyyyyyyy[/]");
-            AnsiConsole.MarkupLine("[purple]           -yyyyyyyy:                    -oyys- `yyyyyyyy.[/]");
-            AnsiConsole.MarkupLine("[purple]           `yyyyyyyys+.       .`           `-`  :yyyyyyyys+[/]");
-            AnsiConsole.MarkupLine("[purple]            syyyyyyyyyy+`      -/:.`      .+o-:/sso+/:--.oy[/]");
-            AnsiConsole.MarkupLine("[purple]            +yyyyyyyyyyy+      .-/syo+//+so:-.`        ` /y.[/]");
-            AnsiConsole.MarkupLine("[purple]            :yyyyyyyyyyyy      oo..`.-:::.            `s.-y:[/]");
-            AnsiConsole.MarkupLine("[purple]            `yyyyyyyyyyy:      /s              ``    `sy:.y/[/]");
-            AnsiConsole.MarkupLine("[purple]             yyyyyyyyy+.       .y`            .syo:``oyy/ yo[/]");
-            AnsiConsole.MarkupLine("[purple]             +yyyyyy+.``..`     y-           -yyyyyysyyyo sy[/]");
-            AnsiConsole.MarkupLine("[purple]             :yyyy/`     `:+-   o/    `//:-`:yyyyyyyyyyyy oy.[/]");
-            AnsiConsole.MarkupLine("[purple]             .yyy-         `+o` /o   .syyyyyyyyyyyyyyyyyy`/y:[/]");
-            AnsiConsole.MarkupLine("[purple]              yyy            oo.:y  -yyyyyyyyyyyyyysoo+/:`:y/[/]");
-            AnsiConsole.MarkupLine("[purple]              oyy+.          .ysoy..yyyysso++/::--:://+oosyyo[/]");
-            AnsiConsole.MarkupLine("[purple]              :ysso:          y: s:`::::://++ossssssoo++//:--[/]");
-            AnsiConsole.MarkupLine("[purple]              `.```          :y` /o++++///:--...````[/]");
-            AnsiConsole.MarkupLine("[purple]                      .....-+s:   `[/]");
-            // AnsiConsole.MarkupLine("[purple]                       .:///-`[/]");
-            AnsiConsole.MarkupLine("[purple][/]");
-            AnsiConsole.MarkupLine("[purple]::::::-`     `::`  .:::::::.  .::`    `::::::-`    `-::::.`    `-::::-[/]");
-            AnsiConsole.MarkupLine("[purple]yy:::/oy+   `oyyo` .::oyo::. `ssyo    .ys:::/sy:  /ys/::+ys. `oyo/::/+[/]");
-            AnsiConsole.MarkupLine("[purple]yy     +y:  +y--y+    /y:    oy.:y+   .yo    `yy`-yo     -ys +y/   ```[/]");
-            AnsiConsole.MarkupLine("[purple]yy     /y: /y/-:sy/   /y:   /y:-:sy:  .yo     sy.:y+     `yy oy-  :oyy[/]");
-            AnsiConsole.MarkupLine("[purple]yy    -yy`-y+ ://sy:  /y:  :y+`///sy- .yo   `/yo `yy-   `oy/ -ys.   yy[/]");
-            AnsiConsole.MarkupLine("[purple]yysssys/`.ys`    `sy. /y: .yo     `sy..yysssyo/   `/syssso:   .+syssys[/]");
-            AnsiConsole.MarkupLine("[purple][/]");
-            var app = new CommandApp();
-            app.SetDefaultCommand<OptionCommand>();
-            app.Configure(cfg => cfg.SetApplicationName("dd-trace"));
-            return app.Run(args);
-
-            /*
             // Initializing
             RunnerFolder = AppContext.BaseDirectory;
             if (string.IsNullOrEmpty(RunnerFolder))
@@ -94,8 +51,8 @@ namespace Datadog.Trace.Tools.Runner
             }
             else
             {
-                Console.Error.WriteLine("The current platform is not supported. Supported platforms are: Windows, Linux and MacOS.");
-                Environment.Exit(-1);
+                AnsiConsole.MarkupLine("[red]The current platform is not supported. Supported platforms are: Windows, Linux and MacOS.[/]");
+                Environment.Exit(1);
                 return;
             }
 
@@ -104,6 +61,7 @@ namespace Datadog.Trace.Tools.Runner
             Console.CancelKeyPress += Console_CancelKeyPress;
             AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
             AppDomain.CurrentDomain.DomainUnload += CurrentDomain_ProcessExit;
+            // ***
 
             Parser parser = new Parser(settings =>
             {
@@ -113,82 +71,99 @@ namespace Datadog.Trace.Tools.Runner
                 settings.HelpWriter = null;
             });
 
-            ParserResult<Options> result = parser.ParseArguments<Options>(args);
-            Environment.ExitCode = result.MapResult(ParsedOptions, errors => ParsedErrors(result, errors));
-            */
+            ParserResult<object> result = parser.ParseArguments<Options, DiagnosticsOptions>(args);
+            Environment.ExitCode = result.MapResult<Options, DiagnosticsOptions, int>(ParsedOptions, ParsedDiagnosticsOptions, errors => ParsedErrors(result, errors));
         }
 
         private static int ParsedOptions(Options options)
         {
-            string[] args = options.Value.ToArray();
-
-            // Start logic
-
-            Dictionary<string, string> profilerEnvironmentVariables = Utils.GetProfilerEnvironmentVariables(RunnerFolder, Platform, options);
-            if (profilerEnvironmentVariables is null)
+            try
             {
-                return 1;
-            }
+                string[] args = options.Value.ToArray();
 
-            // We try to autodetect the CI Visibility Mode
-            if (!options.EnableCIVisibilityMode)
-            {
-                // Support for VSTest.Console.exe and dotcover
-                if (args.Length > 0 && (
-                    string.Equals(args[0], "VSTest.Console", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(args[0], "dotcover", StringComparison.OrdinalIgnoreCase)))
+                // Start logic
+
+                Dictionary<string, string> profilerEnvironmentVariables = Utils.GetProfilerEnvironmentVariables(RunnerFolder, Platform, options);
+                if (profilerEnvironmentVariables is null)
                 {
-                    options.EnableCIVisibilityMode = true;
+                    return 1;
                 }
 
-                // Support for dotnet test and dotnet vstest command
-                if (args.Length > 1 && string.Equals(args[0], "dotnet", StringComparison.OrdinalIgnoreCase))
+                // We try to autodetect the CI Visibility Mode
+                if (!options.EnableCIVisibilityMode)
                 {
-                    if (string.Equals(args[1], "test", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(args[1], "vstest", StringComparison.OrdinalIgnoreCase))
+                    // Support for VSTest.Console.exe and dotcover
+                    if (args.Length > 0 && (
+                        string.Equals(args[0], "VSTest.Console", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(args[0], "dotcover", StringComparison.OrdinalIgnoreCase)))
                     {
                         options.EnableCIVisibilityMode = true;
                     }
-                }
-            }
 
-            if (options.EnableCIVisibilityMode)
-            {
-                // Enable CI Visibility mode by configuration
-                profilerEnvironmentVariables[Configuration.ConfigurationKeys.CIVisibilityEnabled] = "1";
-            }
-
-            if (options.SetEnvironmentVariables)
-            {
-                Console.WriteLine("Setting up the environment variables.");
-                CIConfiguration.SetupCIEnvironmentVariables(profilerEnvironmentVariables);
-            }
-            else if (!string.IsNullOrEmpty(options.CrankImportFile))
-            {
-                return Crank.Importer.Process(options.CrankImportFile);
-            }
-            else
-            {
-                string cmdLine = string.Join(' ', args);
-                if (!string.IsNullOrWhiteSpace(cmdLine))
-                {
-                    Console.WriteLine("Running: " + cmdLine);
-
-                    ProcessStartInfo processInfo = Utils.GetProcessStartInfo(args[0], Environment.CurrentDirectory, profilerEnvironmentVariables);
-                    if (args.Length > 1)
+                    // Support for dotnet test and dotnet vstest command
+                    if (args.Length > 1 && string.Equals(args[0], "dotnet", StringComparison.OrdinalIgnoreCase))
                     {
-                        processInfo.Arguments = string.Join(' ', args.Skip(1).ToArray());
+                        if (string.Equals(args[1], "test", StringComparison.OrdinalIgnoreCase) ||
+                           string.Equals(args[1], "vstest", StringComparison.OrdinalIgnoreCase))
+                        {
+                            options.EnableCIVisibilityMode = true;
+                        }
                     }
-
-                    return Utils.RunProcess(processInfo, _tokenSource.Token);
                 }
-            }
 
+                if (options.EnableCIVisibilityMode)
+                {
+                    // Enable CI Visibility mode by configuration
+                    profilerEnvironmentVariables[Configuration.ConfigurationKeys.CIVisibilityEnabled] = "1";
+                }
+
+                if (options.SetEnvironmentVariables)
+                {
+                    AnsiConsole.WriteLine("Setting up the environment variables.");
+                    CIConfiguration.SetupCIEnvironmentVariables(profilerEnvironmentVariables);
+                }
+                else if (!string.IsNullOrEmpty(options.CrankImportFile))
+                {
+                    return Crank.Importer.Process(options.CrankImportFile);
+                }
+                else
+                {
+                    string cmdLine = string.Join(' ', args);
+                    if (!string.IsNullOrWhiteSpace(cmdLine))
+                    {
+                        AnsiConsole.MarkupLine($"[green]Running: {cmdLine}[/]");
+
+                        ProcessStartInfo processInfo = Utils.GetProcessStartInfo(args[0], Environment.CurrentDirectory, profilerEnvironmentVariables);
+                        if (args.Length > 1)
+                        {
+                            processInfo.Arguments = string.Join(' ', args.Skip(1).ToArray());
+                        }
+
+                        return Utils.RunProcess(processInfo, _tokenSource.Token);
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                AnsiConsole.WriteException(ex);
+                return 1;
+            }
+        }
+
+        private static int ParsedDiagnosticsOptions(DiagnosticsOptions options)
+        {
             return 0;
         }
 
-        private static int ParsedErrors(ParserResult<Options> result, IEnumerable<Error> errors)
+        private static int ParsedErrors(ParserResult<object> result, IEnumerable<Error> errors)
         {
+            if (result.TypeInfo.Current == typeof(NullInstance))
+            {
+                // .
+            }
+
             HelpText helpText = null;
             int exitCode = 1;
             if (errors.IsVersion())
@@ -210,10 +185,48 @@ namespace Datadog.Trace.Tools.Runner
                     e =>
                     {
                         return e;
-                    });
+                    },
+                    true);
             }
 
-            Console.WriteLine(helpText);
+            // AnsiConsole.MarkupLine("[purple3]                                      ``..--:://++ossyo[/]");
+            // AnsiConsole.MarkupLine("[purple3]                     ``..--:://++ossyyyyyyyyyyyyyyyyyyy[/]");
+            AnsiConsole.MarkupLine("[purple3]         -:://++oosyyyyyyyyyyyyyyyyyyyyy/.-.+yyyyyyyyyy`[/]");
+            AnsiConsole.MarkupLine("[purple3]         oyyyyyyyys+:-:oyyyyyyyossyyyyo-  -: `+yyyyyyyy-[/]");
+            AnsiConsole.MarkupLine("[purple3]         /yyyyyys-`   `.-+so+:. ``````    `s.  :yyyyyyy/[/]");
+            AnsiConsole.MarkupLine("[purple3]         .yyyyy/`      /` ``            `--+s:  /yyyyyy+[/]");
+            AnsiConsole.MarkupLine("[purple3]          yyyys`       .+                 .+yys/+yyyyyys[/]");
+            AnsiConsole.MarkupLine("[purple3]          oyyys`        s.                .-:yyyyyyyyyyy`[/]");
+            AnsiConsole.MarkupLine("[purple3]          /yyyys-      `s/     .:/:       syo/yyyyyyyyyy.[/]");
+            AnsiConsole.MarkupLine("[purple3]          -yyyyyyo:.`.-oy:    /yyyy`      .//-yyyyyyyyyy:[/]");
+            AnsiConsole.MarkupLine("[purple3]          `yyyyyyyyo:++/-     :so+/           /yyyyyyyyy+[/]");
+            AnsiConsole.MarkupLine("[purple3]           syyyyyyy+           `             ` -syyyyyyys[/]");
+            AnsiConsole.MarkupLine("[purple3]           +yyyyyyys`                    ./ooo+ -yyyyyyyy[/]");
+            AnsiConsole.MarkupLine("[purple3]           -yyyyyyyy:                    -oyys- `yyyyyyyy.[/]");
+            AnsiConsole.MarkupLine("[purple3]           `yyyyyyyys+.       .`           `-`  :yyyyyyyys+[/]");
+            AnsiConsole.MarkupLine("[purple3]            syyyyyyyyyy+`      -/:.`      .+o-:/sso+/:--.oy[/]");
+            AnsiConsole.MarkupLine("[purple3]            +yyyyyyyyyyy+      .-/syo+//+so:-.`        ` /y.[/]");
+            AnsiConsole.MarkupLine("[purple3]            :yyyyyyyyyyyy      oo..`.-:::.            `s.-y:[/]");
+            AnsiConsole.MarkupLine("[purple3]            `yyyyyyyyyyy:      /s              ``    `sy:.y/[/]");
+            AnsiConsole.MarkupLine("[purple3]             yyyyyyyyy+.       .y`            .syo:``oyy/ yo[/]");
+            AnsiConsole.MarkupLine("[purple3]             +yyyyyy+.``..`     y-           -yyyyyysyyyo sy[/]");
+            AnsiConsole.MarkupLine("[purple3]             :yyyy/`     `:+-   o/    `//:-`:yyyyyyyyyyyy oy.[/]");
+            AnsiConsole.MarkupLine("[purple3]             .yyy-         `+o` /o   .syyyyyyyyyyyyyyyyyy`/y:[/]");
+            AnsiConsole.MarkupLine("[purple3]              yyy            oo.:y  -yyyyyyyyyyyyyysoo+/:`:y/[/]");
+            AnsiConsole.MarkupLine("[purple3]              oyy+.          .ysoy..yyyysso++/::--:://+oosyyo[/]");
+            AnsiConsole.MarkupLine("[purple3]              :ysso:          y: s:`::::://++ossssssoo++//:--[/]");
+            AnsiConsole.MarkupLine("[purple3]              `.```          :y` /o++++///:--...````[/]");
+            // AnsiConsole.MarkupLine("[purple3]                      .....-+s:   `[/]");
+            // AnsiConsole.MarkupLine("[purple3]                       .:///-`[/]");
+            AnsiConsole.MarkupLine("[purple3][/]");
+            AnsiConsole.MarkupLine("[purple3]::::::-`     `::`  .:::::::.  .::`    `::::::-`    `-::::.`    `-::::-[/]");
+            AnsiConsole.MarkupLine("[purple3]yy:::/oy+   `oyyo` .::oyo::. `ssyo    .ys:::/sy:  /ys/::+ys. `oyo/::/+[/]");
+            AnsiConsole.MarkupLine("[purple3]yy     +y:  +y--y+    /y:    oy.:y+   .yo    `yy`-yo     -ys +y/   ```[/]");
+            AnsiConsole.MarkupLine("[purple3]yy     /y: /y/-:sy/   /y:   /y:-:sy:  .yo     sy.:y+     `yy oy-  :oyy[/]");
+            AnsiConsole.MarkupLine("[purple3]yy    -yy`-y+ ://sy:  /y:  :y+`///sy- .yo   `/yo `yy-   `oy/ -ys.   yy[/]");
+            AnsiConsole.MarkupLine("[purple3]yysssys/`.ys`    `sy. /y: .yo     `sy..yysssyo/   `/syssso:   .+syssys[/]");
+            AnsiConsole.MarkupLine("[purple3][/]");
+            AnsiConsole.WriteLine(helpText);
             return exitCode;
         }
 
@@ -226,59 +239,6 @@ namespace Datadog.Trace.Tools.Runner
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             _tokenSource.Cancel();
-        }
-
-        public class OptionSettings : CommandSettings
-        {
-            [Description("Command to be wrapped by the cli tool.")]
-            [CommandArgument(0, "[Command]")]
-            public string Command { get; set; }
-
-            [Description("Setup the clr profiler environment variables for the CI job and exit. (only supported in Azure Pipelines)")]
-            [CommandOption("--set-ci")]
-            [DefaultValue(false)]
-            public bool SetCI { get; set; }
-
-            [Description("Run the command in CI Visibility Mode")]
-            [CommandOption("--ci-visibility")]
-            [DefaultValue(false)]
-            public bool CIVisibility { get; set; }
-
-            [Description("Sets the environment name for the unified service tagging.")]
-            [CommandOption("--dd-env <Environment>")]
-            public string Environment { get; set; }
-
-            [Description("Sets the service name for the unified service tagging.")]
-            [CommandOption("--dd-service <ServiceName>")]
-            public string Service { get; set; }
-
-            [Description("Sets the version name for the unified service tagging.")]
-            [CommandOption("--dd-version <Version>")]
-            public string Version { get; set; }
-
-            [Description("Datadog trace agent url.")]
-            [CommandOption("--agent-url <Url>")]
-            public string AgentUrl { get; set; }
-
-            [Description("Sets the tracer home folder path.")]
-            [CommandOption("--tracer-home <Path>")]
-            public string TracerHomeFolder { get; set; }
-
-            [Description("Sets environment variables to the target command.")]
-            [CommandOption("--env-vars <Values>")]
-            public string EnvironmentValues { get; set; }
-
-            [Description("Import crank Json results file.")]
-            [CommandOption("--crank-import <FilePath>")]
-            public string CrankImportFile { get; set; }
-        }
-
-        public class OptionCommand : Command<OptionSettings>
-        {
-            public override int Execute(CommandContext context, OptionSettings settings)
-            {
-                return 0;
-            }
         }
     }
 }
