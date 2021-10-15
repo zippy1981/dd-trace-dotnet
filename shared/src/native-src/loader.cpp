@@ -535,7 +535,7 @@ namespace shared
             //
             //      static void DD_LoadInitializationAssemblies()
             //      {
-            //          if (GetAssemblyAndSymbolsBytes(out var assemblyPtr, out var assemblySize, out var symbolsPtr,
+            //          if (Assembly.GetEntryAssembly() is not null && GetAssemblyAndSymbolsBytes(out var assemblyPtr, out var assemblySize, out var symbolsPtr,
             //          out var symbolsSize, "[ModuleName]"))
             //          {
             //              byte[] assemblyBytes = new byte[assemblySize];
@@ -1071,6 +1071,29 @@ namespace shared
         }
 
         //
+        // Create method signature for System.Reflection.Assembly System.Reflection.Assembly.GetEntryAssembly()
+        //
+        COR_SIGNATURE assemblyGetEntryAssemblySignature[50];
+        offset = 0;
+        assemblyGetEntryAssemblySignature[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
+        assemblyGetEntryAssemblySignature[offset++] = 0;
+        assemblyGetEntryAssemblySignature[offset++] = ELEMENT_TYPE_CLASS;
+        memcpy(&assemblyGetEntryAssemblySignature[offset], systemReflectionAssemblyTypeRefCompressedToken,
+               systemReflectionAssemblyTypeRefCompressedTokenLength);
+        offset += systemReflectionAssemblyTypeRefCompressedTokenLength;
+
+        mdMemberRef assemblyGetEntryAssemblyMemberRef;
+        hr = metadataEmit->DefineMemberRef(systemReflectionAssemblyTypeRef, WStr("GetEntryAssembly"),
+                                           assemblyGetEntryAssemblySignature,
+                                           offset, &assemblyGetEntryAssemblyMemberRef);
+        if (FAILED(hr))
+        {
+            Error("Loader::EmitDDLoadInitializationAssemblies: System.Reflection.Assembly.GetEntryAssembly() "
+                  "DefineMemberRef failed");
+            return hr;
+        }
+
+        //
         // Create method signature for System.Reflection.MethodInfo System.Type.GetMethod(string name)
         //
         BYTE systemReflectionMethodInfoTypeRefCompressedToken[10];
@@ -1241,7 +1264,14 @@ namespace shared
         ILRewriterWrapper rewriterWrapper(&rewriter);
         rewriterWrapper.SetILPosition(rewriter.GetILList()->m_pNext);
 
-        // Step 1) Call bool GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out int assemblySize, out IntPtr symbolsPtr, out int symbolsSize, string moduleName)
+        // Step 1) Call System.Reflection.Assembly System.Reflection.Assembly.GetEntryAssembly()
+
+        // call System.Reflection.Assembly System.Reflection.Assembly.GetEntryAssembly()
+        rewriterWrapper.CallMember(assemblyGetEntryAssemblyMemberRef, false);
+        // check if the return of the method call is true or false
+        ILInstr* pBranchFalseGetEntryAssemblyInstr = rewriterWrapper.CreateInstr(CEE_BRFALSE);
+
+        // Step 2) Call bool GetAssemblyAndSymbolsBytes(out IntPtr assemblyPtr, out int assemblySize, out IntPtr symbolsPtr, out int symbolsSize, string moduleName)
 
         // ldloca.s 0 : Load the address of the "assemblyPtr" variable (locals index 0)
         rewriterWrapper.LoadLocalAddress(0);
@@ -1258,7 +1288,7 @@ namespace shared
         // check if the return of the method call is true or false
         ILInstr* pBranchFalseInstr = rewriterWrapper.CreateInstr(CEE_BRFALSE);
 
-        // Step 2) Call void Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length) to populate the managed assembly bytes
+        // Step 3) Call void Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length) to populate the managed assembly bytes
 
         // ldloc.1 : Load the "assemblySize" variable (locals index 1)
         rewriterWrapper.LoadLocal(1);
@@ -1277,7 +1307,7 @@ namespace shared
         // call Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length)
         rewriterWrapper.CallMember(marshalCopyMemberRef, false);
 
-        // Step 3) Call void Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length) to populate the symbols bytes
+        // Step 4) Call void Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length) to populate the symbols bytes
 
         // ldloc.3 : Load the "symbolsSize" variable (locals index 3)
         rewriterWrapper.LoadLocal(3);
@@ -1296,7 +1326,7 @@ namespace shared
         // call void Marshal.Copy(IntPtr source, byte[] destination, int startIndex, int length)
         rewriterWrapper.CallMember(marshalCopyMemberRef, false);
 
-        // Step 4) Call System.Reflection.Assembly System.Reflection.Assembly.Load(byte[], byte[]))
+        // Step 5) Call System.Reflection.Assembly System.Reflection.Assembly.Load(byte[], byte[]))
 
         // ldloc.s 4 : Load the "assemblyBytes" variable (locals index 4) for the first byte[] parameter of AppDomain.Load(byte[], byte[])
         rewriterWrapper.LoadLocal(4);
@@ -1305,7 +1335,7 @@ namespace shared
         // callvirt System.Reflection.Assembly System.AppDomain.Load(uint8[], uint8[])
         rewriterWrapper.CallMember(assemblyLoadMemberRef, false);
 
-        // Step 5) Call instance method Assembly.GetType("Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader", true)
+        // Step 6) Call instance method Assembly.GetType("Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader", true)
 
         // ldstr "Datadog.AutoInstrumentation.ManagedLoader.AssemblyLoader"
         rewriterWrapper.LoadStr(managedLoaderAssemblyLoaderTypeNameStringToken);
@@ -1314,14 +1344,14 @@ namespace shared
         // callvirt System.Type System.Reflection.Assembly.GetType(string, bool)
         rewriterWrapper.CallMember(assemblyGetTypeMemberRef, true);
 
-        // Step 6) Call instance method System.Type.GetMethod("Run");
+        // Step 7) Call instance method System.Type.GetMethod("Run");
 
         // ldstr "Run"
         rewriterWrapper.LoadStr(runNameStringToken);
         // callvirt instance class System.Reflection.MethodInfo [mscorlib]System.Type::GetMethod(string)
         rewriterWrapper.CallMember(typeGetMethodMemberRef, true);
 
-        // Step 7) Call instance method System.Reflection.MethodBase.Invoke(null, new object[] { new string[] { "Assembly1" }, new string[] { "Assembly2" } });
+        // Step 8) Call instance method System.Reflection.MethodBase.Invoke(null, new object[] { new string[] { "Assembly1" }, new string[] { "Assembly2" } });
 
         // ldnull
         rewriterWrapper.LoadNull();
@@ -1363,12 +1393,13 @@ namespace shared
         // callvirt instance class object System.Reflection.MethodBase::Invoke(object, object[])
         rewriterWrapper.CallMember(methodBaseInvokeMemberRef, true);
 
-        // Step 8) Pop and return
+        // Step 9) Pop and return
 
         // pop the returned object
         rewriterWrapper.Pop();
         // return
         pBranchFalseInstr->m_pTarget = rewriterWrapper.Return();
+        pBranchFalseGetEntryAssemblyInstr->m_pTarget = pBranchFalseInstr->m_pTarget;
 
         hr = rewriter.Export();
         if (FAILED(hr))
