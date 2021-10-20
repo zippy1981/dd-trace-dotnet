@@ -9,6 +9,9 @@
 
     <!-- default nuget version to make IDEs happy -->
     <DatadogTraceNuGetVersion Condition="$(DatadogTraceNuGetVersion) == ''">1.28.0</DatadogTraceNuGetVersion>
+
+    <!-- Hide warnings for EOL .NET Core targets (e.g. netcoreapp2.1) -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
