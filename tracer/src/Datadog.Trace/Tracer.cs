@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using Datadog.Trace.AppSec;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.DiagnosticListeners;
 using Datadog.Trace.DogStatsd;
+using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
 using Datadog.Trace.RuntimeMetrics;
@@ -55,7 +57,6 @@ namespace Datadog.Trace
 
         private readonly IScopeManager _scopeManager;
         private readonly Timer _heartbeatTimer;
-
         private readonly IAgentWriter _agentWriter;
 
         private string _agentVersion;
@@ -394,6 +395,25 @@ namespace Datadog.Trace
             if (parent == null && !ignoreActiveScope)
             {
                 parent = _scopeManager.Active?.Span?.Context;
+
+#if NETFRAMEWORK
+                if (parent == null)
+                {
+                    var logicalContext = LogicalCallContextData.GetAll();
+
+                    if (logicalContext != null)
+                    {
+                        parent = SpanContextPropagator.Instance.Extract(
+                            logicalContext,
+                            (c, key) =>
+                            {
+                                return c.TryGetValue(key, out var value) ?
+                                           new[] { value } :
+                                           Enumerable.Empty<string>();
+                            });
+                    }
+                }
+#endif
             }
 
             ITraceContext traceContext;
@@ -412,9 +432,7 @@ namespace Datadog.Trace
             }
 
             var finalServiceName = serviceName ?? parent?.ServiceName ?? DefaultServiceName;
-            var spanContext = new SpanContext(parent, traceContext, finalServiceName, spanId);
-
-            return spanContext;
+            return new SpanContext(parent, traceContext, finalServiceName, spanId);
         }
 
         internal Scope StartActiveWithTags(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, bool finishOnClose = true, ITags tags = null, ulong? spanId = null)
