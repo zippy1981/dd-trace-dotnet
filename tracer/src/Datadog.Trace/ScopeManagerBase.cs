@@ -4,14 +4,11 @@
 // </copyright>
 
 using System;
-using Datadog.Trace.Logging;
 
 namespace Datadog.Trace
 {
     internal abstract class ScopeManagerBase : IScopeManager, IScopeRawAccess
     {
-        private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ScopeManagerBase));
-
         public event EventHandler<SpanEventArgs> TraceStarted;
 
         public event EventHandler<SpanEventArgs> SpanOpened;
@@ -47,6 +44,10 @@ namespace Datadog.Trace
 
             Active = scope;
 
+#if NETFRAMEWORK
+            SharedSpanContext.Instance.Push(span.Context);
+#endif
+
             if (newParent != null)
             {
                 SpanDeactivated?.Invoke(this, new SpanEventArgs(newParent.Span));
@@ -72,6 +73,11 @@ namespace Datadog.Trace
             // if the scope that was just closed was the active scope,
             // set its parent as the new active scope
             Active = scope.Parent;
+
+#if NETFRAMEWORK
+            _ = SharedSpanContext.Instance.Pop();
+#endif
+
             SpanDeactivated?.Invoke(this, new SpanEventArgs(scope.Span));
 
             if (!isRootSpan)

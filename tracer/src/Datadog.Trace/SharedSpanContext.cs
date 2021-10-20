@@ -10,19 +10,50 @@ using System.Linq;
 
 namespace Datadog.Trace
 {
-    internal static class SharedSpanContext
+    internal class SharedSpanContext
     {
-        public static SpanContext Extract()
-        {
-            IDictionary<string, string> logicalContext = LogicalCallContextData.GetAll();
+        private readonly LogicalCallContext<Stack<Dictionary<string, string>>> _logicalContext;
 
-            if (logicalContext == null)
+        private SharedSpanContext(string name)
+        {
+            _logicalContext = new LogicalCallContext<Stack<Dictionary<string, string>>>(name);
+        }
+
+        public static SharedSpanContext Instance { get; } = new("__Datadog_Tracer_Span_Context_Stack");
+
+        public SpanContext Peek()
+        {
+            var stack = _logicalContext.GetAll();
+
+            if (stack == null || stack.Count == 0)
+            {
+                return null;
+            }
+
+            return Extract(stack.Peek());
+        }
+
+        public SpanContext Pop()
+        {
+            var stack = _logicalContext.GetAll();
+
+            if (stack == null || stack.Count == 0)
+            {
+                return null;
+            }
+
+            return Extract(stack.Pop());
+        }
+
+        private static SpanContext Extract(IDictionary<string, string> values)
+        {
+            if (values == null)
             {
                 return null;
             }
 
             return SpanContextPropagator.Instance.Extract(
-                logicalContext,
+                values,
                 (c, key) =>
                 {
                     return c.TryGetValue(key, out var value) ?
@@ -31,23 +62,29 @@ namespace Datadog.Trace
                 });
         }
 
-        public static void Inject(SpanContext spanContext)
+        public void Push(SpanContext spanContext)
         {
             if (spanContext == null)
             {
-                LogicalCallContextData.Clear();
                 return;
             }
 
-            var capacity = (spanContext.Origin != null && spanContext.SamplingPriority != null) ? 4 : 3;
-            var logicalContext = LogicalCallContextData.GetAll() ?? new Dictionary<string, string>(capacity);
+            var values = new Dictionary<string, string>();
 
             SpanContextPropagator.Instance.Inject(
                 spanContext,
-                logicalContext,
+                values,
                 (c, headerKey, headerValue) => c[headerKey] = headerValue);
 
-            LogicalCallContextData.SetAll(logicalContext);
+            var stack = _logicalContext.GetAll();
+
+            if (stack == null)
+            {
+                stack = new Stack<Dictionary<string, string>>();
+                _logicalContext.SetAll(stack);
+            }
+
+            stack.Push(values);
         }
     }
 }

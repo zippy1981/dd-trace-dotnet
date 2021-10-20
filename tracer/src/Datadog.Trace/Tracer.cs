@@ -397,7 +397,7 @@ namespace Datadog.Trace
                 parent = _scopeManager.Active?.Span?.Context;
 
 #if NETFRAMEWORK
-                parent ??= SharedSpanContext.Extract();
+                parent ??= SharedSpanContext.Instance.Peek();
 #endif
             }
 
