@@ -1,6 +1,6 @@
 Param (
     [String[]]
-    $TracerVersions = ('1.30.0', '1.31.0', '2.0.0'),
+    $TracerVersions = ('1.90.0', '1.91.0'),
 
     [ValidateScript( { Test-Path $_ -PathType 'Container' })]
     [String]
