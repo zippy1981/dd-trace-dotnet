@@ -397,22 +397,7 @@ namespace Datadog.Trace
                 parent = _scopeManager.Active?.Span?.Context;
 
 #if NETFRAMEWORK
-                if (parent == null)
-                {
-                    var logicalContext = LogicalCallContextData.GetAll();
-
-                    if (logicalContext != null)
-                    {
-                        parent = SpanContextPropagator.Instance.Extract(
-                            logicalContext,
-                            (c, key) =>
-                            {
-                                return c.TryGetValue(key, out var value) ?
-                                           new[] { value } :
-                                           Enumerable.Empty<string>();
-                            });
-                    }
-                }
+                parent ??= SharedSpanContext.Extract();
 #endif
             }
 
