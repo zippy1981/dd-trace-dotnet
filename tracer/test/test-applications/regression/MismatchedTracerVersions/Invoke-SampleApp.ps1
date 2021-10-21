@@ -37,6 +37,12 @@ try {
     # set env var used by "nuget.config" file to find nuget packages
     $env:TracerHomesDirectory = Resolve-Path $TracerHomesDirectory
 
+    Write-Host "dotnet clean"
+    dotnet clean -v m || Write-Error "Native command returned code $LASTEXITCODE"
+
+    Write-Host "Clearing NuGet caches."
+    dotnet nuget locals all --clear || Write-Error "Native command returned code $LASTEXITCODE"
+
     Write-Host "Building sample app with NuGet package ${NuGetVersion}."
     dotnet clean -v m || Write-Error "Native command returned code $LASTEXITCODE"
     dotnet restore "-p:DatadogTraceNuGetVersion=${NuGetVersion}" --force --no-cache -v m || Write-Error "Native command returned code $LASTEXITCODE"
