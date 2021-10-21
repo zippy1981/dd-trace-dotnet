@@ -75,7 +75,8 @@ namespace Datadog.Trace
             Active = scope.Parent;
 
 #if NETFRAMEWORK
-            SharedSpanContext.Instance.Set(Active?.Span.Context);
+            // scope.Parent is null for distributed traces, so use scope.Span.Context.Parent
+            SharedSpanContext.Instance.Set(scope.Span.Context.Parent as SpanContext);
 #endif
 
             SpanDeactivated?.Invoke(this, new SpanEventArgs(scope.Span));
