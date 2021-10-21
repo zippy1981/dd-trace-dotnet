@@ -12,57 +12,44 @@ namespace Datadog.Trace
 {
     internal class SharedSpanContext
     {
-        private readonly LogicalCallContext<Stack<IDictionary<string, string>>> _logicalContext;
+        private readonly LogicalCallContext<IDictionary<string, string>> _logicalContext;
 
         private SharedSpanContext(string name)
         {
-            _logicalContext = new LogicalCallContext<Stack<IDictionary<string, string>>>(name);
+            _logicalContext = new LogicalCallContext<IDictionary<string, string>>(name);
         }
 
-        public static SharedSpanContext Instance { get; } = new("__Datadog_Tracer_Span_Context_Stack");
+        public static SharedSpanContext Instance { get; } = new("__Datadog_Tracer_Span_Context");
 
-        public SpanContext Peek()
+        public SpanContext Get()
         {
-            var stack = _logicalContext.Get();
+            var values = _logicalContext.Get();
 
-            if (stack == null || stack.Count == 0)
+            if (values == null || values.Count == 0)
             {
                 return null;
             }
 
-            return Extract(stack.Peek());
+            return Extract(values);
         }
 
-        public SpanContext Pop()
+        public void Set(SpanContext spanContext)
         {
-            var stack = _logicalContext.Get();
+            var values = _logicalContext.Get();
 
-            if (stack == null || stack.Count == 0)
-            {
-                return null;
-            }
-
-            return Extract(stack.Pop());
-        }
-
-        public void Push(SpanContext spanContext)
-        {
             if (spanContext == null)
             {
+                values?.Clear();
                 return;
             }
 
-            var values = Inject(spanContext);
-
-            var stack = _logicalContext.Get();
-
-            if (stack == null)
+            if (values == null)
             {
-                stack = new Stack<IDictionary<string, string>>();
-                _logicalContext.Set(stack);
+                values = new Dictionary<string, string>();
+                _logicalContext.Set(values);
             }
 
-            stack.Push(values);
+            Inject(values, spanContext);
         }
 
         private static SpanContext Extract(IDictionary<string, string> values)
@@ -82,16 +69,12 @@ namespace Datadog.Trace
                 });
         }
 
-        private static IDictionary<string, string> Inject(SpanContext spanContext)
+        private static void Inject(IDictionary<string, string> values, SpanContext spanContext)
         {
-            var values = new Dictionary<string, string>();
-
             SpanContextPropagator.Instance.Inject(
                 spanContext,
                 values,
                 (c, headerKey, headerValue) => c[headerKey] = headerValue);
-
-            return values;
         }
     }
 }

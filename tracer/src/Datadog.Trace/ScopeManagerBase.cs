@@ -45,7 +45,7 @@ namespace Datadog.Trace
             Active = scope;
 
 #if NETFRAMEWORK
-            SharedSpanContext.Instance.Push(span.Context);
+            SharedSpanContext.Instance.Set(Active.Span.Context);
 #endif
 
             if (newParent != null)
@@ -75,10 +75,7 @@ namespace Datadog.Trace
             Active = scope.Parent;
 
 #if NETFRAMEWORK
-            // I realized later we can probably use scope.Span.Context.Parent
-            // since it will contain the span context we extracted from the logical call context.
-            // If so, then we don't need a shadow stack of span contexts, just the current one.
-            _ = SharedSpanContext.Instance.Pop();
+            SharedSpanContext.Instance.Set(Active?.Span.Context);
 #endif
 
             SpanDeactivated?.Invoke(this, new SpanEventArgs(scope.Span));

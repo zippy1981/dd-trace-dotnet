@@ -392,13 +392,16 @@ namespace Datadog.Trace
 
         internal SpanContext CreateSpanContext(ISpanContext parent = null, string serviceName = null, bool ignoreActiveScope = false, ulong? spanId = null)
         {
+#if NETFRAMEWORK
+            if (parent == null && !ignoreActiveScope)
+            {
+                parent = SharedSpanContext.Instance.Get();
+            }
+#endif
+
             if (parent == null && !ignoreActiveScope)
             {
                 parent = _scopeManager.Active?.Span?.Context;
-
-#if NETFRAMEWORK
-                parent ??= SharedSpanContext.Instance.Peek();
-#endif
             }
 
             ITraceContext traceContext;

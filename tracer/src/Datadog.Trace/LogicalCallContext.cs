@@ -25,14 +25,12 @@ namespace Datadog.Trace
 
         public void Set(T value)
         {
-            if (value == null)
-            {
-                CallContext.FreeNamedDataSlot(_name);
-            }
-            else
-            {
-                CallContext.LogicalSetData(_name, value);
-            }
+            CallContext.LogicalSetData(_name, value);
+        }
+
+        public void Clear()
+        {
+            CallContext.FreeNamedDataSlot(_name);
         }
     }
 }
