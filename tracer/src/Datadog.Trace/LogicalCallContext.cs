@@ -5,8 +5,6 @@
 
 #if NETFRAMEWORK
 
-using System;
-using System.Collections.Generic;
 using System.Runtime.Remoting.Messaging;
 
 namespace Datadog.Trace
@@ -20,12 +18,12 @@ namespace Datadog.Trace
             _name = name;
         }
 
-        public T GetAll()
+        public T Get()
         {
             return (T)CallContext.LogicalGetData(_name);
         }
 
-        public void SetAll(T value)
+        public void Set(T value)
         {
             if (value == null)
             {

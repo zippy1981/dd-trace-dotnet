@@ -23,7 +23,7 @@ namespace Datadog.Trace
 
         public SpanContext Peek()
         {
-            var stack = _logicalContext.GetAll();
+            var stack = _logicalContext.Get();
 
             if (stack == null || stack.Count == 0)
             {
@@ -35,7 +35,7 @@ namespace Datadog.Trace
 
         public SpanContext Pop()
         {
-            var stack = _logicalContext.GetAll();
+            var stack = _logicalContext.Get();
 
             if (stack == null || stack.Count == 0)
             {
@@ -54,12 +54,12 @@ namespace Datadog.Trace
 
             var values = Inject(spanContext);
 
-            var stack = _logicalContext.GetAll();
+            var stack = _logicalContext.Get();
 
             if (stack == null)
             {
                 stack = new Stack<IDictionary<string, string>>();
-                _logicalContext.SetAll(stack);
+                _logicalContext.Set(stack);
             }
 
             stack.Push(values);
