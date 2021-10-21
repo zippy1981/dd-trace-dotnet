@@ -12,11 +12,11 @@ namespace Datadog.Trace
 {
     internal class SharedSpanContext
     {
-        private readonly LogicalCallContext<Stack<Dictionary<string, string>>> _logicalContext;
+        private readonly LogicalCallContext<Stack<IDictionary<string, string>>> _logicalContext;
 
         private SharedSpanContext(string name)
         {
-            _logicalContext = new LogicalCallContext<Stack<Dictionary<string, string>>>(name);
+            _logicalContext = new LogicalCallContext<Stack<IDictionary<string, string>>>(name);
         }
 
         public static SharedSpanContext Instance { get; } = new("__Datadog_Tracer_Span_Context_Stack");
@@ -45,6 +45,26 @@ namespace Datadog.Trace
             return Extract(stack.Pop());
         }
 
+        public void Push(SpanContext spanContext)
+        {
+            if (spanContext == null)
+            {
+                return;
+            }
+
+            var values = Inject(spanContext);
+
+            var stack = _logicalContext.GetAll();
+
+            if (stack == null)
+            {
+                stack = new Stack<IDictionary<string, string>>();
+                _logicalContext.SetAll(stack);
+            }
+
+            stack.Push(values);
+        }
+
         private static SpanContext Extract(IDictionary<string, string> values)
         {
             if (values == null)
@@ -62,13 +82,8 @@ namespace Datadog.Trace
                 });
         }
 
-        public void Push(SpanContext spanContext)
+        private static IDictionary<string, string> Inject(SpanContext spanContext)
         {
-            if (spanContext == null)
-            {
-                return;
-            }
-
             var values = new Dictionary<string, string>();
 
             SpanContextPropagator.Instance.Inject(
@@ -76,15 +91,7 @@ namespace Datadog.Trace
                 values,
                 (c, headerKey, headerValue) => c[headerKey] = headerValue);
 
-            var stack = _logicalContext.GetAll();
-
-            if (stack == null)
-            {
-                stack = new Stack<Dictionary<string, string>>();
-                _logicalContext.SetAll(stack);
-            }
-
-            stack.Push(values);
+            return values;
         }
     }
 }
