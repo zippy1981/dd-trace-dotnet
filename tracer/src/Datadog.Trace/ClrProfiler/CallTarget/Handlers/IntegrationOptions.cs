@@ -57,6 +57,7 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
             }
             else
             {
+                // ReSharper disable twice ExplicitCallerInfoArgument
                 Log.Debug(exception, message ?? exception?.Message);
                 ExceptionDispatchInfo.Capture(exception).Throw();
             }
