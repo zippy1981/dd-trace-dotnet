@@ -60,6 +60,17 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Wcf
             state.Scope.DisposeWithException(exception);
             return new CallTargetReturn<TReturn>(returnValue);
         }
+
+        /// <summary>
+        /// If a calltarget method (OnMethodBegin or OnMethodEnd) throws an exception we decide here if we want to bubble up the exception.
+        /// </summary>
+        /// <param name="exception">Exception instance</param>
+        /// <param name="message">Error message or Exception message</param>
+        /// <returns>true if the exception should bubble up; otherwise false.</returns>
+        public static bool OnCallTargetExceptionThrow(Exception exception, string message)
+        {
+            return WcfIntegration.ShouldExceptionThrow(exception, message);
+        }
     }
 }
 #endif

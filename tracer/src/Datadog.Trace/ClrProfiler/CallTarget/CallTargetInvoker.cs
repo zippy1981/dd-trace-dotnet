@@ -323,7 +323,7 @@ namespace Datadog.Trace.ClrProfiler.CallTarget
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogException<TIntegration, TTarget>(Exception exception)
         {
-            IntegrationOptions<TIntegration, TTarget>.LogException(exception);
+            IntegrationOptions<TIntegration, TTarget>.LogException(exception, null);
         }
 
         /// <summary>
