@@ -37,7 +37,7 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
         internal static void DisableIntegration() => _disableIntegration = true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void LogException(Exception exception, string message)
+        internal static bool LogException(Exception exception, string message)
         {
             if (exception is DuckTypeException)
             {
@@ -50,7 +50,14 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
                 _disableIntegration = true;
             }
 
-            if (onCallTargetExceptionThrowDelegate is null || !onCallTargetExceptionThrowDelegate(exception, message))
+            bool shouldThrow = false;
+
+            if (onCallTargetExceptionThrowDelegate is not null)
+            {
+                shouldThrow = onCallTargetExceptionThrowDelegate(exception, message);
+            }
+
+            if (!shouldThrow)
             {
                 // ReSharper disable twice ExplicitCallerInfoArgument
                 Log.Error(exception, message ?? exception?.Message);
@@ -59,8 +66,9 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
             {
                 // ReSharper disable twice ExplicitCallerInfoArgument
                 Log.Debug(exception, message ?? exception?.Message);
-                ExceptionDispatchInfo.Capture(exception).Throw();
             }
+
+            return shouldThrow;
         }
     }
 }

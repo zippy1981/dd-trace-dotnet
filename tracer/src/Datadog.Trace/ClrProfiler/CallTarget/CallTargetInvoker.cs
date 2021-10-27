@@ -320,10 +320,11 @@ namespace Datadog.Trace.ClrProfiler.CallTarget
         /// <typeparam name="TIntegration">Integration type</typeparam>
         /// <typeparam name="TTarget">Target type</typeparam>
         /// <param name="exception">Integration exception instance</param>
+        /// <returns>true if the method should throw; otherwise, false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void LogException<TIntegration, TTarget>(Exception exception)
+        public static bool LogException<TIntegration, TTarget>(Exception exception)
         {
-            IntegrationOptions<TIntegration, TTarget>.LogException(exception, null);
+            return IntegrationOptions<TIntegration, TTarget>.LogException(exception, null);
         }
 
         /// <summary>

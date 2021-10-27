@@ -3382,6 +3382,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(FunctionID
 ///     catch
 ///     {
 ///       - Invoke LogException(Exception)
+///       - If (true) then throw
 ///     }
 ///
 ///     - Execute original method instructions
@@ -3406,6 +3407,7 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(FunctionID
 ///   catch
 ///   {
 ///     - Invoke LogException(Exception)
+///     - If (true) then throw
 ///   }
 /// }
 ///
@@ -3633,7 +3635,10 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
     // *** BeginMethod call catch
     ILInstr* beginMethodCatchFirstInstr = nullptr;
     callTargetTokens->WriteLogException(&reWriterWrapper, wrapper_type_ref, &caller->type, &beginMethodCatchFirstInstr);
+    ILInstr* beginMethodCatchConditionInstr = reWriterWrapper.CreateInstr(CEE_BRFALSE_S);
+    reWriterWrapper.Rethrow();
     ILInstr* beginMethodCatchLeaveInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+    beginMethodCatchConditionInstr->m_pTarget = beginMethodCatchLeaveInstr;
 
     // *** BeginMethod exception handling clause
     EHClause beginMethodExClause{};
@@ -3756,7 +3761,10 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
     // *** EndMethod call catch
     ILInstr* endMethodCatchFirstInstr = nullptr;
     callTargetTokens->WriteLogException(&reWriterWrapper, wrapper_type_ref, &caller->type, &endMethodCatchFirstInstr);
+    ILInstr* endMethodCatchConditionInstr = reWriterWrapper.CreateInstr(CEE_BRFALSE_S);
+    reWriterWrapper.Rethrow();
     ILInstr* endMethodCatchLeaveInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+    endMethodCatchConditionInstr->m_pTarget = endMethodCatchLeaveInstr;
 
     // *** EndMethod exception handling clause
     EHClause endMethodExClause{};
