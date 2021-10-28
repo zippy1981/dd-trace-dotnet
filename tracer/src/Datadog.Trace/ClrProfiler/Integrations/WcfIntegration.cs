@@ -181,16 +181,6 @@ namespace Datadog.Trace.ClrProfiler.Integrations
             // always returns the scope, even if it's null
             return scope;
         }
-
-        internal static bool ShouldExceptionThrow(Exception exception, string message)
-        {
-            if (exception.GetType().FullName.Contains("FailedAuthenticationFaultException"))
-            {
-                return true;
-            }
-
-            return false;
-        }
     }
 }
 

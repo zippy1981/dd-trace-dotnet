@@ -1234,7 +1234,7 @@ HRESULT CallTargetTokens::WriteLogException(void* rewriterWrapperPtr, mdTypeRef 
         signature[offset++] = 0x02;
         signature[offset++] = 0x01;
 
-        signature[offset++] = ELEMENT_TYPE_BOOLEAN;
+        signature[offset++] = ELEMENT_TYPE_VOID;
         signature[offset++] = ELEMENT_TYPE_CLASS;
         memcpy(&signature[offset], &exTypeRefBuffer, exTypeRefSize);
         offset += exTypeRefSize;

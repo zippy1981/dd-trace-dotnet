@@ -4,9 +4,7 @@
 // </copyright>
 
 using System;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using Datadog.Trace.DuckTyping;
 using Datadog.Trace.Logging;
 
@@ -14,22 +12,9 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
 {
     internal static class IntegrationOptions<TIntegration, TTarget>
     {
-        private const string CallTargetExceptionThrowName = "OnCallTargetExceptionThrow";
-
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(IntegrationOptions<TIntegration, TTarget>));
 
         private static volatile bool _disableIntegration = false;
-
-        private static Func<Exception, string, bool> onCallTargetExceptionThrowDelegate = null;
-
-        static IntegrationOptions()
-        {
-            MethodInfo onCallTargetExceptionThrowMethodInfo = typeof(TIntegration).GetMethod(CallTargetExceptionThrowName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            if (onCallTargetExceptionThrowDelegate is not null)
-            {
-                onCallTargetExceptionThrowDelegate = (Func<Exception, string, bool>)onCallTargetExceptionThrowMethodInfo.CreateDelegate(typeof(Func<Exception, string, bool>));
-            }
-        }
 
         internal static bool IsIntegrationEnabled => !_disableIntegration;
 
@@ -37,8 +22,10 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
         internal static void DisableIntegration() => _disableIntegration = true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool LogException(Exception exception, string message)
+        internal static void LogException(Exception exception, string message = null)
         {
+            // ReSharper disable twice ExplicitCallerInfoArgument
+            Log.Error(exception, message ?? exception?.Message);
             if (exception is DuckTypeException)
             {
                 Log.Warning($"DuckTypeException has been detected, the integration <{typeof(TIntegration)}, {typeof(TTarget)}> will be disabled.");
@@ -49,26 +36,6 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
                 Log.Warning($"CallTargetInvokerException has been detected, the integration <{typeof(TIntegration)}, {typeof(TTarget)}> will be disabled.");
                 _disableIntegration = true;
             }
-
-            bool shouldThrow = false;
-
-            if (onCallTargetExceptionThrowDelegate is not null)
-            {
-                shouldThrow = onCallTargetExceptionThrowDelegate(exception, message);
-            }
-
-            if (!shouldThrow)
-            {
-                // ReSharper disable twice ExplicitCallerInfoArgument
-                Log.Error(exception, message ?? exception?.Message);
-            }
-            else
-            {
-                // ReSharper disable twice ExplicitCallerInfoArgument
-                Log.Debug(exception, message ?? exception?.Message);
-            }
-
-            return shouldThrow;
         }
     }
 }
