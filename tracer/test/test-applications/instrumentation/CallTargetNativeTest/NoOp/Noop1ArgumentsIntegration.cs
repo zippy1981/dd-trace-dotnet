@@ -19,6 +19,11 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance.Instance?.GetType().Name.Contains("ThrowUnhandledOnBegin") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnBeginException)} thrown.");
+                throw new UnhandledOnBeginException();
+            }
 
             return returnValue;
         }
@@ -34,6 +39,11 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance.Instance?.GetType().Name.Contains("ThrowUnhandledOnEnd") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnEndException)} thrown.");
+                throw new UnhandledOnEndException();
+            }
 
             return rValue;
         }
@@ -48,8 +58,23 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance.Instance?.GetType().Name.Contains("ThrowUnhandledOnAsyncEnd") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnAsyncEndException)} thrown.");
+                throw new UnhandledOnAsyncEndException();
+            }
 
             return returnValue;
+        }
+
+        public static bool OnCallTargetExceptionThrow(Exception exception, string message)
+        {
+            if (exception.GetType().FullName.Contains("UnhandledOn"))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public interface IInstance

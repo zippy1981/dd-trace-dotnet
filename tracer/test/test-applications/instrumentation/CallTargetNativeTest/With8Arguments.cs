@@ -37,4 +37,6 @@ namespace CallTargetNativeTest
     }
     class With8ArgumentsThrowOnBegin : With8Arguments { }
     class With8ArgumentsThrowOnEnd : With8Arguments { }
+    class With8ArgumentsThrowUnhandledOnBegin : With8Arguments { }
+    class With8ArgumentsThrowUnhandledOnEnd : With8Arguments { }
 }

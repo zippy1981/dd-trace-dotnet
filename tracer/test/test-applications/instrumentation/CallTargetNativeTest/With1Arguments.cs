@@ -33,4 +33,6 @@ namespace CallTargetNativeTest
     }
     class With1ArgumentsThrowOnBegin : With1Arguments { }
     class With1ArgumentsThrowOnEnd : With1Arguments { }
+    class With1ArgumentsThrowUnhandledOnBegin : With1Arguments { }
+    class With1ArgumentsThrowUnhandledOnEnd : With1Arguments { }
 }

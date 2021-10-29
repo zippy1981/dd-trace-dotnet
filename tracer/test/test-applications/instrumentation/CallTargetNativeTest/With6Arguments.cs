@@ -36,4 +36,6 @@ namespace CallTargetNativeTest
     }
     class With6ArgumentsThrowOnBegin : With6Arguments { }
     class With6ArgumentsThrowOnEnd : With6Arguments { }
+    class With6ArgumentsThrowUnhandledOnBegin : With6Arguments { }
+    class With6ArgumentsThrowUnhandledOnEnd : With6Arguments { }
 }

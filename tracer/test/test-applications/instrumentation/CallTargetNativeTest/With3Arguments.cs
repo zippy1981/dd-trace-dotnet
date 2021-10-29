@@ -33,4 +33,6 @@ namespace CallTargetNativeTest
     }
     class With3ArgumentsThrowOnBegin : With3Arguments { }
     class With3ArgumentsThrowOnEnd : With3Arguments { }
+    class With3ArgumentsThrowUnhandledOnBegin : With3Arguments { }
+    class With3ArgumentsThrowUnhandledOnEnd : With3Arguments { }
 }

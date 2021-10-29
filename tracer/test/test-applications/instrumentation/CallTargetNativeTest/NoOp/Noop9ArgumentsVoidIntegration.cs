@@ -17,6 +17,11 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance?.GetType().Name.Contains("ThrowUnhandledOnBegin") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnBeginException)} thrown.");
+                throw new UnhandledOnBeginException();
+            }
 
             return returnValue;
         }
@@ -30,8 +35,15 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance?.GetType().Name.Contains("ThrowUnhandledOnEnd") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnEndException)} thrown.");
+                throw new UnhandledOnEndException();
+            }
 
             return returnValue;
         }
+
+        // Omit a OnCallTargetExceptionThrow method to demonstrate that exceptions will always be caught when we do not specifically handle exceptions
     }
 }

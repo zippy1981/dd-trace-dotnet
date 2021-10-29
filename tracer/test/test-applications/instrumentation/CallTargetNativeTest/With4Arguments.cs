@@ -35,4 +35,6 @@ namespace CallTargetNativeTest
     }
     class With4ArgumentsThrowOnBegin : With4Arguments { }
     class With4ArgumentsThrowOnEnd : With4Arguments { }
+    class With4ArgumentsThrowUnhandledOnBegin : With4Arguments { }
+    class With4ArgumentsThrowUnhandledOnEnd : With4Arguments { }
 }

@@ -36,4 +36,6 @@ namespace CallTargetNativeTest
     }
     class With5ArgumentsThrowOnBegin : With5Arguments { }
     class With5ArgumentsThrowOnEnd : With5Arguments { }
+    class With5ArgumentsThrowUnhandledOnBegin : With5Arguments { }
+    class With5ArgumentsThrowUnhandledOnEnd : With5Arguments { }
 }

@@ -37,4 +37,6 @@ namespace CallTargetNativeTest
     }
     class With9ArgumentsThrowOnBegin : With9Arguments { }
     class With9ArgumentsThrowOnEnd : With9Arguments { }
+    class With9ArgumentsThrowUnhandledOnBegin : With9Arguments { }
+    class With9ArgumentsThrowUnhandledOnEnd : With9Arguments { }
 }

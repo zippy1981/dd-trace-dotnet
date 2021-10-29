@@ -209,6 +209,37 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With0ArgumentsThrowOnAsyncEnd).FullName}.Wait2Seconds");
             RunMethod(() => w0TAsyncEnd.Wait2Seconds().Wait());
             Console.WriteLine();
+            //
+            var w0TUBegin = new With0ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w0TUBegin.VoidMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w0TUBegin.ReturnValueMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w0TUBegin.ReturnReferenceMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w0TUBegin.ReturnGenericMethod<string>());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w0TUBegin.ReturnGenericMethod<int>());
+            Console.WriteLine();
+            //
+            var w0TUEnd = new With0ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w0TUEnd.VoidMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w0TUEnd.ReturnValueMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w0TUEnd.ReturnReferenceMethod());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w0TUEnd.ReturnGenericMethod<string>());
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w0TUEnd.ReturnGenericMethod<int>());
+            Console.WriteLine();
+            //
+            var w0TUAsyncEnd = new With0ArgumentsThrowUnhandledOnAsyncEnd();
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnAsyncEnd).FullName}.Wait2Seconds");
+            RunMethod(() => w0TUAsyncEnd.Wait2Seconds().Wait());
+            Console.WriteLine();
         }
 
         private static void Argument1()
@@ -321,6 +352,32 @@ namespace CallTargetNativeTest
             RunMethod(() => w1TEnd.ReturnGenericMethod<string, string>("Hello world"));
             Console.WriteLine($"{typeof(With1ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w1TEnd.ReturnGenericMethod<int, int>(42));
+            Console.WriteLine();
+            //
+            var w1TUBegin = new With1ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w1TUBegin.VoidMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w1TUBegin.ReturnValueMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w1TUBegin.ReturnReferenceMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w1TUBegin.ReturnGenericMethod<string, string>("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w1TUBegin.ReturnGenericMethod<int, int>(42));
+            Console.WriteLine();
+            //
+            var w1TUEnd = new With1ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w1TUEnd.VoidMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w1TUEnd.ReturnValueMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w1TUEnd.ReturnReferenceMethod("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w1TUEnd.ReturnGenericMethod<string, string>("Hello world"));
+            Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w1TUEnd.ReturnGenericMethod<int, int>(42));
             Console.WriteLine();
         }
 
@@ -435,6 +492,32 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With2ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w2TEnd.ReturnGenericMethod<int, int>(42, 99));
             Console.WriteLine();
+            //
+            var w2TUBegin = new With2ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w2TUBegin.VoidMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w2TUBegin.ReturnValueMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w2TUBegin.ReturnReferenceMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w2TUBegin.ReturnGenericMethod<string, string>("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w2TUBegin.ReturnGenericMethod<int, int>(42, 99));
+            Console.WriteLine();
+            //
+            var w2TUEnd = new With2ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w2TUEnd.VoidMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w2TUEnd.ReturnValueMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w2TUEnd.ReturnReferenceMethod("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w2TUEnd.ReturnGenericMethod<string, string>("Hello world", 42));
+            Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w2TUEnd.ReturnGenericMethod<int, int>(42, 99));
+            Console.WriteLine();
         }
 
         private static void Argument3()
@@ -547,6 +630,32 @@ namespace CallTargetNativeTest
             RunMethod(() => w3TEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2)));
             Console.WriteLine($"{typeof(With3ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w3TEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2)));
+            Console.WriteLine();
+            //
+            var w3TUBegin = new With3ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w3TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w3TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w3TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w3TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w3TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2)));
+            Console.WriteLine();
+            //
+            var w3TUEnd = new With3ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w3TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w3TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w3TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w3TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2)));
+            Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w3TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2)));
             Console.WriteLine();
         }
 
@@ -661,6 +770,32 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With4ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w4TEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask));
             Console.WriteLine();
+            //
+            var w4TUBegin = new With4ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w4TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w4TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w4TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w4TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w4TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine();
+            //
+            var w4TUEnd = new With4ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w4TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w4TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w4TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w4TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w4TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask));
+            Console.WriteLine();
         }
 
         private static void Argument5()
@@ -773,6 +908,32 @@ namespace CallTargetNativeTest
             RunMethod(() => w5TEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
             Console.WriteLine($"{typeof(With5ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w5TEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine();
+            //
+            var w5TUBegin = new With5ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w5TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w5TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w5TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w5TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w5TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine();
+            //
+            var w5TUEnd = new With5ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w5TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w5TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w5TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w5TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w5TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
             Console.WriteLine();
         }
 
@@ -887,6 +1048,32 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With6ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w6TEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
             Console.WriteLine();
+            //
+            var w6TUBegin = new With6ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w6TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w6TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w6TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w6TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w6TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine();
+            //
+            var w6TUEnd = new With6ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w6TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w6TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w6TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w6TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w6TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            Console.WriteLine();
         }
 
         private static void Argument7()
@@ -999,6 +1186,32 @@ namespace CallTargetNativeTest
             RunMethod(() => w7TEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
             Console.WriteLine($"{typeof(With7ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w7TEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine();
+            //
+            var w7TUBegin = new With7ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w7TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w7TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w7TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w7TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w7TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine();
+            //
+            var w7TUEnd = new With7ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w7TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w7TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w7TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w7TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w7TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
             Console.WriteLine();
         }
 
@@ -1113,6 +1326,32 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With8ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w8TEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
             Console.WriteLine();
+            //
+            var w8TUBegin = new With8ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w8TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w8TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w8TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w8TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w8TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine();
+            //
+            var w8TUEnd = new With8ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w8TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w8TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w8TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w8TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w8TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            Console.WriteLine();
         }
 
         private static void Argument9()
@@ -1226,14 +1465,49 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With9ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w9TEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
             Console.WriteLine();
+            //
+            var w9TUBegin = new With9ArgumentsThrowUnhandledOnBegin();
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
+            RunMethod(() => w9TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
+            RunMethod(() => w9TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w9TUBegin.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w9TUBegin.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnBegin).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w9TUBegin.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine();
+            //
+            var w9TUEnd = new With9ArgumentsThrowUnhandledOnEnd();
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
+            RunMethod(() => w9TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
+            RunMethod(() => w9TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
+            RunMethod(() => w9TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
+            RunMethod(() => w9TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
+            RunMethod(() => w9TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            Console.WriteLine();
         }
 
-
-        private static void RunMethod(Action action)
+        private static void RunMethod(Action action, Type expectedUnhandledExceptionType = null)
         {
             var cOut = Console.Out;
             Console.SetOut(sWriter);
-            action();
+            Type actualUnhandledExceptionType = null;
+
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                actualUnhandledExceptionType = ex.GetType();
+            }
+
             sWriter.Flush();
             var str = Encoding.UTF8.GetString(mStream.GetBuffer(), 0, (int)mStream.Length);
             mStream.SetLength(0);
@@ -1244,6 +1518,10 @@ namespace CallTargetNativeTest
             if (!str.Contains("ProfilerOK: BeginMethod") || !str.Contains("ProfilerOK: EndMethod"))
             {
                 throw new Exception("Profiler didn't return a valid ProfilerOK: BeginMethod string.");
+            }
+            if (expectedUnhandledExceptionType != actualUnhandledExceptionType)
+            {
+                throw new Exception($"Mismatch between the expected unhandled exception ({expectedUnhandledExceptionType}) and the actual unhandled exception ({actualUnhandledExceptionType})");
             }
             if (!string.IsNullOrEmpty(str))
             {

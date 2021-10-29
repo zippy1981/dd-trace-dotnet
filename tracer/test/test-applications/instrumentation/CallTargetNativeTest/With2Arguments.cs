@@ -33,4 +33,6 @@ namespace CallTargetNativeTest
     }
     class With2ArgumentsThrowOnBegin : With2Arguments { }
     class With2ArgumentsThrowOnEnd : With2Arguments { }
+    class With2ArgumentsThrowUnhandledOnBegin : With2Arguments { }
+    class With2ArgumentsThrowUnhandledOnEnd : With2Arguments { }
 }

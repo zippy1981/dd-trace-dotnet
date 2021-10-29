@@ -39,4 +39,7 @@ namespace CallTargetNativeTest
     {
         public Task Wait2Seconds() => Task.Delay(2000);
     }
+    class With0ArgumentsThrowUnhandledOnBegin : With0Arguments { }
+    class With0ArgumentsThrowUnhandledOnEnd : With0Arguments { }
+    class With0ArgumentsThrowUnhandledOnAsyncEnd : With0ArgumentsThrowOnAsyncEnd { }
 }
