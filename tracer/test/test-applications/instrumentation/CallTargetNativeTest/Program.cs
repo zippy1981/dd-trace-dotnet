@@ -235,6 +235,11 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w0TUEnd.ReturnGenericMethod<int>()); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
+            //
+            var w0TUAsyncEnd = new With0ArgumentsThrowUnhandledOnAsyncEnd();
+            Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnAsyncEnd).FullName}.Wait2Seconds");
+            RunMethod(() => w0TUAsyncEnd.Wait2Seconds().Wait()); // The OnAsyncMethodEnd callback may not bubble up unhandled exceptoins
+            Console.WriteLine();
         }
 
         private static void Argument1()

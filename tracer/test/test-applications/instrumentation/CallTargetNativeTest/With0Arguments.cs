@@ -41,4 +41,5 @@ namespace CallTargetNativeTest
     }
     class With0ArgumentsThrowUnhandledOnBegin : With0Arguments { }
     class With0ArgumentsThrowUnhandledOnEnd : With0Arguments { }
+    class With0ArgumentsThrowUnhandledOnAsyncEnd : With0ArgumentsThrowOnAsyncEnd { }
 }

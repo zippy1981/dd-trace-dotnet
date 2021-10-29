@@ -59,6 +59,11 @@ namespace CallTargetNativeTest.NoOp
                 Console.WriteLine("Exception thrown.");
                 throw new Exception();
             }
+            else if (instance.Instance?.GetType().Name.Contains("ThrowUnhandledOnAsyncEnd") == true)
+            {
+                Console.WriteLine($"{nameof(UnhandledOnAsyncEndException)} thrown.");
+                throw new UnhandledOnAsyncEndException();
+            }
 
             return returnValue;
         }
