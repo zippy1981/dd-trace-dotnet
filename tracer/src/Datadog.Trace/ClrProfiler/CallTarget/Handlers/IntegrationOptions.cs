@@ -24,10 +24,17 @@ namespace Datadog.Trace.ClrProfiler.CallTarget.Handlers
 
         static IntegrationOptions()
         {
-            MethodInfo onCallTargetExceptionThrowMethodInfo = typeof(TIntegration).GetMethod(CallTargetExceptionThrowName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-            if (onCallTargetExceptionThrowDelegate is not null)
+            try
             {
-                onCallTargetExceptionThrowDelegate = (Func<Exception, string, bool>)onCallTargetExceptionThrowMethodInfo.CreateDelegate(typeof(Func<Exception, string, bool>));
+                MethodInfo onCallTargetExceptionThrowMethodInfo = typeof(TIntegration).GetMethod(CallTargetExceptionThrowName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                if (onCallTargetExceptionThrowMethodInfo is not null)
+                {
+                    onCallTargetExceptionThrowDelegate = (Func<Exception, string, bool>)onCallTargetExceptionThrowMethodInfo.CreateDelegate(typeof(Func<Exception, string, bool>));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new CallTargetInvokerException(ex);
             }
         }
 
