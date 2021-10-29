@@ -225,15 +225,15 @@ namespace CallTargetNativeTest
             //
             var w0TUEnd = new With0ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w0TUEnd.VoidMethod());
+            RunMethod(() => w0TUEnd.VoidMethod()); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w0TUEnd.ReturnValueMethod(), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w0TUEnd.ReturnValueMethod()); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w0TUEnd.ReturnReferenceMethod(), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w0TUEnd.ReturnReferenceMethod()); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w0TUEnd.ReturnGenericMethod<string>(), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w0TUEnd.ReturnGenericMethod<string>()); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With0ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w0TUEnd.ReturnGenericMethod<int>(), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w0TUEnd.ReturnGenericMethod<int>()); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -364,15 +364,15 @@ namespace CallTargetNativeTest
             //
             var w1TUEnd = new With1ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w1TUEnd.VoidMethod("Hello world"));
+            RunMethod(() => w1TUEnd.VoidMethod("Hello world")); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w1TUEnd.ReturnValueMethod("Hello world"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w1TUEnd.ReturnValueMethod("Hello world")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w1TUEnd.ReturnReferenceMethod("Hello world"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w1TUEnd.ReturnReferenceMethod("Hello world")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w1TUEnd.ReturnGenericMethod<string, string>("Hello world"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w1TUEnd.ReturnGenericMethod<string, string>("Hello world")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With1ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w1TUEnd.ReturnGenericMethod<int, int>(42), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w1TUEnd.ReturnGenericMethod<int, int>(42)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -503,15 +503,15 @@ namespace CallTargetNativeTest
             //
             var w2TUEnd = new With2ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w2TUEnd.VoidMethod("Hello world", 42));
+            RunMethod(() => w2TUEnd.VoidMethod("Hello world", 42)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w2TUEnd.ReturnValueMethod("Hello world", 42), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w2TUEnd.ReturnValueMethod("Hello world", 42)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w2TUEnd.ReturnReferenceMethod("Hello world", 42), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w2TUEnd.ReturnReferenceMethod("Hello world", 42)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w2TUEnd.ReturnGenericMethod<string, string>("Hello world", 42), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w2TUEnd.ReturnGenericMethod<string, string>("Hello world", 42)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With2ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w2TUEnd.ReturnGenericMethod<int, int>(42, 99), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w2TUEnd.ReturnGenericMethod<int, int>(42, 99)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -642,15 +642,15 @@ namespace CallTargetNativeTest
             //
             var w3TUEnd = new With3ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w3TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2)));
+            RunMethod(() => w3TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2))); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w3TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2)), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w3TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2))); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w3TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2)), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w3TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2))); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w3TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2)), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w3TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2))); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With3ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w3TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2)), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w3TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2))); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -765,7 +765,6 @@ namespace CallTargetNativeTest
             Console.WriteLine($"{typeof(With4ArgumentsThrowOnEnd).FullName}.ReturnGenericMethod<int>");
             RunMethod(() => w4TEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask));
             Console.WriteLine();
-            //
             var w4TUBegin = new With4ArgumentsThrowUnhandledOnBegin();
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
             RunMethod(() => w4TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask)); // The integration for void method does not bubble up unhandled exceptions
@@ -781,15 +780,15 @@ namespace CallTargetNativeTest
             //
             var w4TUEnd = new With4ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w4TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask));
+            RunMethod(() => w4TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w4TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w4TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w4TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w4TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w4TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w4TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With4ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w4TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w4TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -907,7 +906,7 @@ namespace CallTargetNativeTest
             //
             var w5TUBegin = new With5ArgumentsThrowUnhandledOnBegin();
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
-            RunMethod(() => w5TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            RunMethod(() => w5TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
             RunMethod(() => w5TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None), expectedUnhandledExceptionType: typeof(UnhandledOnBeginException));
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
@@ -920,15 +919,15 @@ namespace CallTargetNativeTest
             //
             var w5TUEnd = new With5ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w5TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None));
+            RunMethod(() => w5TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w5TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w5TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w5TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w5TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w5TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w5TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With5ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w5TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w5TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -1059,15 +1058,15 @@ namespace CallTargetNativeTest
             //
             var w6TUEnd = new With6ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w6TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987));
+            RunMethod(() => w6TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w6TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w6TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w6TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w6TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w6TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w6TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With6ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w6TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w6TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -1185,7 +1184,7 @@ namespace CallTargetNativeTest
             //
             var w7TUBegin = new With7ArgumentsThrowUnhandledOnBegin();
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.VoidMethod");
-            RunMethod(() => w7TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            RunMethod(() => w7TUBegin.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnValueMethod");
             RunMethod(() => w7TUBegin.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"), expectedUnhandledExceptionType: typeof(UnhandledOnBeginException));
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnBegin).FullName}.ReturnReferenceMethod");
@@ -1198,15 +1197,15 @@ namespace CallTargetNativeTest
             //
             var w7TUEnd = new With7ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w7TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"));
+            RunMethod(() => w7TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w7TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w7TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w7TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w7TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w7TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w7TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With7ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w7TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value"), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w7TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value")); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
@@ -1337,15 +1336,15 @@ namespace CallTargetNativeTest
             //
             var w8TUEnd = new With8ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w8TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
+            RunMethod(() => w8TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly())); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w8TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w8TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
             Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w8TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w8TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
             Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w8TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w8TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
             Console.WriteLine($"{typeof(With8ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w8TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w8TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly()));
             Console.WriteLine();
         }
 
@@ -1476,15 +1475,15 @@ namespace CallTargetNativeTest
             //
             var w9TUEnd = new With9ArgumentsThrowUnhandledOnEnd();
             Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.VoidMethod");
-            RunMethod(() => w9TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null));
+            RunMethod(() => w9TUEnd.VoidMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null)); // The integration for void method does not bubble up unhandled exceptions
             Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnValueMethod");
-            RunMethod(() => w9TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w9TUEnd.ReturnValueMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnReferenceMethod");
-            RunMethod(() => w9TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w9TUEnd.ReturnReferenceMethod("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<string>");
-            RunMethod(() => w9TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w9TUEnd.ReturnGenericMethod<string, string, Tuple<int, int>, ulong>("Hello world", 42, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine($"{typeof(With9ArgumentsThrowUnhandledOnEnd).FullName}.ReturnGenericMethod<int>");
-            RunMethod(() => w9TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null), expectedUnhandledExceptionType: typeof(UnhandledOnEndException));
+            RunMethod(() => w9TUEnd.ReturnGenericMethod<int, int, Tuple<int, int>, ulong>(42, 99, Tuple.Create(1, 2), Program.CompletedTask, CancellationToken.None, 987, "Arg7-Value", Assembly.GetExecutingAssembly(), null)); // The OnMethodEnd callback may not bubble up unhandled exceptoins
             Console.WriteLine();
         }
 
