@@ -36,6 +36,11 @@ namespace Samples.Wcf
                 binding = new NetTcpBinding();
                 baseAddress = new Uri($"net.tcp://localhost:{port}/{WcfNamespace}/");
             }
+            else if (args.Length > 0 && args[0].Equals("Custom", StringComparison.OrdinalIgnoreCase))
+            {
+                binding = ConfigureCustomBinding();
+                baseAddress = new Uri($"http://localhost:{port}/{WcfNamespace}/");
+            }
             else
             {
                 throw new Exception("Binding type required: WSHttpBinding, BasicHttpBinding, or NetTcpBinding");
@@ -63,6 +68,16 @@ namespace Samples.Wcf
             {
                 server?.Close();
             }
+        }
+
+        private static Binding ConfigureCustomBinding()
+        {
+            var customBinding = new CustomBinding();
+            customBinding.Elements.Add(new CustomBindingElement());
+            customBinding.Elements.Add(new TextMessageEncodingBindingElement(MessageVersion.Soap11, System.Text.Encoding.UTF8));
+            customBinding.Elements.Add(new HttpTransportBindingElement());
+
+            return customBinding;
         }
     }
 }
