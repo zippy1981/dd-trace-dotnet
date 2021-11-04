@@ -393,7 +393,7 @@ namespace Datadog.Trace
         {
             if (parent == null && !ignoreActiveScope)
             {
-                parent = _scopeManager.Active?.Span?.Context;
+                parent = _scopeManager.Active?.Span?.Context ?? SharedContext.GetSpanContext();
             }
 
             ITraceContext traceContext;
@@ -412,9 +412,7 @@ namespace Datadog.Trace
             }
 
             var finalServiceName = serviceName ?? parent?.ServiceName ?? DefaultServiceName;
-            var spanContext = new SpanContext(parent, traceContext, finalServiceName, spanId);
-
-            return spanContext;
+            return new SpanContext(parent, traceContext, finalServiceName, spanId);
         }
 
         internal Scope StartActiveWithTags(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, bool finishOnClose = true, ITags tags = null, ulong? spanId = null)
