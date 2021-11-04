@@ -16,7 +16,7 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (dictionary == null)
             {
-                throw new ArgumentNullException(nameof(dictionary));
+                ThrowHelper.ArgumentNullException(nameof(dictionary));
             }
 
             return dictionary.TryGetValue(key, out var value)
@@ -28,7 +28,7 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (dictionary == null)
             {
-                throw new ArgumentNullException(nameof(dictionary));
+                ThrowHelper.ArgumentNullException(nameof(dictionary));
             }
 
             return dictionary.TryGetValue(key, out TValue value)
@@ -40,7 +40,7 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (dictionary == null)
             {
-                throw new ArgumentNullException(nameof(dictionary));
+                ThrowHelper.ArgumentNullException(nameof(dictionary));
             }
 
             object valueObj;

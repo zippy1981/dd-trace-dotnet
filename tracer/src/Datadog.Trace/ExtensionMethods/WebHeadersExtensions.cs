@@ -25,7 +25,7 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (headers == null)
             {
-                throw new ArgumentNullException(nameof(headers));
+                ThrowHelper.ArgumentNullException(nameof(headers));
             }
 
             return new WebHeadersCollection(headers);

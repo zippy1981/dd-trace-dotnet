@@ -87,7 +87,7 @@ namespace Datadog.Trace.Agent.Transports
                 var contentLength = response.Content.Length;
                 if (!contentLength.HasValue)
                 {
-                    throw new Exception("Content-Length is required but was not provided");
+                    ThrowHelper.Exception("Content-Length is required but was not provided");
                 }
 
                 // buffer the entire contents for now

@@ -23,7 +23,7 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (collection == null)
             {
-                throw new ArgumentNullException(nameof(collection));
+                ThrowHelper.ArgumentNullException(nameof(collection));
             }
 
             return new NameValueHeadersCollection(collection);

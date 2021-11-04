@@ -193,7 +193,7 @@ namespace Datadog.Trace
                 {
                     if (_instance is ILockedTracer)
                     {
-                        throw new InvalidOperationException("The current tracer instance cannot be replaced.");
+                        ThrowHelper.InvalidOperationException("The current tracer instance cannot be replaced.");
                     }
 
                     _instance = value;
