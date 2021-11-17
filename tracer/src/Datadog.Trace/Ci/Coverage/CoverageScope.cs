@@ -1,0 +1,48 @@
+// <copyright file="CoverageScope.cs" company="Datadog">
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
+// This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
+// </copyright>
+
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace Datadog.Trace.Ci.Coverage
+{
+    /// <summary>
+    /// Coverage scope
+    /// </summary>
+    [StructLayout(LayoutKind.Auto)]
+    public readonly ref struct CoverageScope
+    {
+        private readonly uint _methodDef;
+        private readonly CoverageContextContainer _container;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal CoverageScope(uint methodDef, CoverageContextContainer container)
+        {
+            _methodDef = methodDef;
+            _container = container;
+        }
+
+        /// <summary>
+        /// Report a running instruction
+        /// </summary>
+        /// <param name="range">Range value</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Report(ulong range)
+        {
+            _container.Store(_methodDef, range);
+        }
+
+        /// <summary>
+        /// Report a running instruction
+        /// </summary>
+        /// <param name="range">Range value</param>
+        /// <param name="range2">Range2 value</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Report(ulong range, ulong range2)
+        {
+            _container.Store(_methodDef, range, range2);
+        }
+    }
+}
