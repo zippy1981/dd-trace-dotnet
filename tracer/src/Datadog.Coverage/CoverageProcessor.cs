@@ -3,6 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using System;
 using System.IO;
 
 namespace Datadog.Coverage
@@ -26,11 +27,11 @@ namespace Datadog.Coverage
                 try
                 {
                     var asmProcessor = new AssemblyProcessor(dllFile);
-                    asmProcessor.ProcessAndSaveTo(asmProcessor.FilePath + ".new.dll");
+                    asmProcessor.ProcessAndSaveTo();
                 }
-                catch
+                catch (Datadog.Trace.Ci.Coverage.Exceptions.PdbNotFoundException)
                 {
-                    // .
+                    Console.WriteLine($"{dllFile} ignored by symbols.");
                 }
             }
 
@@ -39,11 +40,11 @@ namespace Datadog.Coverage
                 try
                 {
                     var asmProcessor = new AssemblyProcessor(exeFile);
-                    asmProcessor.ProcessAndSaveTo(asmProcessor.FilePath + ".new.dll");
+                    asmProcessor.ProcessAndSaveTo();
                 }
-                catch
+                catch (Datadog.Trace.Ci.Coverage.Exceptions.PdbNotFoundException)
                 {
-                    // .
+                    Console.WriteLine($"{exeFile} ignored by symbols.");
                 }
             }
         }
