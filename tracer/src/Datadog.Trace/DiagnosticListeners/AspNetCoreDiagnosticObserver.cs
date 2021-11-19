@@ -7,6 +7,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -21,6 +22,8 @@ using Datadog.Trace.PlatformHelpers;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.Util;
 using Datadog.Trace.Util.Http;
+using Datadog.Trace.Vendors.Newtonsoft.Json;
+using Datadog.Trace.Vendors.Newtonsoft.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
@@ -52,6 +55,13 @@ namespace Datadog.Trace.DiagnosticListeners
 
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<AspNetCoreDiagnosticObserver>();
         private static readonly AspNetCoreHttpRequestHandler AspNetCoreRequestHandler = new AspNetCoreHttpRequestHandler(Log, HttpRequestInOperationName, IntegrationId);
+        internal static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
+        {
+            ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            }
+        };
 
         private readonly Tracer _tracer;
         private readonly Security _security;
@@ -563,6 +573,12 @@ namespace Datadog.Trace.DiagnosticListeners
                     // Use an empty resource name here, as we will likely replace it as part of the request
                     // If we don't, update it in OnHostingHttpRequestInStop or OnHostingUnhandledException
                     span = AspNetCoreRequestHandler.StartAspNetCorePipelineScope(tracer, httpContext, httpContext.Request, resourceName: string.Empty).Span;
+
+                    if (span.Context.Origin == Datadog.Trace.Ci.Tags.TestTags.CIAppTestOriginName)
+                    {
+                        // Start Coverage Session
+                        Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.StartSession();
+                    }
                 }
 
                 if (shouldSecure)
@@ -781,6 +797,17 @@ namespace Datadog.Trace.DiagnosticListeners
                     {
                         span.SetHttpStatusCode(httpContext.Response.StatusCode, isServer: true, tracer.Settings);
                         span.SetHeaderTags(new HeadersCollectionAdapter(httpContext.Response.Headers), tracer.Settings.HeaderTags, defaultTagPrefix: SpanContextPropagator.HttpResponseHeadersTagPrefix);
+                    }
+                }
+
+                if (span.Context.Origin == Datadog.Trace.Ci.Tags.TestTags.CIAppTestOriginName)
+                {
+                    // Stop Coverage Session
+                    var coverageSession = Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.EndSession();
+                    if (coverageSession is not null)
+                    {
+                        scope.Span.SetTag("coverage", JsonConvert.SerializeObject(((Datadog.Trace.Ci.Coverage.Models.CoverageSession)coverageSession).Files, SerializerSettings));
+                        File.WriteAllText(@$"c:\temp\webpage_coverage.json", JsonConvert.SerializeObject(coverageSession, SerializerSettings));
                     }
                 }
 

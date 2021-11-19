@@ -331,6 +331,9 @@ namespace Datadog.Coverage
                         File.Copy(pdbFilePath, backupPdbFilePath, true);
                         new FileInfo(backupFilePath).Attributes = FileAttributes.Hidden;
                         new FileInfo(backupPdbFilePath).Attributes = FileAttributes.Hidden;
+
+                        var asmLocation = typeof(Datadog.Trace.Tracer).Assembly.Location;
+                        File.Copy(asmLocation, Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileName(asmLocation)));
                     }
                     catch (Exception ex)
                     {

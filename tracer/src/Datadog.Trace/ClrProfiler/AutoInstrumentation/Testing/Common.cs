@@ -6,12 +6,21 @@
 using System;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Vendors.Newtonsoft.Json;
+using Datadog.Trace.Vendors.Newtonsoft.Json.Serialization;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing
 {
     internal static class Common
     {
         internal static readonly IDatadogLogger Log = Ci.CIVisibility.Log;
+        internal static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings
+        {
+            ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            }
+        };
 
         internal static void FlushSpans(IntegrationId integrationInfo)
         {

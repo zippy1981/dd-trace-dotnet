@@ -5,9 +5,11 @@
 
 using System;
 using System.ComponentModel;
+using System.IO;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.DuckTyping;
+using Datadog.Trace.Vendors.Newtonsoft.Json;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
 {
@@ -114,6 +116,14 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                     {
                         scope.Span.SetException(exception);
                         scope.Span.SetTag(TestTags.Status, TestTags.StatusFail);
+                    }
+
+                    // Stop Coverage Session
+                    var coverageSession = Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.EndSession();
+                    if (coverageSession is not null)
+                    {
+                        scope.Span.SetTag("test.coverage", JsonConvert.SerializeObject(((Datadog.Trace.Ci.Coverage.Models.CoverageSession)coverageSession).Files, Common.SerializerSettings));
+                        File.WriteAllText(@$"c:\temp\{scope.Span.ResourceName}.json", JsonConvert.SerializeObject(coverageSession, Common.SerializerSettings));
                     }
 
                     scope.Dispose();

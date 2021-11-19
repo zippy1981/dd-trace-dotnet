@@ -89,6 +89,9 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                 span.SetTag(TestTags.Traits, Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(testTraits));
             }
 
+            // Start Coverage Session
+            Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.StartSession();
+
             span.ResetStartTime();
             return scope;
         }

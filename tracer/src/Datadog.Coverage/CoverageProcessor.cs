@@ -34,6 +34,10 @@ namespace Datadog.Coverage
                 {
                     Console.WriteLine($"{dllFile} ignored by symbols.");
                 }
+                catch (BadImageFormatException)
+                {
+                    // .
+                }
             });
 
             Parallel.ForEach(exeFiles, exeFile =>
@@ -46,6 +50,10 @@ namespace Datadog.Coverage
                 catch (Datadog.Trace.Ci.Coverage.Exceptions.PdbNotFoundException)
                 {
                     Console.WriteLine($"{exeFile} ignored by symbols.");
+                }
+                catch (BadImageFormatException)
+                {
+                    // .
                 }
             });
         }
