@@ -55,20 +55,21 @@ namespace Datadog.Coverage
 
                 if (assemblyDefinition.Name.HasPublicKey)
                 {
-                    Console.WriteLine($"StrongKey not yet supported.");
+                    Console.WriteLine($"Assembly: {FilePath}, StrongKey not yet supported.");
                     return;
                 }
 
                 if (assemblyDefinition.CustomAttributes.Any(cAttr =>
                     cAttr.Constructor.DeclaringType.Name == typeof(Datadog.Trace.Ci.Coverage.Attributes.AvoidCoverageAttribute).Name))
                 {
+                    Console.WriteLine($"Assembly: {FilePath}, ignored.");
                     return;
                 }
 
                 if (assemblyDefinition.CustomAttributes.Any(cAttr =>
                     cAttr.Constructor.DeclaringType.Name == typeof(Datadog.Trace.Ci.Coverage.Attributes.CoveredAssemblyAttribute).Name))
                 {
-                    Console.WriteLine($"Assembly: {assemblyDefinition.Name}, already have coverage information");
+                    Console.WriteLine($"Assembly: {FilePath}, already have coverage information.");
                     return;
                 }
 
