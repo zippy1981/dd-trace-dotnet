@@ -12,14 +12,9 @@ namespace Datadog.Trace.Ci.Coverage
     /// <summary>
     /// Coverage event handler
     /// </summary>
-    public sealed class CoverageEventHandler
+    public abstract class CoverageEventHandler
     {
         private readonly AsyncLocal<CoverageContextContainer> _asyncContext = new();
-
-        /// <summary>
-        /// On session finished
-        /// </summary>
-        public event EventHandler<CoverageInstruction[]> OnSessionFinished;
 
         /// <summary>
         /// Start session
@@ -69,15 +64,18 @@ namespace Datadog.Trace.Ci.Coverage
         /// <summary>
         /// End async session
         /// </summary>
+        /// <returns>Object instance with the final coverage report</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void EndSession()
+        public object EndSession()
         {
             var context = _asyncContext.Value;
             if (context != null)
             {
                 _asyncContext.Value = null;
-                OnSessionFinished?.Invoke(this, context.GetPayload());
+                return OnSessionFinished(context.GetPayload());
             }
+
+            return null;
         }
 
         /// <summary>
@@ -99,5 +97,12 @@ namespace Datadog.Trace.Ci.Coverage
             scope = default;
             return false;
         }
+
+        /// <summary>
+        /// Method called when a session is finished to process all coverage raw data.
+        /// </summary>
+        /// <param name="coverageInstructions">Coverage raw data</param>
+        /// <returns>Instance of the final coverage report</returns>
+        protected abstract object OnSessionFinished(CoverageInstruction[] coverageInstructions);
     }
 }

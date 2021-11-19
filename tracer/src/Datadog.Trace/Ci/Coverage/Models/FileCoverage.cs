@@ -26,6 +26,6 @@ namespace Datadog.Trace.Ci.Coverage.Models
         /// Gets or sets the limits of regions with executable code, where region begin/ends or changes count
         /// </summary>
         [DataMember(Name = "boundaries")]
-        public List<int[]> Boundaries { get; set; } = new();
+        public List<uint[]> Boundaries { get; set; } = new();
     }
 }

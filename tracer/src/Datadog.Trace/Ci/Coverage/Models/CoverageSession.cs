@@ -17,10 +17,16 @@ namespace Datadog.Trace.Ci.Coverage.Models
     public sealed class CoverageSession
     {
         /// <summary>
-        /// Gets or sets unique identifier for this file
+        /// Gets or sets the Trace Id
         /// </summary>
-        [DataMember(Name = "uuid")]
-        public Guid UUID { get; set; } = Guid.NewGuid();
+        [DataMember(Name = "traceId")]
+        public ulong TraceId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Span Id
+        /// </summary>
+        [DataMember(Name = "spanId")]
+        public ulong SpanId { get; set; }
 
         /// <summary>
         /// Gets or sets collections of source files with executable code

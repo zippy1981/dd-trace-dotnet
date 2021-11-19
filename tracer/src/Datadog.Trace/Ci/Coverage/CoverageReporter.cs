@@ -13,7 +13,7 @@ namespace Datadog.Trace.Ci.Coverage
     /// </summary>
     public static class CoverageReporter
     {
-        private static CoverageEventHandler _handler = new();
+        private static CoverageEventHandler _handler = new DefaultCoverageEventHandler();
 
         /// <summary>
         /// Gets or sets coverage handler
