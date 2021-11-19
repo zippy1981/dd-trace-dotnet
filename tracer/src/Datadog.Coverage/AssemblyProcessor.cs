@@ -135,7 +135,9 @@ namespace Datadog.Coverage
                                         var jmpTargetInstructionIndex = instructions.IndexOf(jmpTargetInstruction);
 
                                         // Modify the clone instruction with the cloned jump target
-                                        instructions[i + instructionsOriginalLength].Operand = instructions[jmpTargetInstructionIndex + instructionsOriginalLength];
+                                        var clonedInstruction = instructions[i + instructionsOriginalLength];
+                                        RemoveShortOpcodes(clonedInstruction);
+                                        clonedInstruction.Operand = instructions[jmpTargetInstructionIndex + instructionsOriginalLength];
                                     }
                                     else if (currentInstruction.Operand is Instruction[] jmpTargetInstructions)
                                     {
@@ -149,7 +151,9 @@ namespace Datadog.Coverage
                                         }
 
                                         // Modify the clone instruction with the cloned jump target
-                                        instructions[i + instructionsOriginalLength].Operand = newJmpTargetInstructions;
+                                        var clonedInstruction = instructions[i + instructionsOriginalLength];
+                                        RemoveShortOpcodes(clonedInstruction);
+                                        clonedInstruction.Operand = newJmpTargetInstructions;
                                     }
                                 }
 
@@ -361,6 +365,24 @@ namespace Datadog.Coverage
 
                 throw;
             }
+        }
+
+        private static void RemoveShortOpcodes(Instruction instruction)
+        {
+            if (instruction.OpCode == OpCodes.Br_S) { instruction.OpCode = OpCodes.Br; }
+            if (instruction.OpCode == OpCodes.Brfalse_S) { instruction.OpCode = OpCodes.Brfalse; }
+            if (instruction.OpCode == OpCodes.Brtrue_S) { instruction.OpCode = OpCodes.Brtrue; }
+            if (instruction.OpCode == OpCodes.Leave_S) { instruction.OpCode = OpCodes.Leave; }
+            if (instruction.OpCode == OpCodes.Blt_S) { instruction.OpCode = OpCodes.Blt; }
+            if (instruction.OpCode == OpCodes.Blt_Un_S) { instruction.OpCode = OpCodes.Blt_Un; }
+            if (instruction.OpCode == OpCodes.Ble_S) { instruction.OpCode = OpCodes.Ble; }
+            if (instruction.OpCode == OpCodes.Ble_Un_S) { instruction.OpCode = OpCodes.Ble_Un; }
+            if (instruction.OpCode == OpCodes.Bgt_S) { instruction.OpCode = OpCodes.Bgt; }
+            if (instruction.OpCode == OpCodes.Bgt_Un_S) { instruction.OpCode = OpCodes.Bgt_Un; }
+            if (instruction.OpCode == OpCodes.Bge_S) { instruction.OpCode = OpCodes.Bge; }
+            if (instruction.OpCode == OpCodes.Bge_Un_S) { instruction.OpCode = OpCodes.Bge_Un; }
+            if (instruction.OpCode == OpCodes.Beq_S) { instruction.OpCode = OpCodes.Beq; }
+            if (instruction.OpCode == OpCodes.Bne_Un_S) { instruction.OpCode = OpCodes.Bne_Un; }
         }
 
         private static Instruction CloneInstruction(Instruction instruction)

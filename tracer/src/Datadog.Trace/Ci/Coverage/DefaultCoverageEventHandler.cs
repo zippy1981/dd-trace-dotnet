@@ -15,6 +15,11 @@ namespace Datadog.Trace.Ci.Coverage
     {
         protected override object OnSessionFinished(CoverageInstruction[] coverageInstructions)
         {
+            if (coverageInstructions == null || coverageInstructions.Length == 0)
+            {
+                return null;
+            }
+
             var coverageSession = new CoverageSession
             {
                 TraceId = CorrelationIdentifier.TraceId,

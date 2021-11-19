@@ -12,7 +12,13 @@ namespace Datadog.Coverage
     {
         public static void Main(string[] args)
         {
-            var coverageProcessor = new CoverageProcessor(@"C:\Users\danielredondo\source\repos\ConsoleApp16\ConsoleApp16\bin\Debug");
+            if (args == null || args.Length == 0)
+            {
+                Console.WriteLine("Error: missing folder path.");
+                return;
+            }
+
+            var coverageProcessor = new CoverageProcessor(args[0]);
             coverageProcessor.Process();
         }
     }

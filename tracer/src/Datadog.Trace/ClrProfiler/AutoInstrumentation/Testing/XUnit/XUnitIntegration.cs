@@ -5,11 +5,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Datadog.Trace.Ci;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.ExtensionMethods;
+using Datadog.Trace.Vendors.Newtonsoft.Json;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
@@ -92,6 +94,9 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
                 return null;
             }
 
+            // Start Coverage Session
+            Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.StartSession();
+
             span.ResetStartTime();
             return scope;
         }
@@ -116,6 +121,13 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
             else
             {
                 scope.Span.SetTag(TestTags.Status, TestTags.StatusPass);
+            }
+
+            // Stop Coverage Session
+            var coverageSession = Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.EndSession();
+            if (coverageSession is not null)
+            {
+                File.WriteAllText(@$"c:\temp\{scope.Span.ResourceName}.json", JsonConvert.SerializeObject(coverageSession));
             }
 
             scope.Dispose();

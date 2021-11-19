@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Datadog.Coverage": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\danielredondo\\source\\repos\\ConsoleApp16\\ConsoleApp16\\bin\\Debug"
+    }
+  }
+}

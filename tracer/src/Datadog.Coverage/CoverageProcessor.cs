@@ -5,6 +5,7 @@
 
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Datadog.Coverage
 {
@@ -22,7 +23,7 @@ namespace Datadog.Coverage
             var dllFiles = Directory.GetFiles(_folderPath, "*.dll");
             var exeFiles = Directory.GetFiles(_folderPath, "*.exe");
 
-            foreach (var dllFile in dllFiles)
+            Parallel.ForEach(dllFiles, dllFile =>
             {
                 try
                 {
@@ -33,9 +34,9 @@ namespace Datadog.Coverage
                 {
                     Console.WriteLine($"{dllFile} ignored by symbols.");
                 }
-            }
+            });
 
-            foreach (var exeFile in exeFiles)
+            Parallel.ForEach(exeFiles, exeFile =>
             {
                 try
                 {
@@ -46,7 +47,7 @@ namespace Datadog.Coverage
                 {
                     Console.WriteLine($"{exeFile} ignored by symbols.");
                 }
-            }
+            });
         }
     }
 }
