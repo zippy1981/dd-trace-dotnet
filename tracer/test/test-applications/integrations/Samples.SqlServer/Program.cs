@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Threading.Tasks;
+using Datadog.Trace;
 using Samples.DatabaseHelper;
 using Samples.SqlServer.Vb;
 
@@ -38,6 +39,7 @@ namespace Samples.SqlServer
             await Task.Delay(2000, cts.Token);
         }
 
+        [Trace]
         private static DbConnection OpenConnection(Type connectionType)
         {
             int numAttempts = 3;

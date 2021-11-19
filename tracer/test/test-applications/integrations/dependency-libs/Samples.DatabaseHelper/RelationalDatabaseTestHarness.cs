@@ -12,6 +12,7 @@ namespace Samples.DatabaseHelper
 {
     public static class RelationalDatabaseTestHarness
     {
+        [Trace]
         /// <summary>
         /// Helper method that runs ADO.NET test suite for the specified <see cref="IDbCommandExecutor"/>
         /// in addition to other built-in implementations.

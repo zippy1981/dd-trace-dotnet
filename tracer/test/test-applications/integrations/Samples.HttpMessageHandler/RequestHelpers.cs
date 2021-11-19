@@ -174,6 +174,7 @@ namespace Samples.HttpMessageHandler
         }
 
 #if NET5_0_OR_GREATER
+        [Trace]
         public static void SendHttpClientRequests(HttpClient client, bool tracingDisabled, string url, string requestContent)
         {
             // Insert a call to the Tracer.Instance to include an AssemblyRef to Datadog.Trace assembly in the final executable

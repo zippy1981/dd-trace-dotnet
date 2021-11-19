@@ -397,6 +397,11 @@ partial class Build
                 var dest = TracerHomeDirectory / $"win-{architecture}";
                 Logger.Info($"Copying '{source}' to '{dest}'");
                 CopyFileToDirectory(source, dest, FileExistsPolicy.Overwrite);
+
+                source = NativeProfilerProject.Directory / "bin" / BuildConfiguration / architecture.ToString() /
+                             $"{NativeProfilerProject.Name}.pdb";
+                Logger.Info($"Copying '{source}' to '{dest}'");
+                CopyFileToDirectory(source, dest, FileExistsPolicy.Overwrite);
             }
         });
 

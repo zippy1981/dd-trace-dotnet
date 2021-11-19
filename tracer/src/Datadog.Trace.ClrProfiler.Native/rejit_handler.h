@@ -131,6 +131,7 @@ private:
 
     void RequestRejitForInlinersInModule(ModuleID moduleId);
     void RequestRejit(std::vector<ModuleID>& modulesVector, std::vector<mdMethodDef>& modulesMethodDef);
+    bool TypeNameMatchesTraceAttribute(WCHAR type_name[], DWORD type_name_len);
 
 public:
     RejitHandler(ICorProfilerInfo7* pInfo,

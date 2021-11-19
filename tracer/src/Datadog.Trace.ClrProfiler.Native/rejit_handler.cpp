@@ -563,7 +563,7 @@ HRESULT RejitHandler::NotifyReJITParameters(ModuleID moduleId, mdMethodDef metho
         Logger::Warn("NotifyReJITCompilationStarted: IntegrationDefinition is missing for "
                      "MethodDef: ",
                      methodId);
-        return S_FALSE;
+        // return S_FALSE; // Do not error out. If there is no integration, we assume that this is marked by the TraceAttribute so we know there is no integration method to redirect to
     }
 
     if (moduleHandler->GetModuleId() == 0)
@@ -821,6 +821,250 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                 enumIterator = ++enumIterator;
             }
         }
+
+        if (assemblyMetadata == nullptr)
+        {
+            Logger::Debug("  Loading Assembly Metadata...");
+            auto hr = m_profilerInfo->GetModuleMetaData(moduleInfo.id, ofRead | ofWrite, IID_IMetaDataImport2,
+                                                        metadataInterfaces.GetAddressOf());
+            if (FAILED(hr))
+            {
+                Logger::Warn("CallTarget_RequestRejitForModule failed to get metadata interface for ", moduleInfo.id,
+                             " ", moduleInfo.assembly.name);
+                break;
+            }
+
+            metadataImport = metadataInterfaces.As<IMetaDataImport2>(IID_IMetaDataImport);
+            metadataEmit = metadataInterfaces.As<IMetaDataEmit2>(IID_IMetaDataEmit);
+            assemblyImport = metadataInterfaces.As<IMetaDataAssemblyImport>(IID_IMetaDataAssemblyImport);
+            assemblyEmit = metadataInterfaces.As<IMetaDataAssemblyEmit>(IID_IMetaDataAssemblyEmit);
+            assemblyMetadata = std::make_unique<AssemblyMetadata>(GetAssemblyImportMetadata(assemblyImport));
+            Logger::Debug("  Assembly Metadata loaded for: ", assemblyMetadata->name, "(",
+                          assemblyMetadata->version.str(), ").");
+        }
+
+        // First do an eager check to see if the assembly has any TypeRefs or TypeDefs for the type "Datadog.Trace.TraceAttribute"
+        // This will save us a lot of time because in the general case we don't expect the type to be present
+        
+        // We are in the right module, so we try to load the mdTypeDef from the integration target type name.
+        mdTypeDef typeDef = mdTypeDefNil;
+        mdTypeRef typeRef = mdTypeRefNil;
+        static WSTRING traceAttribute = ToWSTRING("Datadog.Trace.TraceAttribute");
+        static LPCWSTR traceAttribute_cstring = traceAttribute.c_str();
+        bool foundType = false;
+
+        auto hr = metadataImport->FindTypeDefByName(traceAttribute_cstring, mdTypeDefNil, &typeDef);
+        if (SUCCEEDED(hr))
+        {
+            foundType = true;
+            Logger::Info("Found the TypeDef for: ", traceAttribute, ", Module: ", moduleInfo.assembly.name);
+        }
+        else
+        {
+            Logger::Info("Could not find the TypeDef for: ", traceAttribute, ", Module: ", moduleInfo.assembly.name);
+            // metadataImport->FindTypeRef(, traceAttribute_cstring, &typeRef);
+
+            // Now we enumerate all type refs in this assembly to see if Datadog.Trace.TraceAttribute is referenced
+            auto enumTypeRefs = Enumerator<mdTypeRef>(
+                [&metadataImport](HCORENUM* ptr, mdTypeRef arr[], ULONG max,
+                                                         ULONG* cnt) -> HRESULT {
+                    return metadataImport->EnumTypeRefs(ptr, arr, max, cnt);
+                },
+                [&metadataImport](HCORENUM ptr) -> void { metadataImport->CloseEnum(ptr); });
+
+            auto enumIterator = enumTypeRefs.begin();
+            while (enumIterator != enumTypeRefs.end())
+            {
+                mdTypeRef typeRef = *enumIterator;
+
+                // Check if the typeref matches
+                mdToken parent_token = mdTokenNil;
+                WCHAR type_name[kNameMaxSize]{};
+                DWORD type_name_len = 0;
+
+                hr = metadataImport->GetTypeRefProps(typeRef, &parent_token, type_name, kNameMaxSize, &type_name_len);
+
+                if (TypeNameMatchesTraceAttribute(type_name, type_name_len))
+                {
+                    foundType = true;
+                    Logger::Info("Found the TypeRef for: ", traceAttribute, ", Module: ", moduleInfo.assembly.name);
+                    break;
+                }
+
+                enumIterator = ++enumIterator;
+            }
+
+        }
+
+        // We have typeRef and it matches Datadog.Trace.Attribute
+        // Since it is referenced, it should be inuse somewhere in this module
+        // So iterate over all methods in
+        if (foundType)
+        {
+            // Now we enumerate all custom attributes in this assembly to see if Datadog.Trace.TraceAttribute is used
+            auto enumCustomAttributes = Enumerator<mdCustomAttribute>(
+                [&metadataImport](HCORENUM* ptr, mdCustomAttribute arr[], ULONG max, ULONG* cnt) -> HRESULT {
+                    return metadataImport->EnumCustomAttributes(ptr, mdTokenNil, mdTokenNil, arr, max, cnt);
+                },
+                [&metadataImport](HCORENUM ptr) -> void { metadataImport->CloseEnum(ptr); });
+            auto customAttributesIterator = enumCustomAttributes.begin();
+
+            while (customAttributesIterator != enumCustomAttributes.end())
+            {
+                mdCustomAttribute customAttribute = *customAttributesIterator;
+
+                // Check if the typeref matches
+                mdToken parent_token = mdTokenNil;
+                mdToken attribute_ctor_token = mdTokenNil;
+                const void* attribute_data = nullptr; // We'll likely need to use this Hopefully we don't need to use this because I don't know how
+                DWORD data_size = 0;
+
+                hr = metadataImport->GetCustomAttributeProps(customAttribute, &parent_token, &attribute_ctor_token,
+                                                                &attribute_data, &data_size);
+
+                // We are only concerned with Datadog.Trace.TraceAttributes on method definitions
+                if (TypeFromToken(parent_token) == mdtMethodDef)
+                {
+                    mdTypeDef attribute_type_token = mdTypeDefNil;
+                    WCHAR function_name[kNameMaxSize]{};
+                    DWORD function_name_len = 0;
+
+                    const auto attribute_ctor_token_type = TypeFromToken(attribute_ctor_token);
+                    if (attribute_ctor_token_type == mdtMemberRef)
+                    {
+                        hr = metadataImport->GetMemberRefProps(attribute_ctor_token, &attribute_type_token,
+                                                               function_name, kNameMaxSize, &function_name_len,
+                                                                nullptr, nullptr);
+                    }
+                    else if (attribute_ctor_token_type == mdtMethodDef)
+                    {                    
+                        // Get the type name from the constructor
+                        hr = metadataImport->GetMemberProps(
+                            attribute_ctor_token, &attribute_type_token, function_name, kNameMaxSize, &function_name_len,
+                            nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
+                    }
+                    else
+                    {
+                        hr = E_FAIL;
+                    }
+
+                    if (SUCCEEDED(hr))
+                    {
+                        mdToken resolution_token = mdTokenNil;
+                        WCHAR type_name[kNameMaxSize]{};
+                        DWORD type_name_len = 0;
+
+                        const auto token_type = TypeFromToken(attribute_type_token);
+                        if (token_type == mdtTypeDef)
+                        {
+                            DWORD type_flags;
+                            mdToken type_extends = mdTokenNil;
+                            hr = metadataImport->GetTypeDefProps(attribute_type_token, type_name,
+                                                                  kNameMaxSize,
+                                                                  &type_name_len,
+                                                                  &type_flags, &type_extends);
+                        }
+                        else if (token_type == mdtTypeRef)
+                        {
+                            hr = metadataImport->GetTypeRefProps(attribute_type_token, &resolution_token, type_name,
+                                                                  kNameMaxSize,
+                                                                  &type_name_len);
+                        }
+
+                        // Compare the type name of the attribute (will fail if not populated)
+                        if (TypeNameMatchesTraceAttribute(type_name, type_name_len))
+                        {
+                            mdMethodDef methodDef = (mdMethodDef)parent_token;
+
+                            // Matches! Let's mark the attached method for ReJIT
+                            // Extract the function info from the mdMethodDef
+                            const auto caller = GetFunctionInfo(metadataImport, methodDef);
+                            if (!caller.IsValid())
+                            {
+                                Logger::Warn("    * The caller for the methoddef: ", TokenStr(&parent_token),
+                                             " is not valid!");
+                                customAttributesIterator = ++customAttributesIterator;
+                                continue;
+                            }
+
+                            // We create a new function info into the heap from the caller functionInfo in the stack, to
+                            // be used later in the ReJIT process
+                            auto functionInfo = FunctionInfo(caller);
+
+                            // As we are in the right method, we gather all information we need and stored it in to the
+                            // ReJIT handler.
+                            auto moduleHandler = GetOrAddModule(moduleInfo.id);
+                            if (moduleHandler == nullptr)
+                            {
+                                Logger::Warn(
+                                    "Module handler is null, this only happens if the RejitHandler has been shutdown.");
+                                break;
+                            }
+                            if (moduleHandler->GetModuleMetadata() == nullptr)
+                            {
+                                Logger::Debug("Creating ModuleMetadata...");
+
+                                const auto moduleMetadata =
+                                    new ModuleMetadata(metadataImport, metadataEmit, assemblyImport, assemblyEmit,
+                                                       moduleInfo.assembly.name, moduleInfo.assembly.app_domain_id,
+                                                       m_pCorAssemblyProperty);
+
+                                Logger::Info("ReJIT handler stored metadata for ", moduleInfo.id, " ",
+                                             moduleInfo.assembly.name, " AppDomain ", moduleInfo.assembly.app_domain_id,
+                                             " ", moduleInfo.assembly.app_domain_name);
+
+                                moduleHandler->SetModuleMetadata(moduleMetadata);
+                            }
+
+                            auto methodHandler = moduleHandler->GetOrAddMethod(methodDef);
+                            if (methodHandler->GetFunctionInfo() == nullptr)
+                            {
+                                methodHandler->SetFunctionInfo(functionInfo);
+                            }
+                            if (methodHandler->GetIntegrationDefinition() == nullptr)
+                            {
+                                // Do nothing for now, we'll just relax the integration requirement because this isn't a real integration
+                                // methodHandler->SetIntegrationDefinition(integration);
+                            }
+
+                            // Store module_id and methodDef to request the ReJIT after analyzing all integrations.
+                            vtModules.push_back(moduleInfo.id);
+                            vtMethodDefs.push_back(methodDef);
+
+                            Logger::Debug("    * Enqueue for ReJIT [ModuleId=", moduleInfo.id,
+                                          ", MethodDef=", TokenStr(&methodDef),
+                                          ", AppDomainId=", moduleHandler->GetModuleMetadata()->app_domain_id,
+                                          ", Assembly=", moduleHandler->GetModuleMetadata()->assemblyName,
+                                          ", Type=", caller.type.name, ", Method=", caller.name, "(Unknown",
+                                          " params), Signature=", caller.signature.str(), "]");
+                        }
+                    }
+                }
+
+                // parent_token is a mdToken for what the attribute is attached to. Only do rejit stuff if this is a methodDef
+                // parent_token_type is a methodDef / methodRef for the constructor. From that member,
+                // extract the type name from the constructor's owning type
+                // if it matches the datadog name, then do stuff
+                // Technically, we could add more capabilities to the trace attribute, but we don't care about that right now
+                // It's possible we would want to define the following properties:
+                // - Operation name (for now: manual-trace)
+                // - Resource name (for now: method-name)
+
+                /* 
+                // Store module_id and methodDef to request the ReJIT after analyzing all integrations.
+                vtModules.push_back(moduleInfo.id);
+                vtMethodDefs.push_back(methodDef);
+
+                Logger::Debug("    * Enqueue for ReJIT [ModuleId=", moduleInfo.id, ", MethodDef=", TokenStr(&methodDef),
+                              ", AppDomainId=", moduleHandler->GetModuleMetadata()->app_domain_id,
+                              ", Assembly=", moduleHandler->GetModuleMetadata()->assemblyName,
+                              ", Type=", caller.type.name, ", Method=", caller.name, "(", numOfArgs,
+                              " params), Signature=", caller.signature.str(), "]");
+                */
+
+                customAttributesIterator = ++customAttributesIterator;
+            }
+        }
     }
 
     const auto rejitCount = (ULONG) vtMethodDefs.size();
@@ -839,6 +1083,33 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
     }
 
     return rejitCount;
+}
+
+bool RejitHandler::TypeNameMatchesTraceAttribute(WCHAR type_name[], DWORD type_name_len)
+{
+    static WSTRING traceAttribute = ToWSTRING("Datadog.Trace.TraceAttribute");
+    static LPCWSTR traceAttribute_cstring = traceAttribute.c_str();
+    static size_t traceAttributeLength = traceAttribute.length();
+
+    // Name must match exactly. Subract 1 from the input length to account for the trailing '\0'
+    if (type_name_len - 1 == traceAttributeLength)
+    {
+        bool nameMatches = true;
+        for (size_t i = 0; i < traceAttributeLength; i++)
+        {
+            if (type_name[i] != traceAttribute_cstring[i])
+            {
+                // TODO: Delete substring because it creates unneeded allocations
+                Logger::Warn("Datadog.Trace.Attribute != ", WSTRING(type_name), ". Comparison failed at index ", i,
+                             ": ", type_name[i], " != ", traceAttribute_cstring[i]);
+                return false;
+            }
+        }
+
+        return nameMatches;
+    }
+
+    return false;
 }
 
 } // namespace trace
