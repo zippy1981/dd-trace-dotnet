@@ -35,6 +35,9 @@ private:
     mdTypeRef runtimeTypeHandleRef = mdTypeRefNil;
     mdToken getTypeFromHandleToken = mdTokenNil;
     mdTypeRef runtimeMethodHandleRef = mdTypeRefNil;
+    mdTypeRef idisposableTypeRef = mdTypeRefNil;
+    mdTypeRef nullableTypeRef = mdTypeRefNil;
+    mdTypeRef dateTimeOffsetTypeRef = mdTypeRefNil;
 
     // CallTarget tokens
     mdAssemblyRef profilerAssemblyRef = mdAssemblyRefNil;
@@ -42,10 +45,16 @@ private:
     mdTypeRef callTargetStateTypeRef = mdTypeRefNil;
     mdTypeRef callTargetReturnVoidTypeRef = mdTypeRefNil;
     mdTypeRef callTargetReturnTypeRef = mdTypeRefNil;
+    mdTypeRef tracerTypeRef = mdTypeRefNil;
+    mdTypeRef scopeTypeRef = mdTypeRefNil;
+    mdTypeRef ispanContextTypeRef = mdTypeRefNil;
 
     mdMemberRef beginArrayMemberRef = mdMemberRefNil;
     mdMemberRef beginMethodFastPathRefs[FASTPATH_COUNT];
     mdMemberRef endVoidMemberRef = mdMemberRefNil;
+    mdMemberRef idisposableDisposeMemberRef = mdMemberRefNil;
+    mdMemberRef tracerGetInstanceMemberRef = mdMemberRefNil;
+    mdMemberRef tracerStartActiveMemberRef = mdMemberRefNil;
 
     mdMemberRef logExceptionRef = mdMemberRefNil;
 
@@ -56,6 +65,7 @@ private:
     ModuleMetadata* GetMetadata();
     HRESULT EnsureCorLibTokens();
     HRESULT EnsureBaseCalltargetTokens();
+    HRESULT EnsureTracerTokens();
     mdTypeRef GetTargetStateTypeRef();
     mdTypeRef GetTargetVoidReturnTypeRef();
     mdTypeSpec GetTargetReturnValueTypeRef(FunctionMethodArgument* returnArgument);
@@ -68,6 +78,9 @@ private:
     HRESULT ModifyLocalSig(ILRewriter* reWriter, FunctionMethodArgument* methodReturnValue, ULONG* callTargetStateIndex,
                            ULONG* exceptionIndex, ULONG* callTargetReturnIndex, ULONG* returnValueIndex,
                            mdToken* callTargetStateToken, mdToken* exceptionToken, mdToken* callTargetReturnToken);
+    HRESULT ModifyLocalSig_NoIntegration(ILRewriter* reWriter, FunctionMethodArgument* methodReturnValue, ULONG* idisposableIndex, ULONG* nullableDateTimeOffsetIndex,
+                                         ULONG* callTargetReturnIndex, mdToken* idisposableToken,
+                                         mdToken* nullableDateTimeOffsetToken);
 
     HRESULT WriteBeginMethodWithArgumentsArray(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
                                                const TypeInfo* currentType, ILInstr** instruction);
@@ -84,9 +97,17 @@ public:
                                         ULONG* callTargetReturnIndex, ULONG* returnValueIndex,
                                         mdToken* callTargetStateToken, mdToken* exceptionToken,
                                         mdToken* callTargetReturnToken, ILInstr** firstInstruction);
+    HRESULT ModifyLocalSigAndInitialize_NoIntegration(void* rewriterWrapperPtr, FunctionInfo* functionInfo,
+                                        ULONG* idisposableIndex, ULONG* nullableDateTimeOffsetIndex,
+                                        ULONG* returnValueIndex, mdToken* idisposableToken,
+                                        mdToken* nullableDateTimeOffsetToken, ILInstr** firstInstruction);
 
     HRESULT WriteBeginMethod(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef, const TypeInfo* currentType,
                              std::vector<FunctionMethodArgument>& methodArguments, ILInstr** instruction);
+
+    HRESULT WriteTracerGetInstance(void* rewriterWrapperPtr, ILInstr** instruction);
+
+    HRESULT WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction);
 
     HRESULT WriteEndVoidReturnMemberRef(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
                                         const TypeInfo* currentType, ILInstr** instruction);
@@ -99,6 +120,8 @@ public:
 
     HRESULT WriteCallTargetReturnGetReturnValue(void* rewriterWrapperPtr, mdTypeSpec callTargetReturnTypeSpec,
                                                 ILInstr** instruction);
+
+    HRESULT WriteIDisposableDispose(void* rewriterWrapperPtr, ILInstr** instruction);
 };
 
 } // namespace trace

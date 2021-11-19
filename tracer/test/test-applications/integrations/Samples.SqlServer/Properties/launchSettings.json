@@ -13,7 +13,8 @@
 
         "DD_DOTNET_TRACER_HOME": "$(SolutionDir)tracer\\bin\\tracer-home",
         "DD_VERSION": "1.0.0",
-        "DD_PROFILER_EXCLUDE_PROCESSES": "sqlservr.exe"
+        "DD_PROFILER_EXCLUDE_PROCESSES": "sqlservr.exe",
+        "DD_DUMP_ILREWRITE_ENABLED": "true"
       },
       "nativeDebugging": true
     }

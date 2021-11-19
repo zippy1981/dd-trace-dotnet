@@ -80,6 +80,8 @@ private:
     // CallTarget Methods
     //
     HRESULT CallTarget_RewriterCallback(RejitHandlerModule* moduleHandler, RejitHandlerModuleMethod* methodHandler);
+    HRESULT CallTarget_RewriterCallback_WithIntegration(RejitHandlerModule* moduleHandler, RejitHandlerModuleMethod* methodHandler);
+    HRESULT CallTarget_RewriterCallback_WithoutIntegration(RejitHandlerModule* moduleHandler, RejitHandlerModuleMethod* methodHandler);
 
 public:
     CorProfiler() = default;

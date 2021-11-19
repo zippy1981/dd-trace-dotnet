@@ -13,6 +13,7 @@ namespace Samples.SqlServer
     {
         private static async Task Main()
         {
+            Console.WriteLine($"The result of {nameof(BasicallyDoNothing)} should be 3. Actual return value: {BasicallyDoNothing()}");
             var commandFactory = new DbCommandFactory($"[System-Data-SqlClient-Test-{Guid.NewGuid():N}]");
             var commandExecutor = new SqlCommandExecutor();
             var commandExecutorVb = new SqlCommandExecutorVb();
@@ -42,28 +43,37 @@ namespace Samples.SqlServer
         [Trace]
         private static DbConnection OpenConnection(Type connectionType)
         {
-            int numAttempts = 3;
-            var connectionString = Environment.GetEnvironmentVariable("SQLSERVER_CONNECTION_STRING") ??
-@"Server=(localdb)\MSSQLLocalDB;Integrated Security=true;Connection Timeout=60";
-
-            for (int i = 0; i < numAttempts; i++)
+            using (Tracer.Instance.StartActive("OpenConnectionAPI"))
             {
-                DbConnection connection = null;
+                int numAttempts = 3;
+                var connectionString = Environment.GetEnvironmentVariable("SQLSERVER_CONNECTION_STRING") ??
+    @"Server=(localdb)\MSSQLLocalDB;Integrated Security=true;Connection Timeout=60";
 
-                try
+                for (int i = 0; i < numAttempts; i++)
                 {
-                    connection = Activator.CreateInstance(connectionType, connectionString) as DbConnection;
-                    connection.Open();
-                    return connection;
+                    DbConnection connection = null;
+
+                    try
+                    {
+                        connection = Activator.CreateInstance(connectionType, connectionString) as DbConnection;
+                        connection.Open();
+                        return connection;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                        connection?.Dispose();
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                    connection?.Dispose();
-                }
+
+                throw new Exception($"Unable to open connection to connection string {connectionString} after {numAttempts} attempts");
             }
+        }
 
-            throw new Exception($"Unable to open connection to connection string {connectionString} after {numAttempts} attempts");
+        [Trace]
+        private static int BasicallyDoNothing()
+        {
+            return 3;
         }
     }
 }

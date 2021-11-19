@@ -32,6 +32,13 @@ static const WSTRING managed_profiler_calltarget_returntype_generics =
     WStr("Datadog.Trace.ClrProfiler.CallTarget.CallTargetReturn`1");
 static const WSTRING managed_profiler_calltarget_returntype_getreturnvalue_name = WStr("GetReturnValue");
 
+static const WSTRING tracer_type = WStr("Datadog.Trace.Tracer");
+static const WSTRING scope_type = WStr("Datadog.Trace.Scope");
+static const WSTRING ispanContext_type = WStr("Datadog.Trace.ISpanContext");
+static const WSTRING tracer_get_instance_name = WStr("get_Instance");
+static const WSTRING tracer_start_active_name = WStr("StartActive");
+static const WSTRING idisposable_dispose_name = WStr("Dispose");
+
 /**
  * PRIVATE
  **/
@@ -147,6 +154,42 @@ HRESULT CallTargetTokens::EnsureCorLibTokens()
         }
     }
 
+    // *** Ensure System.IDisposable type ref
+    if (idisposableTypeRef == mdTypeRefNil)
+    {
+        auto hr = module_metadata->metadata_emit->DefineTypeRefByName(corLibAssemblyRef, SystemIDisposable,
+                                                                      &idisposableTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper idisposableTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure System.Nullable type ref
+    if (nullableTypeRef == mdTypeRefNil)
+    {
+        auto hr = module_metadata->metadata_emit->DefineTypeRefByName(corLibAssemblyRef, SystemNullable,
+                                                                      &nullableTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper nullableTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure System.DateTimeOffset type ref
+    if (dateTimeOffsetTypeRef == mdTypeRefNil)
+    {
+        auto hr = module_metadata->metadata_emit->DefineTypeRefByName(corLibAssemblyRef, SystemDateTimeOffset,
+                                                                      &dateTimeOffsetTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper dateTimeOffsetTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
     return S_OK;
 }
 
@@ -245,6 +288,93 @@ HRESULT CallTargetTokens::EnsureBaseCalltargetTokens()
         if (FAILED(hr))
         {
             Logger::Warn("Wrapper callTargetStateTypeGetDefault could not be defined.");
+            return hr;
+        }
+    }
+
+    return S_OK;
+}
+
+HRESULT CallTargetTokens::EnsureTracerTokens()
+{
+    auto hr = EnsureCorLibTokens();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    // *** Ensure profiler assembly ref
+    if (profilerAssemblyRef == mdAssemblyRefNil)
+    {
+        const AssemblyReference assemblyReference = *trace::AssemblyReference::GetFromCache(managed_profiler_full_assembly_version);
+        ASSEMBLYMETADATA assembly_metadata{};
+
+        assembly_metadata.usMajorVersion = assemblyReference.version.major;
+        assembly_metadata.usMinorVersion = assemblyReference.version.minor;
+        assembly_metadata.usBuildNumber = assemblyReference.version.build;
+        assembly_metadata.usRevisionNumber = assemblyReference.version.revision;
+        if (assemblyReference.locale == WStr("neutral"))
+        {
+            assembly_metadata.szLocale = const_cast<WCHAR*>(WStr("\0"));
+            assembly_metadata.cbLocale = 0;
+        }
+        else
+        {
+            assembly_metadata.szLocale = const_cast<WCHAR*>(assemblyReference.locale.c_str());
+            assembly_metadata.cbLocale = (DWORD)(assemblyReference.locale.size());
+        }
+
+        DWORD public_key_size = 8;
+        if (assemblyReference.public_key == trace::PublicKey())
+        {
+            public_key_size = 0;
+        }
+
+        hr = module_metadata->assembly_emit->DefineAssemblyRef(&assemblyReference.public_key.data, public_key_size,
+                                                               assemblyReference.name.data(), &assembly_metadata, NULL,
+                                                               0, 0, &profilerAssemblyRef);
+
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper profilerAssemblyRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure Datadog.Trace.Tracer type ref
+    if (tracerTypeRef == mdTypeRefNil)
+    {
+        hr = module_metadata->metadata_emit->DefineTypeRefByName(
+            profilerAssemblyRef, tracer_type.data(), &tracerTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper tracerTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure Datadog.Trace.Scope type ref
+    if (scopeTypeRef == mdTypeRefNil)
+    {
+        hr = module_metadata->metadata_emit->DefineTypeRefByName(
+            profilerAssemblyRef, scope_type.data(), &scopeTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper scopeTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure Datadog.Trace.Scope type ref
+    if (ispanContextTypeRef == mdTypeRefNil)
+    {
+        hr = module_metadata->metadata_emit->DefineTypeRefByName(
+            profilerAssemblyRef, ispanContext_type.data(), &ispanContextTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper ispanContextTypeRef could not be defined.");
             return hr;
         }
     }
@@ -711,6 +841,178 @@ HRESULT CallTargetTokens::ModifyLocalSig(ILRewriter* reWriter, FunctionMethodArg
     return hr;
 }
 
+HRESULT CallTargetTokens::ModifyLocalSig_NoIntegration(ILRewriter* reWriter, FunctionMethodArgument* methodReturnValue,
+                                         ULONG* idisposableIndex, ULONG* nullableDateTimeOffsetIndex, ULONG* returnValueIndex,
+                                         mdToken* idisposableToken, mdToken* nullableDateTimeOffsetToken)
+{
+    auto hr = EnsureTracerTokens();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    PCCOR_SIGNATURE originalSignature = nullptr;
+    ULONG originalSignatureSize = 0;
+    mdToken localVarSig = reWriter->GetTkLocalVarSig();
+
+    if (localVarSig != mdTokenNil)
+    {
+        IfFailRet(
+            module_metadata->metadata_import->GetSigFromToken(localVarSig, &originalSignature, &originalSignatureSize));
+
+        // Check if the localvarsig has been already rewritten (the last local
+        // should be the callTargetState)
+        unsigned temp = 0;
+        const auto len = CorSigCompressToken(callTargetStateTypeRef, &temp);
+        if (originalSignatureSize - len > 0)
+        {
+            if (originalSignature[originalSignatureSize - len - 1] == ELEMENT_TYPE_VALUETYPE)
+            {
+                if (memcmp(&originalSignature[originalSignatureSize - len], &temp, len) == 0)
+                {
+                    Logger::Warn("The signature for this method has been already modified.");
+                    return E_FAIL;
+                }
+            }
+        }
+    }
+
+    ULONG newLocalsCount = 2;
+
+    // Gets the Return type signature
+    PCCOR_SIGNATURE returnSignatureType = nullptr;
+    ULONG returnSignatureTypeSize = 0;
+    unsigned retTypeElementType;
+    auto retTypeFlags = methodReturnValue->GetTypeFlags(retTypeElementType);
+
+    // Gets the IDisposable type buffer and size
+    unsigned idisposableTypeRefBuffer;
+    auto idisposableTypeRefSize = CorSigCompressToken(idisposableTypeRef, &idisposableTypeRefBuffer);
+
+    // Gets the System.Nullable`1<System.DateTimeOffset> type buffer and size
+    // Must create a System.Nullable`1<System.DateTimeOffset> TypeSpec
+    mdToken nullableDateTimeOffsetTypeSpec = mdTokenNil;
+
+    unsigned nullableTypeRefBuffer;
+    auto nullableTypeRefSize = CorSigCompressToken(nullableTypeRef, &nullableTypeRefBuffer);
+
+    unsigned dateTimeOffsetTypeRefBuffer;
+    auto dateTimeOffsetTypeRefSize = CorSigCompressToken(dateTimeOffsetTypeRef, &dateTimeOffsetTypeRefBuffer);
+
+    auto typeSpecSignatureLength = 4 + nullableTypeRefSize + dateTimeOffsetTypeRefSize;
+    COR_SIGNATURE typeSpecSignature[signatureBufferSize];
+    unsigned offset = 0;
+
+    // Compose the TypeSpecBlob: GENERICINST (CLASS | VALUETYPE) TypeDefOrRefEncoded GenArgCount Type Type*
+    typeSpecSignature[offset++] = ELEMENT_TYPE_GENERICINST;
+    typeSpecSignature[offset++] = ELEMENT_TYPE_VALUETYPE;
+    memcpy(&typeSpecSignature[offset], &nullableTypeRefBuffer, nullableTypeRefSize);
+    offset += nullableTypeRefSize;
+    typeSpecSignature[offset++] = 0x01;
+    typeSpecSignature[offset++] = ELEMENT_TYPE_VALUETYPE;
+    memcpy(&typeSpecSignature[offset], &dateTimeOffsetTypeRefBuffer, dateTimeOffsetTypeRefSize);
+    offset += dateTimeOffsetTypeRefSize;
+
+
+    // Use the TypeSpecBlob to generate a TypeSpec metadata token
+
+    hr = module_metadata->metadata_emit->GetTokenFromTypeSpec(typeSpecSignature, typeSpecSignatureLength, &nullableDateTimeOffsetTypeSpec);
+    if (FAILED(hr))
+    {
+        Logger::Warn("Error creating return value type spec");
+        return hr;
+    }
+
+    /*
+    // I don't think we need this because we have the original signature and signature length...
+    hr = module_metadata->metadata_import->GetTypeSpecFromToken(nullableDateTimeOffsetTypeSpec, &typeSpecSignature,
+                                                                &typeSpecSignatureLength);
+    */
+
+    if (retTypeFlags != TypeFlagVoid)
+    {
+        returnSignatureTypeSize = methodReturnValue->GetSignature(returnSignatureType);
+
+        newLocalsCount++;
+    }
+
+    // New signature size
+    ULONG newSignatureSize = originalSignatureSize + returnSignatureTypeSize + (1 + idisposableTypeRefSize) + typeSpecSignatureLength;
+    ULONG newSignatureOffset = 0;
+
+    ULONG oldLocalsBuffer;
+    ULONG oldLocalsLen = 0;
+    unsigned newLocalsBuffer;
+    ULONG newLocalsLen;
+
+    // Calculate the new locals count
+    if (originalSignatureSize == 0)
+    {
+        newSignatureSize += 2;
+        newLocalsLen = CorSigCompressData(newLocalsCount, &newLocalsBuffer);
+    }
+    else
+    {
+        oldLocalsLen = CorSigUncompressData(originalSignature + 1, &oldLocalsBuffer);
+        newLocalsCount += oldLocalsBuffer;
+        newLocalsLen = CorSigCompressData(newLocalsCount, &newLocalsBuffer);
+        newSignatureSize += newLocalsLen - oldLocalsLen;
+    }
+
+    // New signature declaration
+    COR_SIGNATURE newSignatureBuffer[signatureBufferSize];
+    newSignatureBuffer[newSignatureOffset++] = IMAGE_CEE_CS_CALLCONV_LOCAL_SIG;
+
+    // Set the locals count
+    memcpy(&newSignatureBuffer[newSignatureOffset], &newLocalsBuffer, newLocalsLen);
+    newSignatureOffset += newLocalsLen;
+
+    // Copy previous locals to the signature
+    if (originalSignatureSize > 0)
+    {
+        const auto copyLength = originalSignatureSize - 1 - oldLocalsLen;
+        memcpy(&newSignatureBuffer[newSignatureOffset], originalSignature + 1 + oldLocalsLen, copyLength);
+        newSignatureOffset += copyLength;
+    }
+
+    // Add new locals
+
+    // Return value local
+    if (returnSignatureType != nullptr)
+    {
+        memcpy(&newSignatureBuffer[newSignatureOffset], returnSignatureType, returnSignatureTypeSize);
+        newSignatureOffset += returnSignatureTypeSize;
+    }
+
+    // IDisposable value
+    newSignatureBuffer[newSignatureOffset++] = ELEMENT_TYPE_CLASS;
+    memcpy(&newSignatureBuffer[newSignatureOffset], &idisposableTypeRefBuffer, idisposableTypeRefSize);
+    newSignatureOffset += idisposableTypeRefSize;
+
+    // System.Nullable`1<System.DateTimeOffset> value
+    memcpy(&newSignatureBuffer[newSignatureOffset], &typeSpecSignature, typeSpecSignatureLength);
+    newSignatureOffset += typeSpecSignatureLength;
+
+    // Get new locals token
+    mdToken newLocalVarSig;
+    hr = module_metadata->metadata_emit->GetTokenFromSig(newSignatureBuffer, newSignatureSize, &newLocalVarSig);
+    if (FAILED(hr))
+    {
+        Logger::Warn("Error creating new locals var signature.");
+        return hr;
+    }
+
+    reWriter->SetTkLocalVarSig(newLocalVarSig);
+    *idisposableToken = idisposableTypeRef;
+    *nullableDateTimeOffsetToken = nullableDateTimeOffsetTypeSpec;
+    *returnValueIndex = newLocalsCount - 3;
+    *idisposableIndex = newLocalsCount - 2;
+    *nullableDateTimeOffsetIndex = newLocalsCount - 1;
+    return hr;
+}
+
 // slowpath BeginMethod
 HRESULT CallTargetTokens::WriteBeginMethodWithArgumentsArray(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
                                                              const TypeInfo* currentType, ILInstr** instruction)
@@ -871,6 +1173,41 @@ HRESULT CallTargetTokens::ModifyLocalSigAndInitialize(void* rewriterWrapperPtr, 
     return S_OK;
 }
 
+HRESULT CallTargetTokens::ModifyLocalSigAndInitialize_NoIntegration(void* rewriterWrapperPtr, FunctionInfo* functionInfo,
+                                                      ULONG* idisposableIndex, ULONG* nullableDateTimeOffsetIndex,
+                                                      ULONG* returnValueIndex, mdToken* idisposableToken,
+                                                      mdToken* nullableDateTimeOffsetToken,ILInstr** firstInstruction)
+{
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+
+    // Modify the Local Var Signature of the method
+    auto returnFunctionMethod = functionInfo->method_signature.GetRet();
+
+    auto hr = ModifyLocalSig_NoIntegration(rewriterWrapper->GetILRewriter(), &returnFunctionMethod, idisposableIndex, nullableDateTimeOffsetIndex, returnValueIndex, idisposableToken,
+                                           nullableDateTimeOffsetToken);
+
+    if (FAILED(hr))
+    {
+        Logger::Warn("ModifyLocalSig() failed.");
+        return hr;
+    }
+
+    if (*returnValueIndex != static_cast<ULONG>(ULONG_MAX))
+    {
+        *firstInstruction =
+            rewriterWrapper->CallMember(GetCallTargetDefaultValueMethodSpec(&returnFunctionMethod), false);
+        rewriterWrapper->StLocal(*returnValueIndex);
+    }
+
+    *firstInstruction = rewriterWrapper->LoadNull();
+    rewriterWrapper->StLocal(*idisposableIndex);
+
+    rewriterWrapper->LoadLocalAddress(*nullableDateTimeOffsetIndex);
+    rewriterWrapper->InitObj(*nullableDateTimeOffsetToken);
+
+    return S_OK;
+}
+
 HRESULT CallTargetTokens::WriteBeginMethod(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
                                            const TypeInfo* currentType,
                                            std::vector<FunctionMethodArgument>& methodArguments, ILInstr** instruction)
@@ -988,6 +1325,121 @@ HRESULT CallTargetTokens::WriteBeginMethod(void* rewriterWrapperPtr, mdTypeRef i
     }
 
     *instruction = rewriterWrapper->CallMember(beginMethodSpec, false);
+    return S_OK;
+}
+
+HRESULT CallTargetTokens::WriteTracerGetInstance(void* rewriterWrapperPtr, ILInstr** instruction)
+{
+    auto hr = EnsureTracerTokens();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    if (tracerGetInstanceMemberRef == mdMemberRefNil)
+    {
+        unsigned tracerTypeRefBuffer;
+        auto tracerTypeRefSize = CorSigCompressToken(tracerTypeRef, &tracerTypeRefBuffer);
+
+        auto signatureLength = 3 + tracerTypeRefSize;
+        COR_SIGNATURE signature[signatureBufferSize];
+        unsigned offset = 0;
+
+        signature[offset++] = IMAGE_CEE_CS_CALLCONV_DEFAULT;
+        signature[offset++] = 0x0; // Number of parameters
+        signature[offset++] = ELEMENT_TYPE_CLASS; // Return type
+        memcpy(&signature[offset], &tracerTypeRefBuffer, tracerTypeRefSize); // Datadog.Trace.Tracer
+        offset += tracerTypeRefSize;
+
+        hr = module_metadata->metadata_emit->DefineMemberRef(tracerTypeRef, tracer_get_instance_name.data(),
+                                                             signature, signatureLength, &tracerGetInstanceMemberRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Tracer.get_Instance could not be defined.");
+            return hr;
+        }
+    }
+
+    *instruction = rewriterWrapper->CallMember(tracerGetInstanceMemberRef, false);
+
+    return S_OK;
+}
+
+HRESULT CallTargetTokens::WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction)
+{
+    auto hr = EnsureTracerTokens();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    if (tracerStartActiveMemberRef == mdMemberRefNil)
+    {
+        unsigned tracerTypeRefBuffer;
+        auto tracerTypeRefSize = CorSigCompressToken(tracerTypeRef, &tracerTypeRefBuffer);
+
+        unsigned scopeTypeRefBuffer;
+        auto scopeTypeRefSize = CorSigCompressToken(scopeTypeRef, &scopeTypeRefBuffer);
+
+        unsigned ispanContextTypeRefBuffer;
+        auto ispanContextTypeRefSize = CorSigCompressToken(ispanContextTypeRef, &ispanContextTypeRefBuffer);
+
+        unsigned nullableTypeRefBuffer;
+        auto nullableTypeRefSize = CorSigCompressToken(nullableTypeRef, &nullableTypeRefBuffer);
+
+        unsigned dateTimeOffsetTypeRefBuffer;
+        auto dateTimeOffsetTypeRefSize = CorSigCompressToken(dateTimeOffsetTypeRef, &dateTimeOffsetTypeRefBuffer);
+
+        auto signatureLength = 12 + scopeTypeRefSize + ispanContextTypeRefSize + nullableTypeRefSize + dateTimeOffsetTypeRefSize;
+        COR_SIGNATURE signature[signatureBufferSize];
+        unsigned offset = 0;
+
+        signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        signature[offset++] = 0x06; // Number of parameters
+        signature[offset++] = ELEMENT_TYPE_CLASS; // Return type
+        memcpy(&signature[offset], &scopeTypeRefBuffer, scopeTypeRefSize); // Datadog.Trace.Scope
+        offset += scopeTypeRefSize;
+
+        // Parameters
+        signature[offset++] = ELEMENT_TYPE_STRING;
+
+        signature[offset++] = ELEMENT_TYPE_CLASS;
+        memcpy(&signature[offset], &ispanContextTypeRefBuffer, ispanContextTypeRefSize); // Datadog.Trace.ISpanContext
+        offset += ispanContextTypeRefSize;
+
+        signature[offset++] = ELEMENT_TYPE_STRING;
+
+        signature[offset++] = ELEMENT_TYPE_GENERICINST; // System.Nullable`1<System.DateTimeOffset>
+        signature[offset++] = ELEMENT_TYPE_VALUETYPE;
+        memcpy(&signature[offset], &nullableTypeRefBuffer, nullableTypeRefSize);
+        offset += nullableTypeRefSize;
+        signature[offset++] = 0x01;
+        signature[offset++] = ELEMENT_TYPE_VALUETYPE;
+        memcpy(&signature[offset], &dateTimeOffsetTypeRefBuffer, dateTimeOffsetTypeRefSize);
+        offset += dateTimeOffsetTypeRefSize;
+
+        signature[offset++] = ELEMENT_TYPE_BOOLEAN;
+
+        signature[offset++] = ELEMENT_TYPE_BOOLEAN;
+
+        hr = module_metadata->metadata_emit->DefineMemberRef(tracerTypeRef,
+                                                             tracer_start_active_name.data(),
+                                                             signature, signatureLength, &tracerStartActiveMemberRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Tracer.StartActive could not be defined.");
+            return hr;
+        }
+    }
+
+    *instruction = rewriterWrapper->CallMember(tracerStartActiveMemberRef, true);
+
     return S_OK;
 }
 
@@ -1329,4 +1781,58 @@ HRESULT CallTargetTokens::WriteCallTargetReturnGetReturnValue(void* rewriterWrap
     return S_OK;
 }
 
+HRESULT CallTargetTokens::WriteIDisposableDispose(void* rewriterWrapperPtr, ILInstr** instruction)
+{
+    auto hr = EnsureCorLibTokens();
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    if (idisposableDisposeMemberRef == mdMemberRefNil)
+    {
+        auto signatureLength = 3;
+        COR_SIGNATURE signature[signatureBufferSize];
+        unsigned offset = 0;
+
+        signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        signature[offset++] = 0x00;
+        signature[offset++] = ELEMENT_TYPE_VOID;
+
+        hr = module_metadata->metadata_emit->DefineMemberRef(idisposableTypeRef,
+                                                             idisposable_dispose_name.data(),
+                                                             signature, signatureLength, &idisposableDisposeMemberRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("IDisposable.Dispose could not be defined.");
+            return hr;
+        }
+    }
+
+    // C#:
+    //      if (idisposable == null)
+    //      {
+    //          disposable.Dispose();
+    //      }
+    //
+    // IL: (IDisposable local is already on the evaluation stack)
+    //      dup
+    //      brfalse.s <POP INSTR>
+    //      dup
+    //      callvirt instance void System.IDisposable::Dispose()
+    //      pop (POP INSTR)
+    rewriterWrapper->Duplicate();
+    ILInstr* pBranchFalseInstr = rewriterWrapper->CreateInstr(CEE_BRFALSE_S);
+    rewriterWrapper->Duplicate();
+    rewriterWrapper->CallMember(idisposableDisposeMemberRef, true);
+    ILInstr* pPopInstr = rewriterWrapper->CreateInstr(CEE_POP);
+
+    pBranchFalseInstr->m_pTarget = pPopInstr;
+    *instruction = pPopInstr;
+
+    return S_OK;
+}
 } // namespace trace

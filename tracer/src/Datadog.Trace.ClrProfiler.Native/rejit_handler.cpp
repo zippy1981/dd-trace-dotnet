@@ -862,7 +862,6 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
         else
         {
             Logger::Info("Could not find the TypeDef for: ", traceAttribute, ", Module: ", moduleInfo.assembly.name);
-            // metadataImport->FindTypeRef(, traceAttribute_cstring, &typeRef);
 
             // Now we enumerate all type refs in this assembly to see if Datadog.Trace.TraceAttribute is referenced
             auto enumTypeRefs = Enumerator<mdTypeRef>(
@@ -990,6 +989,14 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                             // We create a new function info into the heap from the caller functionInfo in the stack, to
                             // be used later in the ReJIT process
                             auto functionInfo = FunctionInfo(caller);
+                            auto hr = functionInfo.method_signature.TryParse();
+                            if (FAILED(hr))
+                            {
+                                Logger::Warn("    * The method signature: ", functionInfo.method_signature.str(),
+                                             " cannot be parsed.");
+                                customAttributesIterator = ++customAttributesIterator;
+                                continue;
+                            }
 
                             // As we are in the right method, we gather all information we need and stored it in to the
                             // ReJIT handler.
@@ -1099,9 +1106,6 @@ bool RejitHandler::TypeNameMatchesTraceAttribute(WCHAR type_name[], DWORD type_n
         {
             if (type_name[i] != traceAttribute_cstring[i])
             {
-                // TODO: Delete substring because it creates unneeded allocations
-                Logger::Warn("Datadog.Trace.Attribute != ", WSTRING(type_name), ". Comparison failed at index ", i,
-                             ": ", type_name[i], " != ", traceAttribute_cstring[i]);
                 return false;
             }
         }

@@ -2392,6 +2392,21 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(FunctionID
 // * CallTarget Methods
 // ***
 
+HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandler,
+                                                 RejitHandlerModuleMethod* methodHandler)
+{
+    auto _ = trace::Stats::Instance()->CallTargetRewriterCallbackMeasure();
+
+    if (methodHandler->GetIntegrationDefinition() == nullptr)
+    {
+        return CallTarget_RewriterCallback_WithoutIntegration(moduleHandler, methodHandler);
+    }
+    else
+    {
+        return CallTarget_RewriterCallback_WithIntegration(moduleHandler, methodHandler);
+    }
+}
+
 /// <summary>
 /// Rewrite the target method body with the calltarget implementation. (This is function is triggered by the ReJIT
 /// handler) Resulting code structure:
@@ -2445,11 +2460,9 @@ HRESULT STDMETHODCALLTYPE CorProfiler::JITCachedFunctionSearchStarted(FunctionID
 /// <param name="moduleHandler">Module ReJIT handler representation</param>
 /// <param name="methodHandler">Method ReJIT handler representation</param>
 /// <returns>Result of the rewriting</returns>
-HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandler,
+HRESULT CorProfiler::CallTarget_RewriterCallback_WithIntegration(RejitHandlerModule* moduleHandler,
                                                  RejitHandlerModuleMethod* methodHandler)
 {
-    auto _ = trace::Stats::Instance()->CallTargetRewriterCallbackMeasure();
-
     ModuleID module_id = moduleHandler->GetModuleId();
     ModuleMetadata& module_metadata = *moduleHandler->GetModuleMetadata();
     FunctionInfo* caller = methodHandler->GetFunctionInfo();
@@ -2902,6 +2915,281 @@ HRESULT CorProfiler::CallTarget_RewriterCallback(RejitHandlerModule* moduleHandl
     Logger::Info("*** CallTarget_RewriterCallback() Finished: ", caller->type.name, ".", caller->name, "() [IsVoid=", isVoid, ", IsStatic=", isStatic,
                  ", IntegrationType=", integration_definition->integration_type.name,
                  ", Arguments=", numArgs, "]");
+    return S_OK;
+}
+
+/// <summary>
+/// Rewrite the target method body with the calltarget implementation. (This is function is triggered by the ReJIT
+/// handler) Resulting code structure:
+///
+/// - Add locals for IDisposable
+///
+/// try
+/// {
+///   try
+///   {
+///     - Invoke Tracer.StartActive with necessary arguments
+///     - Store result into IDisposable local
+///   }
+///   catch
+///   {
+///     - // Invoke LogException(Exception)
+///   }
+///
+///   - Execute original method instructions
+///     * All RET instructions are replaced with a LEAVE_S.
+/// }
+/// finally
+/// {
+///   try
+///   {
+///     - Load IDisposable local
+///     - Invoke IDisposable.Dispose()
+///   }
+///   catch
+///   {
+///     - // Invoke LogException(Exception)
+///   }
+/// }
+///
+/// - RET
+/// </summary>
+HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandlerModule* moduleHandler,
+                                                 RejitHandlerModuleMethod* methodHandler)
+{
+    ModuleID module_id = moduleHandler->GetModuleId();
+    ModuleMetadata* module_metadata = moduleHandler->GetModuleMetadata();
+    FunctionInfo* caller = methodHandler->GetFunctionInfo();
+    CallTargetTokens* callTargetTokens = module_metadata->GetCallTargetTokens();
+    mdToken function_token = caller->id;
+
+    FunctionMethodArgument retFuncArg = caller->method_signature.GetRet();
+    unsigned int retFuncElementType;
+    int retTypeFlags = retFuncArg.GetTypeFlags(retFuncElementType);
+    bool isVoid = (retTypeFlags & TypeFlagVoid) > 0;
+
+    if (IsDebugEnabled())
+    {
+        Logger::Debug("*** CallTarget_RewriterCallback() Start: ", caller->type.name, ".", caller->name, "()");
+    }
+
+    // First we check if the managed profiler has not been loaded yet
+    if (!ProfilerAssemblyIsLoadedIntoAppDomain(module_metadata->app_domain_id))
+    {
+        Logger::Warn("*** CallTarget_RewriterCallback() skipping method: Method replacement found but the managed profiler has "
+                     "not yet been loaded into AppDomain with id=",
+                     module_metadata->app_domain_id, " token=", function_token, " caller_name=", caller->type.name, ".",
+                     caller->name, "()");
+        return S_FALSE;
+    }
+
+    // *** Create rewriter
+    ILRewriter rewriter(this->info_, methodHandler->GetFunctionControl(), module_id, function_token);
+    bool modified = false;
+    auto hr = rewriter.Import();
+    if (FAILED(hr))
+    {
+        Logger::Warn("*** CallTarget_RewriterCallback(): Call to ILRewriter.Import() failed for ", module_id, " ",
+                     function_token);
+        return S_FALSE;
+    }
+
+    // *** Store the original il code text if the dump_il option is enabled.
+    std::string original_code;
+    if (IsDumpILRewriteEnabled())
+    {
+        original_code =
+            GetILCodes("*** CallTarget_RewriterCallback(): Original Code: ", &rewriter, *caller, module_metadata);
+    }
+
+    // *** Create the rewriter wrapper helper
+    ILRewriterWrapper reWriterWrapper(&rewriter);
+    reWriterWrapper.SetILPosition(rewriter.GetILList()->m_pNext);
+
+    // *** Modify the Local Var Signature of the method and initialize the new local vars
+    ULONG idisposableIndex = static_cast<ULONG>(ULONG_MAX);
+    ULONG nullableDateTimeOffsetIndex = static_cast<ULONG>(ULONG_MAX);
+    ULONG returnValueIndex = static_cast<ULONG>(ULONG_MAX);
+    mdToken idisposableToken = mdTokenNil;
+    mdToken nullableDateTimeOffsetToken = mdTokenNil;
+    ILInstr* firstInstruction;
+    callTargetTokens->ModifyLocalSigAndInitialize_NoIntegration(&reWriterWrapper, caller, &idisposableIndex, &nullableDateTimeOffsetIndex,
+                                                                &returnValueIndex, &idisposableToken, &nullableDateTimeOffsetToken,
+                                                                &firstInstruction);
+
+    // ***
+    // BEGIN METHOD PART
+    // ***
+
+    // *** Emit BeginMethod call
+    ILInstr* beginCallInstruction;
+    hr = callTargetTokens->WriteTracerGetInstance(&reWriterWrapper, &beginCallInstruction);
+    if (FAILED(hr))
+    {
+        // Error message is written to the log in WriteBeginMethod.
+        return S_FALSE;
+    }
+
+    // *** Load the method arguments to the stack: string, ISpanContext = null, string = null,
+    reWriterWrapper.LoadNull(); // string operationName TODO fix
+    reWriterWrapper.LoadNull(); // ISpanContext parent = null,
+    reWriterWrapper.LoadNull(); // string serviceName = null
+    reWriterWrapper.LoadLocal(nullableDateTimeOffsetIndex); // DateTimeOffset? startTime = null
+    reWriterWrapper.LoadInt32(0); // bool ignoreActiveScope = false
+    reWriterWrapper.LoadInt32(1); // bool finishOnClose = true
+
+    ILInstr* startActiveInstruction;
+    hr = callTargetTokens->WriteTracerStartActive(&reWriterWrapper, &startActiveInstruction);
+    if (FAILED(hr))
+    {
+        // Error message is written to the log in WriteBeginMethod.
+        return S_FALSE;
+    }
+    reWriterWrapper.StLocal(idisposableIndex);
+
+    ILInstr* pStateLeaveToBeginOriginalMethodInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+
+    // *** BeginMethod call catch
+    ILInstr* beginMethodCatchFirstInstr = nullptr;
+    // callTargetTokens->WriteLogException(&reWriterWrapper, integration_type_ref, &caller->type,
+                                        // &beginMethodCatchFirstInstr);
+    ILInstr* beginMethodCatchLeaveInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+    beginMethodCatchFirstInstr = beginMethodCatchLeaveInstr;
+
+    // *** BeginMethod exception handling clause
+    EHClause beginMethodExClause{};
+    beginMethodExClause.m_Flags = COR_ILEXCEPTION_CLAUSE_NONE;
+    beginMethodExClause.m_pTryBegin = firstInstruction;
+    beginMethodExClause.m_pTryEnd = beginMethodCatchFirstInstr;
+    beginMethodExClause.m_pHandlerBegin = beginMethodCatchFirstInstr;
+    beginMethodExClause.m_pHandlerEnd = beginMethodCatchLeaveInstr;
+    beginMethodExClause.m_ClassToken = callTargetTokens->GetExceptionTypeRef();
+
+    // ***
+    // METHOD EXECUTION
+    // ***
+    ILInstr* beginOriginalMethodInstr = reWriterWrapper.GetCurrentILInstr();
+    pStateLeaveToBeginOriginalMethodInstr->m_pTarget = beginOriginalMethodInstr;
+    beginMethodCatchLeaveInstr->m_pTarget = beginOriginalMethodInstr;
+
+    // ***
+    // ENDING OF THE METHOD EXECUTION
+    // ***
+
+    // *** Create return instruction and insert it at the end
+    ILInstr* methodReturnInstr = rewriter.NewILInstr();
+    methodReturnInstr->m_opcode = CEE_RET;
+    rewriter.InsertAfter(rewriter.GetILList()->m_pPrev, methodReturnInstr);
+    reWriterWrapper.SetILPosition(methodReturnInstr);
+
+    // ***
+    // EXCEPTION FINALLY / END METHOD PART
+    // ***
+    ILInstr* endMethodTryStartInstr;
+    endMethodTryStartInstr = reWriterWrapper.LoadLocal(idisposableIndex);
+    ILInstr* endMethodCallInstr;
+    hr = callTargetTokens->WriteIDisposableDispose(&reWriterWrapper, &endMethodCallInstr);
+
+    ILInstr* endMethodTryLeave = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+
+    // *** EndMethod call catch
+    ILInstr* endMethodCatchFirstInstr = nullptr;
+    // callTargetTokens->WriteLogException(&reWriterWrapper, integration_type_ref, &caller->type,
+                                        // &endMethodCatchFirstInstr);
+    ILInstr* endMethodCatchLeaveInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);
+    endMethodCatchFirstInstr = endMethodCatchLeaveInstr;
+
+    // *** EndMethod exception handling clause
+    EHClause endMethodExClause{};
+    endMethodExClause.m_Flags = COR_ILEXCEPTION_CLAUSE_NONE;
+    endMethodExClause.m_pTryBegin = endMethodTryStartInstr;
+    endMethodExClause.m_pTryEnd = endMethodCatchFirstInstr;
+    endMethodExClause.m_pHandlerBegin = endMethodCatchFirstInstr;
+    endMethodExClause.m_pHandlerEnd = endMethodCatchLeaveInstr;
+    endMethodExClause.m_ClassToken = callTargetTokens->GetExceptionTypeRef();
+
+    // *** EndMethod leave to finally
+    ILInstr* endFinallyInstr = reWriterWrapper.EndFinally();
+    endMethodTryLeave->m_pTarget = endFinallyInstr;
+    endMethodCatchLeaveInstr->m_pTarget = endFinallyInstr;
+
+    // ***
+    // METHOD RETURN
+    // ***
+    // Load the current return value from the local var
+    if (!isVoid)
+    {
+        reWriterWrapper.LoadLocal(returnValueIndex);
+    }
+
+    // Changes all returns to a LEAVE.S
+    for (ILInstr* pInstr = rewriter.GetILList()->m_pNext; pInstr != rewriter.GetILList(); pInstr = pInstr->m_pNext)
+    {
+        switch (pInstr->m_opcode)
+        {
+            case CEE_RET:
+            {
+                if (pInstr != methodReturnInstr)
+                {
+                    if (!isVoid)
+                    {
+                        reWriterWrapper.SetILPosition(pInstr);
+                        reWriterWrapper.StLocal(returnValueIndex);
+                    }
+                    pInstr->m_opcode = CEE_LEAVE_S;
+                    pInstr->m_pTarget = endFinallyInstr->m_pNext;
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    // Exception handling clauses
+
+    EHClause finallyClause{};
+    finallyClause.m_Flags = COR_ILEXCEPTION_CLAUSE_FINALLY;
+    finallyClause.m_pTryBegin = firstInstruction;
+    finallyClause.m_pTryEnd = endMethodTryStartInstr;
+    finallyClause.m_pHandlerBegin = endMethodTryStartInstr;
+    finallyClause.m_pHandlerEnd = endFinallyInstr;
+
+    // ***
+    // Update and Add exception clauses
+    // ***
+    auto ehCount = rewriter.GetEHCount();
+    auto ehPointer = rewriter.GetEHPointer();
+    auto newEHClauses = new EHClause[ehCount + 3];
+    for (unsigned i = 0; i < ehCount; i++)
+    {
+        newEHClauses[i] = ehPointer[i];
+    }
+
+    // *** Add the new EH clauses
+    ehCount += 3;
+    newEHClauses[ehCount - 3] = beginMethodExClause;
+    newEHClauses[ehCount - 2] = endMethodExClause;
+    newEHClauses[ehCount - 1] = finallyClause;
+    rewriter.SetEHClause(newEHClauses, ehCount);
+
+    if (IsDumpILRewriteEnabled())
+    {
+        Logger::Info(original_code);
+        Logger::Info(GetILCodes("*** CallTarget_RewriterCallback(): Modified Code: ", &rewriter, *caller, module_metadata));
+    }
+
+    hr = rewriter.Export();
+
+    if (FAILED(hr))
+    {
+        Logger::Warn("*** CallTarget_RewriterCallback(): Call to ILRewriter.Export() failed for "
+                     "ModuleID=",
+                     module_id, " ", function_token);
+        return S_FALSE;
+    }
+
+    Logger::Info("*** CallTarget_RewriterCallback() Finished: ", caller->type.name, ".", caller->name, "()");
     return S_OK;
 }
 
