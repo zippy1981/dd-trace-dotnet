@@ -332,7 +332,7 @@ namespace Datadog.Coverage
 
                     assemblyDefinition.Write(new WriterParameters
                     {
-                        WriteSymbols = true,
+                       WriteSymbols = true,
                     });
 
                     Console.WriteLine($"Done: {filePath}");
