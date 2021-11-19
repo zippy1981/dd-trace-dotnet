@@ -1368,6 +1368,28 @@ HRESULT CallTargetTokens::WriteTracerGetInstance(void* rewriterWrapperPtr, ILIns
     return S_OK;
 }
 
+HRESULT CallTargetTokens::LoadOperationNameString(void* rewriterWrapperPtr, ILInstr** instruction)
+{
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    static WSTRING operationName = WStr("TraceAttribute");
+    mdString operationNameStringToken;
+    auto hr = module_metadata->metadata_emit->DefineUserString(operationName.c_str(), (ULONG)operationName.length(), &operationNameStringToken);
+
+    if (SUCCEEDED(hr))
+    {
+        *instruction = rewriterWrapper->LoadStr(operationNameStringToken); // string operationName
+    }
+    else
+    {
+        *instruction = rewriterWrapper->LoadNull(); // string operationName
+        Logger::Warn("*** CallTarget_RewriterCallback(): Unable to define user string '", operationName, "' for the operationName. Passing null instead.");
+    }
+
+    return S_OK;
+}
+
 HRESULT CallTargetTokens::WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction)
 {
     auto hr = EnsureTracerTokens();

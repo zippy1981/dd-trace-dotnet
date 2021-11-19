@@ -2928,7 +2928,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithIntegration(RejitHandlerMod
 /// {
 ///   try
 ///   {
-///     - Invoke Tracer.StartActive with necessary arguments
+///     - Invoke Tracer.StartActive with necessary arguments. OperationName will default to "TraceAttribute"
 ///     - Store result into IDisposable local
 ///   }
 ///   catch
@@ -3030,8 +3030,9 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
         return S_FALSE;
     }
 
-    // *** Load the method arguments to the stack: string, ISpanContext = null, string = null,
-    reWriterWrapper.LoadNull(); // string operationName TODO fix
+// *** Load the method arguments to the stack: string, ISpanContext = null, string = null,
+    ILInstr* loadStringInstruction;
+    callTargetTokens->LoadOperationNameString(&reWriterWrapper, &loadStringInstruction); // string operationName
     reWriterWrapper.LoadNull(); // ISpanContext parent = null,
     reWriterWrapper.LoadNull(); // string serviceName = null
     reWriterWrapper.LoadLocal(nullableDateTimeOffsetIndex); // DateTimeOffset? startTime = null

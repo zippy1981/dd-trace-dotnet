@@ -107,6 +107,8 @@ public:
 
     HRESULT WriteTracerGetInstance(void* rewriterWrapperPtr, ILInstr** instruction);
 
+    HRESULT LoadOperationNameString(void* rewriterWrapperPtr, ILInstr** instruction);
+
     HRESULT WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction);
 
     HRESULT WriteEndVoidReturnMemberRef(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
