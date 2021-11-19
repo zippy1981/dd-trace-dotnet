@@ -188,9 +188,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
             var coverageSession = Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.EndSession();
             if (coverageSession is not null)
             {
-                var jsonCoverage = JsonConvert.SerializeObject(coverageSession);
-                scope.Span.SetTag("test.coverage", jsonCoverage);
-                File.WriteAllText(@$"c:\temp\{scope.Span.ResourceName}.json", jsonCoverage);
+                scope.Span.SetTag("test.coverage", JsonConvert.SerializeObject(((Datadog.Trace.Ci.Coverage.Models.CoverageSession)coverageSession).Files));
+                File.WriteAllText(@$"c:\temp\{scope.Span.ResourceName}.json", JsonConvert.SerializeObject(coverageSession));
             }
         }
 

@@ -31,7 +31,7 @@ namespace Datadog.Trace.Ci.Coverage
                 var fileName = boundariesPerFile.Key;
                 var coverageFileName = new FileCoverage
                 {
-                    Filename = fileName
+                    Path = fileName
                 };
 
                 coverageSession.Files.Add(coverageFileName);

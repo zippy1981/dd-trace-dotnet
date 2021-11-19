@@ -19,8 +19,8 @@ namespace Datadog.Trace.Ci.Coverage.Models
         /// <summary>
         /// Gets or sets path/name of the file
         /// </summary>
-        [DataMember(Name = "filename")]
-        public string Filename { get; set; }
+        [DataMember(Name = "path")]
+        public string Path { get; set; }
 
         /// <summary>
         /// Gets or sets the limits of regions with executable code, where region begin/ends or changes count
