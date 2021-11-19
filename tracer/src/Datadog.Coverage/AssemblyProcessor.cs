@@ -20,7 +20,6 @@ namespace Datadog.Coverage
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(AssemblyProcessor));
         private static readonly ConstructorInfo CoveredAssemblyAttributeTypeCtor = typeof(Datadog.Trace.Ci.Coverage.Attributes.CoveredAssemblyAttribute).GetConstructors()[0];
-        private static readonly ConstructorInfo CoveredAttributeTypeCtor = typeof(Datadog.Trace.Ci.Coverage.Attributes.CoveredAttribute).GetConstructors()[0];
         private static readonly MethodInfo ReportTryGetScopeMethodInfo = typeof(Datadog.Trace.Ci.Coverage.CoverageReporter).GetMethod("TryGetScope");
         private static readonly MethodInfo ScopeReportMethodInfo = typeof(Datadog.Trace.Ci.Coverage.CoverageScope).GetMethod("Report", new[] { typeof(ulong) });
         private static readonly MethodInfo ScopeReport2MethodInfo = typeof(Datadog.Trace.Ci.Coverage.CoverageScope).GetMethod("Report", new[] { typeof(ulong), typeof(ulong) });
@@ -226,15 +225,6 @@ namespace Datadog.Coverage
                                 var clonedInstructions = instructions.Skip(instructionsOriginalLength).ToList();
                                 var clonedInstructionsLength = clonedInstructions.Count;
 
-                                // Step 5 - Add CustomAttribute to method
-                                var coveredAttributeTypeCtorRef = assemblyDefinition.MainModule.ImportReference(CoveredAttributeTypeCtor);
-                                var coveredAttribute = new CustomAttribute(coveredAttributeTypeCtorRef);
-                                coveredAttribute.ConstructorArguments.Add(new CustomAttributeArgument(module.ImportReference(typeof(uint)), moduleTypeMethod.MetadataToken.ToUInt32()));
-                                coveredAttribute.ConstructorArguments.Add(new CustomAttributeArgument(module.ImportReference(typeof(string)), moduleTypeMethod.FullName));
-                                coveredAttribute.ConstructorArguments.Add(new CustomAttributeArgument(module.ImportReference(typeof(string)), methodFileName));
-                                coveredAttribute.ConstructorArguments.Add(new CustomAttributeArgument(module.ImportReference(typeof(uint)), localInstructions));
-                                moduleTypeMethod.CustomAttributes.Add(coveredAttribute);
-
                                 // Step 6 - Modify local var to add the Coverage Scope instance.
                                 var coverageScopeVariable = new VariableDefinition(module.ImportReference(typeof(Datadog.Trace.Ci.Coverage.CoverageScope)));
                                 methodBody.Variables.Add(coverageScopeVariable);
@@ -244,7 +234,7 @@ namespace Datadog.Coverage
                                 instructions.Insert(0, Instruction.Create(OpCodes.Brtrue, instructions[instructionsOriginalLength]));
                                 instructions.Insert(0, Instruction.Create(OpCodes.Call, tryGetScopeMethodRef));
                                 instructions.Insert(0, Instruction.Create(OpCodes.Ldloca, coverageScopeVariable));
-                                instructions.Insert(0, Instruction.Create(OpCodes.Ldc_I4, (int)moduleTypeMethod.MetadataToken.ToUInt32()));
+                                instructions.Insert(0, Instruction.Create(OpCodes.Ldstr, (string)methodFileName));
 
                                 // Step 8 - Insert line reporter
                                 var scopeReportMethodRef = module.ImportReference(ScopeReportMethodInfo);

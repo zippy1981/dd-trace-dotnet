@@ -83,16 +83,16 @@ namespace Datadog.Trace.Ci.Coverage
         /// <summary>
         /// Gets the scope to report coverage data
         /// </summary>
-        /// <param name="methodDef">MethodDef metadata token</param>
+        /// <param name="filePath">FilePath</param>
         /// <param name="scope">Coverage scope instance</param>
         /// <returns>True if an scope can be collected; otherwise, false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetScope(uint methodDef, out CoverageScope scope)
+        public bool TryGetScope(string filePath, out CoverageScope scope)
         {
             var context = _asyncContext.Value;
             if (context != null)
             {
-                scope = new CoverageScope(methodDef, context);
+                scope = new CoverageScope(filePath, context);
                 return true;
             }
 

@@ -16,7 +16,7 @@ namespace Datadog.Trace.Ci.Coverage.Exceptions
         /// <summary>
         /// Throw the exception
         /// </summary>
-        /// <exception cref="AvoidCoverageMarkedAssemblyException">Throws current exception</exception>
+        /// <exception cref="PdbNotFoundException">Throws current exception</exception>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void Throw()
         {

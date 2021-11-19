@@ -31,34 +31,34 @@ namespace Datadog.Trace.Ci.Coverage
         /// <summary>
         /// Stores coverage instruction
         /// </summary>
-        /// <param name="methodDef">Internal method definition token</param>
+        /// <param name="filePath">Filepath for the range</param>
         /// <param name="range">Range value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Store(uint methodDef, ulong range)
+        internal void Store(string filePath, ulong range)
         {
             // Jit emits better asm code with this data locality, also the global field is marked as readonly
             var payloads = _payloads;
             lock (payloads)
             {
-                payloads.Add(new CoverageInstruction(methodDef, range));
+                payloads.Add(new CoverageInstruction(filePath, range));
             }
         }
 
         /// <summary>
         /// Stores multiple coverage instructions
         /// </summary>
-        /// <param name="methodDef">Internal method definition token</param>
+        /// <param name="filePath">Filepath for the range</param>
         /// <param name="range">Range value</param>
         /// <param name="range2">Range2 value</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Store(uint methodDef, ulong range, ulong range2)
+        internal void Store(string filePath, ulong range, ulong range2)
         {
             // Jit emits better asm code with this data locality, also the global field is marked as readonly
             var payloads = _payloads;
             lock (payloads)
             {
-                payloads.Add(new CoverageInstruction(methodDef, range));
-                payloads.Add(new CoverageInstruction(methodDef, range2));
+                payloads.Add(new CoverageInstruction(filePath, range));
+                payloads.Add(new CoverageInstruction(filePath, range2));
             }
         }
 

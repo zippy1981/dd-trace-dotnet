@@ -30,13 +30,13 @@ namespace Datadog.Trace.Ci.Coverage
         /// <summary>
         /// Tries to get a coverage scope instance for the current context
         /// </summary>
-        /// <param name="methodDef">Method definition token</param>
+        /// <param name="filePath">Filepath</param>
         /// <param name="scope">Coverage scope instance</param>
         /// <returns>True if the scope could be created; otherwise, false.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetScope(uint methodDef, out CoverageScope scope)
+        public static bool TryGetScope(string filePath, out CoverageScope scope)
         {
-            return _handler.TryGetScope(methodDef, out scope);
+            return _handler.TryGetScope(filePath, out scope);
         }
     }
 }

@@ -14,13 +14,13 @@ namespace Datadog.Trace.Ci.Coverage
     [StructLayout(LayoutKind.Auto)]
     public readonly ref struct CoverageScope
     {
-        private readonly uint _methodDef;
+        private readonly string _filePath;
         private readonly CoverageContextContainer _container;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal CoverageScope(uint methodDef, CoverageContextContainer container)
+        internal CoverageScope(string filePath, CoverageContextContainer container)
         {
-            _methodDef = methodDef;
+            _filePath = filePath;
             _container = container;
         }
 
@@ -31,7 +31,7 @@ namespace Datadog.Trace.Ci.Coverage
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Report(ulong range)
         {
-            _container.Store(_methodDef, range);
+            _container.Store(_filePath, range);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Datadog.Trace.Ci.Coverage
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Report(ulong range, ulong range2)
         {
-            _container.Store(_methodDef, range, range2);
+            _container.Store(_filePath, range, range2);
         }
     }
 }

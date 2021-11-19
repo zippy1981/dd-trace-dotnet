@@ -15,9 +15,9 @@ namespace Datadog.Trace.Ci.Coverage
     public readonly struct CoverageInstruction
     {
         /// <summary>
-        /// MethodDef value
+        /// FilePath value
         /// </summary>
-        public readonly uint MethodDef;
+        public readonly string FilePath;
 
         /// <summary>
         /// Range value
@@ -25,9 +25,9 @@ namespace Datadog.Trace.Ci.Coverage
         public readonly ulong Range;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal CoverageInstruction(uint methodDef, ulong range)
+        internal CoverageInstruction(string filePath, ulong range)
         {
-            MethodDef = methodDef;
+            FilePath = filePath;
             Range = range;
         }
     }
