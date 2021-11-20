@@ -1009,9 +1009,6 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                                 continue;
                             }
 
-                            WSTRING resourceName = EmptyWStr;
-                            WSTRING operationName = EmptyWStr;
-
                             // As we are in the right method, we gather all information we need and stored it in to the
                             // ReJIT handler.
                             auto moduleHandler = GetOrAddModule(moduleInfo.id);
@@ -1049,7 +1046,15 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                             }
                             if (methodHandler->GetAttributeProperties() == nullptr)
                             {
-                                auto attributeProperties = AttributeProperties(operationName, resourceName);
+                                auto attributeProperties =
+                                    AttributeProperties(methodDef, (PCCOR_SIGNATURE) attribute_data, data_size);
+                                auto hr = attributeProperties.TryParse();
+                                if (FAILED(hr))
+                                {
+                                    Logger::Warn("    * The attribute properties for methodDef ", methodDef, " cannot be parsed.");
+                                    customAttributesIterator = ++customAttributesIterator;
+                                    continue;
+                                }
                                 methodHandler->SetAttributeProperties(attributeProperties);
                             }
 
@@ -1075,18 +1080,6 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                 // It's possible we would want to define the following properties:
                 // - Operation name (for now: manual-trace)
                 // - Resource name (for now: method-name)
-
-                /* 
-                // Store module_id and methodDef to request the ReJIT after analyzing all integrations.
-                vtModules.push_back(moduleInfo.id);
-                vtMethodDefs.push_back(methodDef);
-
-                Logger::Debug("    * Enqueue for ReJIT [ModuleId=", moduleInfo.id, ", MethodDef=", TokenStr(&methodDef),
-                              ", AppDomainId=", moduleHandler->GetModuleMetadata()->app_domain_id,
-                              ", Assembly=", moduleHandler->GetModuleMetadata()->assemblyName,
-                              ", Type=", caller.type.name, ", Method=", caller.name, "(", numOfArgs,
-                              " params), Signature=", caller.signature.str(), "]");
-                */
 
                 customAttributesIterator = ++customAttributesIterator;
             }

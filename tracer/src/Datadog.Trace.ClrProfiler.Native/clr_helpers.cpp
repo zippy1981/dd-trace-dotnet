@@ -647,7 +647,7 @@ bool ParseNumber(PCCOR_SIGNATURE& pbCur, PCCOR_SIGNATURE pbEnd, unsigned* pOut)
         // special encoding of 'NULL'
         // not sure what this means as a number, don't expect to see it except for
         // string lengths which we don't encounter anyway so calling it an error
-        return false;
+        return true;
     }
 
     // early out on 1 byte encoding
@@ -949,5 +949,220 @@ bool FindTypeDefByName(const trace::WSTRING instrumentationTargetMethodTypeName,
     }
 
     return true;
+}
+
+void ByPassSimpleTypes(unsigned char element_type, PCCOR_SIGNATURE& pbCur)
+{
+    switch (element_type)
+    {
+        case ELEMENT_TYPE_BOOLEAN:
+        case ELEMENT_TYPE_CHAR:
+        case ELEMENT_TYPE_I1:
+        case ELEMENT_TYPE_U1:
+            pbCur++;
+        case ELEMENT_TYPE_U2:
+        case ELEMENT_TYPE_I2:
+            pbCur++;
+        case ELEMENT_TYPE_I4:
+        case ELEMENT_TYPE_U4:
+        case ELEMENT_TYPE_R4:
+            pbCur++;
+            pbCur++;
+        case ELEMENT_TYPE_I8:
+        case ELEMENT_TYPE_U8:
+        case ELEMENT_TYPE_R8:
+            pbCur++;
+            pbCur++;
+            pbCur++;
+            pbCur++;
+            break;
+        default:
+            break;
+    }
+}
+
+HRESULT AttributeProperties::TryParse()
+{
+    // Extract data from the custom attribute.
+    // IMPORTANT NOTE: All binary values are stored in uncompressed little-endian byte order, except the PackedLen item and signature size
+    // Data ::= Prolog FixedArg* NumNamed NamedArg*
+    //
+    // Prolog (U2) = 0x0001
+    // FixedArg* = The types and number of FixedArg's are not stored in the blob, but are implied from the constructor being used.
+    // NumNamed (U2) = A number representing the number of named properties or fields. Must be present. If N > 0, there are N NamedArg's that follow
+
+    // FixedArg ::=
+    // (if not SZARRAY) Elem
+    // | (if SZARRAY) NumElem Elem*
+
+    // Elem ::=
+    // (if simple or enum) Val
+    // | (if string or type) SerString
+    // | (if boxed valuetype) FieldOrPropType Val
+
+    // SerString ::=
+    // (if string and is null) 0xFF
+    // | (if string and is empty) 0x00
+    // | (if string and is populated) PackedLen (compressed and big-endian) UTF8Char's
+    // | (if Type) PackedLen (compressed and big-endian) UTF8_Byte* (representing the type name)
+
+    // PackedLen ::= The length of the string in bytes.
+
+    // NamedArg ::=
+    // SERIALIZATION_TYPE_FIELD FieldOrPropType FieldOrPropName FixedArg
+    // | SERIALIZATION_TYPE_PROPERTY FieldOrPropType FieldOrPropName FixedArg
+
+    // FieldOrPropType ::=
+    // (unboxed simple type) SIMPLE_ELEMENT_TYPE
+    // (boxed simple type) 0x51 SIMPLE_ELEMENT_TYPE
+
+    // FieldOrPropName ::= SerString
+    PCCOR_SIGNATURE pbCur = pbBase;
+    PCCOR_SIGNATURE pbEnd = pbBase + len;
+    unsigned char elem_type;
+
+    unsigned char b1 = 0, b2 = 0, b3 = 0, b4 = 0;
+    unsigned uint_value = 0;
+
+    // Parse Prolog, which is an uncompressed, little-endian unsigned int16 of value 0x0001
+    IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b1));
+    IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b2));
+    if (!(b1 == 1 && b2 == 0))
+    {
+        return E_FAIL;
+    }
+
+    // Parse number of fixed args
+    // TODO LATER. We need it for completeness but we don't need it for our usage :)
+
+    // Parse NumNamed, which is an uncompressed, little-endian unsigned int16
+    IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b1));
+    IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b2));
+    uint_value = (b2 << 8) | b1;
+
+    static unsigned char operation_name_ascii_array[] = {'O', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n', 'N', 'a', 'm', 'e'};
+    static unsigned char resource_name_ascii_array[] = {'R', 'e', 's', 'o', 'u', 'r', 'c', 'e', 'N', 'a', 'm', 'e'};
+
+    // Parse NamedArg*
+    for (unsigned i = 0; i < uint_value; i++)
+    {
+        // Parse NamedArg
+        // First byte must be SERIALIZATION_TYPE_FIELD or SERIALIZATION_TYPE_PROPERTY
+        if (!ParseByte(pbCur, pbEnd, &elem_type)) return false;
+        if (elem_type != SERIALIZATION_TYPE_FIELD && elem_type != SERIALIZATION_TYPE_PROPERTY) return false;
+        bool targetIsProperty = elem_type == SERIALIZATION_TYPE_PROPERTY;
+
+        // Parse FieldOrPropType. Next may be one byte (SIMPLE_ELEMENT_TYPE) or two bytes (0x51 SIMPLE_ELEMENT_TYPE)
+        if (!ParseByte(pbCur, pbEnd, &elem_type)) return false;
+        if (elem_type == 0x51)
+        {
+            if (!ParseByte(pbCur, pbEnd, &elem_type)) return false;
+        }
+        unsigned char simpleElementType = elem_type;
+
+        // Target field/property is a SerString
+        unsigned stringLength;
+        if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
+        if (pbCur + stringLength - 1 >= pbEnd) return false;
+
+        // Determine if SerString matches "OperationName" or "ResourceName"
+        // But only do this if the NamedArg is a property, because we only do properties
+        bool matchesOperationName = false;
+        bool matchesResourceName = false;
+        if (targetIsProperty)
+        {
+            if (stringLength == 13) // OperationName is 13 characters
+            {
+                matchesOperationName = true;
+                for (unsigned j = 0; j < 13; j++)
+                {
+                    unsigned char letter = *(pbCur + j);
+                    if (letter != operation_name_ascii_array[j])
+                    {
+                        matchesOperationName = false;
+                        break;
+                    }
+                }
+            }
+            else if (stringLength == 12) // ResourceName is 12 characters
+            {
+                matchesResourceName = true;
+                for (unsigned j = 0; j < 12; j++)
+                {
+                    unsigned char letter = *(pbCur + j);
+                    if (letter != resource_name_ascii_array[j])
+                    {
+                        matchesResourceName = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Skip over SerString bytes
+        pbCur += stringLength;
+
+        // Parse FixedArg
+        unsigned numElements = 1;
+        if (simpleElementType == ELEMENT_TYPE_SZARRAY)
+        {
+            // TODO
+        }
+
+        for (unsigned j = 0; j < numElements; j++)
+        {
+            ByPassSimpleTypes(simpleElementType, pbCur);
+
+            // Parse Elem
+            switch (simpleElementType)
+            {
+                case ELEMENT_TYPE_BOOLEAN:
+                case ELEMENT_TYPE_CHAR:
+                case ELEMENT_TYPE_I1:
+                case ELEMENT_TYPE_U1:
+                case ELEMENT_TYPE_U2:
+                case ELEMENT_TYPE_I2:
+                case ELEMENT_TYPE_I4:
+                case ELEMENT_TYPE_U4:
+                case ELEMENT_TYPE_R4:
+                case ELEMENT_TYPE_I8:
+                case ELEMENT_TYPE_U8:
+                case ELEMENT_TYPE_R8:
+                    break;
+                case ELEMENT_TYPE_OBJECT:
+                    unsigned char objElementType;
+                    if (!ParseByte(pbCur, pbEnd, &objElementType)) return false;
+                    if (objElementType == 0x51)
+                    {
+                        if (!ParseByte(pbCur, pbEnd, &objElementType)) return false;
+                    }
+                    ByPassSimpleTypes(objElementType, pbCur);
+                    break;
+                case ELEMENT_TYPE_STRING:
+                default:
+                    // Pass through from string because I don't know what else would fall here
+                    // Parse SerString
+                    unsigned stringLength;
+                    if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
+                    if (pbCur + stringLength - 1 >= pbEnd) return false;
+
+                    // We might need to save this string
+                    if (matchesOperationName)
+                    {
+                        operation_name = WSTRING(pbCur, pbCur + stringLength);
+                    }
+                    else if (matchesResourceName)
+                    {
+                        resource_name = WSTRING(pbCur, pbCur + stringLength);
+                    }
+
+                    // Skip over SerString bytes
+                    pbCur += stringLength;
+                    break;
+            }
+        }
+    }
+
+    return S_OK;
 }
 } // namespace trace

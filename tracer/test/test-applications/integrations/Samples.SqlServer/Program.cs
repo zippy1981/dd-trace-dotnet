@@ -40,7 +40,7 @@ namespace Samples.SqlServer
             await Task.Delay(2000, cts.Token);
         }
 
-        [Trace]
+        [Trace(ResourceName = "ModifiedOpenConnection")]
         private static DbConnection OpenConnection(Type connectionType)
         {
             using (Tracer.Instance.StartActive("OpenConnectionAPI"))
@@ -70,7 +70,7 @@ namespace Samples.SqlServer
             }
         }
 
-        [Trace]
+        [Trace(OperationName = "SynchronousTraceAttribute", ResourceName = "ModifiedDoNothing")]
         private static int BasicallyDoNothing()
         {
             return 3;

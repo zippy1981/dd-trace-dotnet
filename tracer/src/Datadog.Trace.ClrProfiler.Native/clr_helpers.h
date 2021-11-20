@@ -496,17 +496,26 @@ struct FunctionInfo
 
 struct AttributeProperties
 {
-    const WSTRING operation_name;
-    const WSTRING resource_name;
+    mdMethodDef owningMethodDef;
+    PCCOR_SIGNATURE pbBase;
+    unsigned len;
+    WSTRING operation_name;
+    WSTRING resource_name;
 
-    AttributeProperties() : operation_name(EmptyWStr), resource_name(EmptyWStr)
+    AttributeProperties() : owningMethodDef(mdMethodDefNil), pbBase(nullptr), len(0), operation_name(EmptyWStr), resource_name(EmptyWStr)
     {
     }
 
-    AttributeProperties(WSTRING operation_name, WSTRING resource_name) :
-        operation_name(operation_name), resource_name(resource_name)
+    AttributeProperties(mdMethodDef methodDef, PCCOR_SIGNATURE pb, unsigned cbBuffer)
     {
+        owningMethodDef = methodDef;
+        pbBase = pb;
+        len = cbBuffer;
+        operation_name = EmptyWStr;
+        resource_name = EmptyWStr;
     }
+
+    HRESULT TryParse();
 };
 
 RuntimeInformation GetRuntimeInformation(ICorProfilerInfo4* info);
