@@ -4,6 +4,7 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -20,13 +21,10 @@ namespace Datadog.Trace.Ci.Coverage
                 return null;
             }
 
-            var coverageSession = new CoverageSession
-            {
-                TraceId = CorrelationIdentifier.TraceId,
-                SpanId = CorrelationIdentifier.SpanId
-            };
+            var groupByFiles = coverageInstructions.GroupBy(i => i.FilePath).ToList();
+            var fileList = new List<FileCoverage>(groupByFiles.Count);
 
-            foreach (var boundariesPerFile in coverageInstructions.GroupBy(i => i.FilePath))
+            foreach (var boundariesPerFile in groupByFiles)
             {
                 var fileName = boundariesPerFile.Key;
                 var coverageFileName = new FileCoverage
@@ -34,7 +32,7 @@ namespace Datadog.Trace.Ci.Coverage
                     Path = fileName
                 };
 
-                coverageSession.Files.Add(coverageFileName);
+                fileList.Add(coverageFileName);
 
                 foreach (var rangeGroup in boundariesPerFile.GroupBy(i => i.Range))
                 {
@@ -46,20 +44,9 @@ namespace Datadog.Trace.Ci.Coverage
                     var num = rangeGroup.Count();
                     coverageFileName.Boundaries.Add(new uint[] { startLine, startColumn, endLine, endColumn, (uint)num });
                 }
-
-                coverageFileName.Boundaries.Sort((a, b) =>
-                {
-                    var res = a[0].CompareTo(b[0]);
-                    if (res == 0)
-                    {
-                        res = a[1].CompareTo(b[1]);
-                    }
-
-                    return res;
-                });
             }
 
-            return coverageSession;
+            return fileList;
         }
     }
 }
