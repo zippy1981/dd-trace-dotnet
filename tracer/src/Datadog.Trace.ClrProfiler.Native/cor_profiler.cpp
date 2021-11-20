@@ -2929,6 +2929,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithIntegration(RejitHandlerMod
 ///   try
 ///   {
 ///     - Invoke Tracer.StartActive with necessary arguments. OperationName will default to "TraceAttribute"
+///     - Set resource name (currently will be set to the name of the caller function)
 ///     - Store result into IDisposable local
 ///   }
 ///   catch
@@ -3046,6 +3047,15 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
         // Error message is written to the log in WriteBeginMethod.
         return S_FALSE;
     }
+
+    // Duplicate the Scope object
+    reWriterWrapper.Duplicate();
+
+    // Set the resource name
+    ILInstr* setResourceNameInstruction;
+    callTargetTokens->SetResourceNameOnScope(&reWriterWrapper, caller->name, &setResourceNameInstruction);
+
+    // Store locally as IDisposable
     reWriterWrapper.StLocal(idisposableIndex);
 
     ILInstr* pStateLeaveToBeginOriginalMethodInstr = reWriterWrapper.CreateInstr(CEE_LEAVE_S);

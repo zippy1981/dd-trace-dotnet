@@ -34,10 +34,13 @@ static const WSTRING managed_profiler_calltarget_returntype_getreturnvalue_name 
 
 static const WSTRING tracer_type = WStr("Datadog.Trace.Tracer");
 static const WSTRING scope_type = WStr("Datadog.Trace.Scope");
+static const WSTRING span_type = WStr("Datadog.Trace.Span");
 static const WSTRING ispanContext_type = WStr("Datadog.Trace.ISpanContext");
 static const WSTRING tracer_get_instance_name = WStr("get_Instance");
 static const WSTRING tracer_start_active_name = WStr("StartActive");
 static const WSTRING idisposable_dispose_name = WStr("Dispose");
+static const WSTRING scope_get_span_name = WStr("get_Span");
+static const WSTRING span_set_resourcename_name = WStr("set_ResourceName");
 
 /**
  * PRIVATE
@@ -368,6 +371,18 @@ HRESULT CallTargetTokens::EnsureTracerTokens()
     }
 
     // *** Ensure Datadog.Trace.Scope type ref
+    if (spanTypeRef == mdTypeRefNil)
+    {
+        hr = module_metadata->metadata_emit->DefineTypeRefByName(
+            profilerAssemblyRef, span_type.data(), &spanTypeRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Wrapper spanTypeRef could not be defined.");
+            return hr;
+        }
+    }
+
+    // *** Ensure Datadog.Trace.ISpanContext type ref
     if (ispanContextTypeRef == mdTypeRefNil)
     {
         hr = module_metadata->metadata_emit->DefineTypeRefByName(
@@ -1386,6 +1401,77 @@ HRESULT CallTargetTokens::LoadOperationNameString(void* rewriterWrapperPtr, ILIn
         *instruction = rewriterWrapper->LoadNull(); // string operationName
         Logger::Warn("*** CallTarget_RewriterCallback(): Unable to define user string '", operationName, "' for the operationName. Passing null instead.");
     }
+
+    return S_OK;
+}
+
+HRESULT CallTargetTokens::SetResourceNameOnScope(void* rewriterWrapperPtr, const WSTRING resourceName, ILInstr** instruction)
+{
+    ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
+    ModuleMetadata* module_metadata = GetMetadata();
+
+    mdString resourceNameStringToken;
+    auto hr = module_metadata->metadata_emit->DefineUserString(resourceName.c_str(), (ULONG)resourceName.length(), &resourceNameStringToken);
+    HRESULT defineUserStringHr = hr;
+
+    // The string is on the stack, now let's set it
+    // Get the Span from the Scope on the stack
+    // Get the ResourceName property setter
+    if (scopeGetSpanMemberRef == mdMemberRefNil)
+    {
+        unsigned spanTypeRefBuffer;
+        auto spanTypeRefSize = CorSigCompressToken(spanTypeRef, &spanTypeRefBuffer);
+
+        auto signatureLength = 3 + spanTypeRefSize;
+        COR_SIGNATURE signature[signatureBufferSize];
+        unsigned offset = 0;
+
+        signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        signature[offset++] = 0x0; // Number of parameters
+        signature[offset++] = ELEMENT_TYPE_CLASS; // Return type
+        memcpy(&signature[offset], &spanTypeRefBuffer, spanTypeRefSize); // Datadog.Trace.Tracer
+        offset += spanTypeRefSize;
+
+        hr = module_metadata->metadata_emit->DefineMemberRef(scopeTypeRef, scope_get_span_name.data(),
+                                                             signature, signatureLength, &scopeGetSpanMemberRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Scope.get_Span could not be defined.");
+            return hr;
+        }
+    }
+
+    if (spanSetResourceNameMemberRef == mdMemberRefNil)
+    {
+        auto signatureLength = 4;
+        COR_SIGNATURE signature[signatureBufferSize];
+        unsigned offset = 0;
+
+        signature[offset++] = IMAGE_CEE_CS_CALLCONV_HASTHIS;
+        signature[offset++] = 0x01; // Number of parameters
+        signature[offset++] = ELEMENT_TYPE_VOID; // Return type
+        signature[offset++] = ELEMENT_TYPE_STRING; // string param
+
+        hr = module_metadata->metadata_emit->DefineMemberRef(spanTypeRef, span_set_resourcename_name.data(),
+                                                             signature, signatureLength, &spanSetResourceNameMemberRef);
+        if (FAILED(hr))
+        {
+            Logger::Warn("Scope.set_ResourceName could not be defined.");
+            return hr;
+        }
+    }
+
+    rewriterWrapper->CallMember(scopeGetSpanMemberRef, true);
+    if (SUCCEEDED(defineUserStringHr))
+    {
+        *instruction = rewriterWrapper->LoadStr(resourceNameStringToken); // string operationName
+    }
+    else
+    {
+        *instruction = rewriterWrapper->LoadNull(); // string operationName
+        Logger::Warn("*** CallTarget_RewriterCallback(): Unable to define user string '", resourceName, "' for the resourceName. Passing null instead.");
+    }
+    rewriterWrapper->CallMember(spanSetResourceNameMemberRef, true);
 
     return S_OK;
 }

@@ -47,6 +47,7 @@ private:
     mdTypeRef callTargetReturnTypeRef = mdTypeRefNil;
     mdTypeRef tracerTypeRef = mdTypeRefNil;
     mdTypeRef scopeTypeRef = mdTypeRefNil;
+    mdTypeRef spanTypeRef = mdTypeRefNil;
     mdTypeRef ispanContextTypeRef = mdTypeRefNil;
 
     mdMemberRef beginArrayMemberRef = mdMemberRefNil;
@@ -55,6 +56,8 @@ private:
     mdMemberRef idisposableDisposeMemberRef = mdMemberRefNil;
     mdMemberRef tracerGetInstanceMemberRef = mdMemberRefNil;
     mdMemberRef tracerStartActiveMemberRef = mdMemberRefNil;
+    mdMemberRef scopeGetSpanMemberRef = mdMemberRefNil;
+    mdMemberRef spanSetResourceNameMemberRef = mdMemberRefNil;
 
     mdMemberRef logExceptionRef = mdMemberRefNil;
 
@@ -110,6 +113,8 @@ public:
     HRESULT LoadOperationNameString(void* rewriterWrapperPtr, ILInstr** instruction);
 
     HRESULT WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction);
+
+    HRESULT SetResourceNameOnScope(void* rewriterWrapperPtr, const WSTRING resourceName, ILInstr** instruction);
 
     HRESULT WriteEndVoidReturnMemberRef(void* rewriterWrapperPtr, mdTypeRef integrationTypeRef,
                                         const TypeInfo* currentType, ILInstr** instruction);
