@@ -494,6 +494,21 @@ struct FunctionInfo
     }
 };
 
+struct AttributeProperties
+{
+    const WSTRING operation_name;
+    const WSTRING resource_name;
+
+    AttributeProperties() : operation_name(EmptyWStr), resource_name(EmptyWStr)
+    {
+    }
+
+    AttributeProperties(WSTRING operation_name, WSTRING resource_name) :
+        operation_name(operation_name), resource_name(resource_name)
+    {
+    }
+};
+
 RuntimeInformation GetRuntimeInformation(ICorProfilerInfo4* info);
 
 AssemblyInfo GetAssemblyInfo(ICorProfilerInfo4* info, const AssemblyID& assembly_id);

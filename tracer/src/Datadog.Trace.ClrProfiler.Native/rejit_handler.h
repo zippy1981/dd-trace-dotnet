@@ -54,6 +54,7 @@ private:
     ICorProfilerFunctionControl* m_pFunctionControl;
     std::unique_ptr<FunctionInfo> m_functionInfo;
     std::unique_ptr<IntegrationDefinition> m_integrationDefinition;
+    std::unique_ptr<AttributeProperties> m_attributeProperties;
 
     std::mutex m_ngenModulesLock;
     std::unordered_map<ModuleID, bool> m_ngenModules;
@@ -73,6 +74,9 @@ public:
 
     IntegrationDefinition* GetIntegrationDefinition();
     void SetIntegrationDefinition(const IntegrationDefinition& integrationDefinition);
+
+    AttributeProperties* GetAttributeProperties();
+    void SetAttributeProperties(const AttributeProperties& attributeProperties);
 
     void RequestRejitForInlinersInModule(ModuleID moduleId);
 };

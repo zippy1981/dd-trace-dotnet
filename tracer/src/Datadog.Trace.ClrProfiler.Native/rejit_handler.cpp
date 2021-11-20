@@ -48,6 +48,7 @@ RejitHandlerModuleMethod::RejitHandlerModuleMethod(mdMethodDef methodDef, RejitH
     m_module = module;
     m_functionInfo = nullptr;
     m_integrationDefinition = nullptr;
+    m_attributeProperties = nullptr;
 }
 
 mdMethodDef RejitHandlerModuleMethod::GetMethodDef()
@@ -88,6 +89,16 @@ IntegrationDefinition* RejitHandlerModuleMethod::GetIntegrationDefinition()
 void RejitHandlerModuleMethod::SetIntegrationDefinition(const IntegrationDefinition& integrationDefinition)
 {
     m_integrationDefinition = std::make_unique<IntegrationDefinition>(integrationDefinition);
+}
+
+AttributeProperties* RejitHandlerModuleMethod::GetAttributeProperties()
+{
+    return m_attributeProperties.get();
+}
+
+void RejitHandlerModuleMethod::SetAttributeProperties(const AttributeProperties& attributeProperties)
+{
+    m_attributeProperties = std::make_unique<AttributeProperties>(attributeProperties);
 }
 
 void RejitHandlerModuleMethod::RequestRejitForInlinersInModule(ModuleID moduleId)
@@ -998,6 +1009,9 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                                 continue;
                             }
 
+                            WSTRING resourceName = EmptyWStr;
+                            WSTRING operationName = EmptyWStr;
+
                             // As we are in the right method, we gather all information we need and stored it in to the
                             // ReJIT handler.
                             auto moduleHandler = GetOrAddModule(moduleInfo.id);
@@ -1032,6 +1046,11 @@ ULONG RejitHandler::ProcessModuleForRejit(const std::vector<ModuleID>& modules,
                             {
                                 // Do nothing for now, we'll just relax the integration requirement because this isn't a real integration
                                 // methodHandler->SetIntegrationDefinition(integration);
+                            }
+                            if (methodHandler->GetAttributeProperties() == nullptr)
+                            {
+                                auto attributeProperties = AttributeProperties(operationName, resourceName);
+                                methodHandler->SetAttributeProperties(attributeProperties);
                             }
 
                             // Store module_id and methodDef to request the ReJIT after analyzing all integrations.

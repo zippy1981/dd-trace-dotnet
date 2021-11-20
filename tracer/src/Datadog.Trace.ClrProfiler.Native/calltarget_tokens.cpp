@@ -1383,12 +1383,11 @@ HRESULT CallTargetTokens::WriteTracerGetInstance(void* rewriterWrapperPtr, ILIns
     return S_OK;
 }
 
-HRESULT CallTargetTokens::LoadOperationNameString(void* rewriterWrapperPtr, ILInstr** instruction)
+HRESULT CallTargetTokens::LoadOperationNameString(void* rewriterWrapperPtr, const WSTRING operationName, ILInstr** instruction)
 {
     ILRewriterWrapper* rewriterWrapper = (ILRewriterWrapper*) rewriterWrapperPtr;
     ModuleMetadata* module_metadata = GetMetadata();
 
-    static WSTRING operationName = WStr("TraceAttribute");
     mdString operationNameStringToken;
     auto hr = module_metadata->metadata_emit->DefineUserString(operationName.c_str(), (ULONG)operationName.length(), &operationNameStringToken);
 

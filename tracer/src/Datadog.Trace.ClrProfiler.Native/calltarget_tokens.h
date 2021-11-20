@@ -110,7 +110,7 @@ public:
 
     HRESULT WriteTracerGetInstance(void* rewriterWrapperPtr, ILInstr** instruction);
 
-    HRESULT LoadOperationNameString(void* rewriterWrapperPtr, ILInstr** instruction);
+    HRESULT LoadOperationNameString(void* rewriterWrapperPtr, const WSTRING operationName, ILInstr** instruction);
 
     HRESULT WriteTracerStartActive(void* rewriterWrapperPtr, ILInstr** instruction);
 

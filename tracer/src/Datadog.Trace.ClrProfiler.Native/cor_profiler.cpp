@@ -2963,6 +2963,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
     FunctionInfo* caller = methodHandler->GetFunctionInfo();
     CallTargetTokens* callTargetTokens = module_metadata->GetCallTargetTokens();
     mdToken function_token = caller->id;
+    AttributeProperties* attribute_properties = methodHandler->GetAttributeProperties();
 
     FunctionMethodArgument retFuncArg = caller->method_signature.GetRet();
     unsigned int retFuncElementType;
@@ -3033,7 +3034,11 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
 
 // *** Load the method arguments to the stack: string, ISpanContext = null, string = null,
     ILInstr* loadStringInstruction;
-    callTargetTokens->LoadOperationNameString(&reWriterWrapper, &loadStringInstruction); // string operationName
+    static WSTRING defaultOperationName = WStr("TraceAttribute");
+    WSTRING operationName =
+        attribute_properties->operation_name == EmptyWStr ? defaultOperationName : attribute_properties->operation_name;
+    callTargetTokens->LoadOperationNameString(&reWriterWrapper, operationName,
+                                              &loadStringInstruction); // string operationName
     reWriterWrapper.LoadNull(); // ISpanContext parent = null,
     reWriterWrapper.LoadNull(); // string serviceName = null
     reWriterWrapper.LoadLocal(nullableDateTimeOffsetIndex); // DateTimeOffset? startTime = null
@@ -3053,7 +3058,9 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
 
     // Set the resource name
     ILInstr* setResourceNameInstruction;
-    callTargetTokens->SetResourceNameOnScope(&reWriterWrapper, caller->name, &setResourceNameInstruction);
+    WSTRING resourceName =
+        attribute_properties->resource_name == EmptyWStr ? caller->name : attribute_properties->resource_name;
+    callTargetTokens->SetResourceNameOnScope(&reWriterWrapper, resourceName, &setResourceNameInstruction);
 
     // Store locally as IDisposable
     reWriterWrapper.StLocal(idisposableIndex);
