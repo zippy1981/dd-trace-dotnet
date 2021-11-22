@@ -1,0 +1,41 @@
+version: "3"
+services:
+
+    web:
+      image: jmalloc/echo-server
+      container_name: web
+
+    agent:
+      build:
+        context: ../../../../src
+        dockerfile: ../test/test-applications/security/Samples.Haproxy/Dockerfile
+      image: haproxy-dotnet-spoa:debug
+      container_name: agent
+      environment:
+        DD_ENV: "robert"
+        DD_VERSION: "1.0.0"
+        DD_AGENT_HOST: "datadog-agent"
+        DD_APPSEC_ENABLED: true
+
+    haproxy:
+      image: haproxytech/haproxy-alpine:2.2-dev11
+      ports:
+      - "8000:80"
+      container_name: haproxy
+      volumes:
+      - "./haproxy/:/etc/haproxy"
+      depends_on:
+        - web
+        - agent
+        - datadog-agent
+
+    datadog-agent:
+      image: "gcr.io/datadoghq/agent:latest"
+      environment:
+        DD_APM_ENABLED: "true"
+        DD_APM_NON_LOCAL_TRAFFIC: "true"
+        DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+        DOCKER_TLS_VERIFY: "false"
+        DD_ENV: "robert"
+        DD_SITE: "datad0g.com"
+        DD_API_KEY: 67c3141174fb4f9b7457cb33da97a39c

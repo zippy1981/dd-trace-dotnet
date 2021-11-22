@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Web;
 using System.Web.Routing;
 #endif
+using Datadog.Trace.AppSec.Transport;
 using Datadog.Trace.AppSec.Transport.Http;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Util.Http;
@@ -49,6 +50,18 @@ namespace Datadog.Trace.AppSec
 
                     InstrumentationGatewayEvent?.Invoke(this, new InstrumentationGatewayEventArgs(eventData, transport, relatedSpan));
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "AppSec Error.");
+            }
+        }
+
+        public void RaiseEvent(IDictionary<string, object> eventData, ITransport transport, Span relatedSpan)
+        {
+            try
+            {
+                InstrumentationGatewayEvent?.Invoke(this, new InstrumentationGatewayEventArgs(eventData, transport, relatedSpan));
             }
             catch (Exception ex)
             {

@@ -1,0 +1,68 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v3.1",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v3.1": {
+      "Datadog.Trace.HaproxySpoa/1.0.0": {
+        "dependencies": {
+          "Datadog.Trace": "1.30.0",
+          "StyleCop.Analyzers": "1.2.0-beta.354"
+        },
+        "runtime": {
+          "Datadog.Trace.HaproxySpoa.dll": {}
+        }
+      },
+      "StyleCop.Analyzers/1.2.0-beta.354": {
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.354"
+        }
+      },
+      "StyleCop.Analyzers.Unstable/1.2.0.354": {},
+      "System.Diagnostics.DiagnosticSource/4.4.1": {},
+      "Datadog.Trace/1.30.0": {
+        "dependencies": {
+          "System.Diagnostics.DiagnosticSource": "4.4.1"
+        },
+        "runtime": {
+          "Datadog.Trace.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Datadog.Trace.HaproxySpoa/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "StyleCop.Analyzers/1.2.0-beta.354": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-oDSJNxnEvIzAQTkpkc/FnJP4dQ7TV6fHMsI+2ckU5DOaMiwiEfh1fawMsSqz2bCoNwbTt9lS6MgYvyVKujNJoA==",
+      "path": "stylecop.analyzers/1.2.0-beta.354",
+      "hashPath": "stylecop.analyzers.1.2.0-beta.354.nupkg.sha512"
+    },
+    "StyleCop.Analyzers.Unstable/1.2.0.354": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/3RlM31XbJ02gaWh7dVumWOyMvGHswb/zygGJXd9oEJMRyyYc/HFJlAC5gBPxvi9cB4CMvIyyUTmZz5VLKwTvg==",
+      "path": "stylecop.analyzers.unstable/1.2.0.354",
+      "hashPath": "stylecop.analyzers.unstable.1.2.0.354.nupkg.sha512"
+    },
+    "System.Diagnostics.DiagnosticSource/4.4.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-U/KcC19fyLsPN1GLmeU2zQq15MMVcPwMOYPADVo1+WIoJpvMHxrzvl+BLLZwTEZSneGwaPFZ0aWr0nJ7B7LSdA==",
+      "path": "system.diagnostics.diagnosticsource/4.4.1",
+      "hashPath": "system.diagnostics.diagnosticsource.4.4.1.nupkg.sha512"
+    },
+    "Datadog.Trace/1.30.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

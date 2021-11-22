@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Datadog.Trace.HaproxySpoa</name>
+    </assembly>
+    <members>
+        <member name="P:HAProxy.StreamProcessingOffload.Agent.Actions.SetVariableAction.Bytes">
+            <summary>
+            Gets the bytes for this action.
+            </summary>
+        </member>
+        <member name="M:HAProxy.StreamProcessingOffload.Agent.Actions.SetVariableAction.ToString">
+            <summary>
+            Gets a string representing the action.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.ActionType">
+            <summary>
+            Type of action for HAProxy to apply.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.DataType">
+            <summary>
+            A type of data.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.FrameType">
+            <summary>
+            The type of frame.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.PayloadType">
+            <summary>
+            The type of payload.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.Status">
+            <summary>
+            When either HAProxy or the agent disconnect, it may contain a status.
+            </summary>
+        </member>
+        <member name="T:HAProxy.StreamProcessingOffload.Agent.VariableScope">
+            <summary>
+            When applying a set-var or unset-var action,
+            this defines the scope of the variable.
+            </summary>
+        </member>
+        <member name="P:HAProxy.StreamProcessingOffload.Agent.FrameProcessor.MaxFrameSize">
+            <summary>
+            Gets or sets the agent's max-frame-size.
+            </summary>
+        </member>
+        <member name="P:HAProxy.StreamProcessingOffload.Agent.FrameProcessor.EnableLogging">
+            <summary>
+            Gets or sets a value indicating whether logging should be
+            enabled to see diagnostic information.
+            </summary>
+        </member>
+        <member name="P:HAProxy.StreamProcessingOffload.Agent.FrameProcessor.LogFunc">
+            <summary>
+            Gets or sets a logging function that takes a string.
+            </summary>
+        </member>
+        <member name="M:HAProxy.StreamProcessingOffload.Agent.FrameProcessor.HandleStream(System.IO.Stream,System.Func{HAProxy.StreamProcessingOffload.Agent.Frames.NotifyFrame,System.Collections.Generic.IList{HAProxy.StreamProcessingOffload.Agent.SpoeAction}})">
+            <summary>
+            Handles receiving and sending frames on the given stream.
+            </summary>
+            <param name="stream">The stream to receive and send frames on</param>
+            <param name="notifyHandler">Function to invoke when a NOTIFY frame is received</param>
+        </member>
+    </members>
+</doc>

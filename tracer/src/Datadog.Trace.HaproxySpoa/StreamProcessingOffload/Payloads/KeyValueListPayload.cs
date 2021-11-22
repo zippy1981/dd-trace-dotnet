@@ -1,0 +1,75 @@
+// <copyright file="KeyValueListPayload.cs" company="Datadog">
+// Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
+// This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
+// </copyright>
+
+//-----------------------------------------------------------------------
+// <copyright file="KeyValueListPayload.cs" company="HAProxy Technologies">
+//     The contents of this file are Copyright (c) 2019. HAProxy Technologies.
+//     All rights reserved. This file is subject to the terms and conditions
+//     defined in file 'LICENSE', which is part of this source code package.
+// </copyright>
+//-----------------------------------------------------------------------
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace HAProxy.StreamProcessingOffload.Agent.Payloads
+{
+    internal class KeyValueListPayload : Payload
+    {
+        public KeyValueListPayload()
+            : base(PayloadType.KeyValueList)
+        {
+            this.KeyValueItems = new Dictionary<string, TypedData>();
+        }
+
+        public IDictionary<string, TypedData> KeyValueItems { get; private set; }
+
+        public override byte[] Bytes
+        {
+            get
+            {
+                var bytes = new List<byte>();
+
+                foreach (KeyValuePair<string, TypedData> kv in this.KeyValueItems)
+                {
+                    VariableInt lengthOfName = VariableInt.EncodeVariableInt(kv.Key.Length);
+                    bytes.AddRange(lengthOfName.Bytes);
+                    bytes.AddRange(System.Text.Encoding.ASCII.GetBytes(kv.Key));
+                    bytes.AddRange(kv.Value.Bytes);
+                }
+
+                return bytes.ToArray();
+            }
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+
+            foreach (KeyValuePair<string, TypedData> kv in this.KeyValueItems)
+            {
+                sb.AppendLine(string.Format("{0} = {1}", kv.Key, kv.Value.Value));
+            }
+
+            return sb.ToString();
+        }
+
+        internal override void Parse(byte[] buffer, ref int offset)
+        {
+            while (offset < buffer.Length)
+            {
+                // key-value format: [length-of-keyname(varint)][keyname][datatype][value]
+                VariableInt keyNameLength = VariableInt.DecodeVariableInt(buffer.Skip(offset).ToArray());
+                offset += keyNameLength.Length;
+
+                string keyname = Encoding.ASCII.GetString(buffer, offset, (int)keyNameLength.Value);
+                offset += keyname.Length;
+
+                TypedData data = TypedDataParser.ParseNext(buffer, ref offset);
+                this.KeyValueItems.Add(keyname, data);
+            }
+        }
+    }
+}
