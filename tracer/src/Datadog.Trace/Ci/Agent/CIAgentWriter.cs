@@ -10,19 +10,20 @@ using Datadog.Trace.Agent;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Sampling;
+using Datadog.Trace.Util;
 
 namespace Datadog.Trace.Ci.Agent
 {
     internal class CIAgentWriter : IAgentWriter
     {
-        private readonly AgentWriter _agentWriter = null;
+        private readonly AgentWriter<WithoutStatsD> _agentWriter = null;
         private readonly bool _isPartialFlushEnabled = false;
 
         public CIAgentWriter(ImmutableTracerSettings settings, ISampler sampler)
         {
             _isPartialFlushEnabled = settings.PartialFlushEnabled;
-            var api = new Api(settings.AgentUri, TransportStrategy.Get(settings), null, rates => sampler.SetDefaultSampleRates(rates), _isPartialFlushEnabled);
-            _agentWriter = new AgentWriter(api, null, maxBufferSize: settings.TraceBufferSize);
+            var api = new Api<WithoutStatsD>(settings.AgentUri, TransportStrategy.Get(settings), null, rates => sampler.SetDefaultSampleRates(rates), _isPartialFlushEnabled);
+            _agentWriter = new AgentWriter<WithoutStatsD>(api, null, maxBufferSize: settings.TraceBufferSize);
         }
 
         public Task FlushAndCloseAsync()

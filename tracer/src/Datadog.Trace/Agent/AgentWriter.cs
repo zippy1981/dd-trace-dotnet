@@ -11,15 +11,17 @@ using Datadog.Trace.Agent.MessagePack;
 using Datadog.Trace.DogStatsd;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Tagging;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.StatsdClient;
 
 namespace Datadog.Trace.Agent
 {
-    internal class AgentWriter : IAgentWriter
+    internal class AgentWriter<TMode> : IAgentWriter
+        where TMode : struct, IBranchRemoval
     {
         private const TaskCreationOptions TaskOptions = TaskCreationOptions.RunContinuationsAsynchronously;
 
-        private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<AgentWriter>();
+        private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<AgentWriter<TMode>>();
 
         private static readonly ArraySegment<byte> EmptyPayload;
 
@@ -123,7 +125,7 @@ namespace Datadog.Trace.Agent
                 }
             }
 
-            if (_statsd != null)
+            if (typeof(TMode) == typeof(WithStatsD))
             {
                 _statsd.Increment(TracerMetricNames.Queue.EnqueuedTraces);
                 _statsd.Increment(TracerMetricNames.Queue.EnqueuedSpans, trace.Count);
@@ -278,7 +280,7 @@ namespace Datadog.Trace.Agent
 
                 try
                 {
-                    if (_statsd != null)
+                    if (typeof(TMode) == typeof(WithStatsD))
                     {
                         _statsd.Increment(TracerMetricNames.Queue.DequeuedTraces, buffer.TraceCount);
                         _statsd.Increment(TracerMetricNames.Queue.DequeuedSpans, buffer.SpanCount);
@@ -382,7 +384,7 @@ namespace Datadog.Trace.Agent
             Log.Warning("Trace buffer is full. Dropping a trace.");
             _traceKeepRateCalculator.IncrementDrops(1);
 
-            if (_statsd != null)
+            if (typeof(TMode) == typeof(WithStatsD))
             {
                 _statsd.Increment(TracerMetricNames.Queue.DroppedTraces);
                 _statsd.Increment(TracerMetricNames.Queue.DroppedSpans, trace.Count);

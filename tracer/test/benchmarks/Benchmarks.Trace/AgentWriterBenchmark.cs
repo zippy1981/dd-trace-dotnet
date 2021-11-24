@@ -9,6 +9,7 @@ using Datadog.Trace.Agent.Transports;
 using Datadog.Trace.AppSec;
 using Datadog.Trace.BenchmarkDotNet;
 using Datadog.Trace.Configuration;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
 
 namespace Benchmarks.Trace
@@ -27,9 +28,9 @@ namespace Benchmarks.Trace
             settings.StartupDiagnosticLogEnabled = false;
             settings.TraceEnabled = false;
 
-            var api = new Api(settings.AgentUri, new FakeApiRequestFactory(), statsd: null, updateSampleRates: null, isPartialFlushEnabled: false);
+            var api = new Api<WithoutStatsD>(settings.AgentUri, new FakeApiRequestFactory(), statsd: null, updateSampleRates: null, isPartialFlushEnabled: false);
 
-            AgentWriter = new AgentWriter(api, statsd: null, automaticFlush: false);
+            AgentWriter = new AgentWriter<WithoutStatsD>(api, statsd: null, automaticFlush: false);
 
             var enrichedSpans = new Span[SpanCount];
             var now = DateTimeOffset.UtcNow;

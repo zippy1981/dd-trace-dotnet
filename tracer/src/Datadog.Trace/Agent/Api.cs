@@ -11,16 +11,35 @@ using Datadog.Trace.Agent.Transports;
 using Datadog.Trace.DogStatsd;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
 using Datadog.Trace.Vendors.StatsdClient;
+#pragma warning disable SA1402 // File may only contain a single type
 
 namespace Datadog.Trace.Agent
 {
-    internal class Api : IApi
+    internal class Api
+    {
+        private static readonly IDatadogLogger StaticLog = DatadogLogging.GetLoggerFor<Api>();
+
+        internal static IApiRequestFactory CreateRequestFactory()
+        {
+#if NETCOREAPP
+            StaticLog.Information("Using {FactoryType} for trace transport.", nameof(HttpClientRequestFactory));
+            return new HttpClientRequestFactory();
+#else
+            StaticLog.Information("Using {FactoryType} for trace transport.", nameof(ApiWebRequestFactory));
+            return new ApiWebRequestFactory();
+#endif
+        }
+    }
+
+    internal class Api<TMode> : IApi
+        where TMode : struct, IBranchRemoval
     {
         private const string TracesPath = "/v0.4/traces";
 
-        private static readonly IDatadogLogger StaticLog = DatadogLogging.GetLoggerFor<Api>();
+        private static readonly IDatadogLogger StaticLog = DatadogLogging.GetLoggerFor<Api<TMode>>();
 
         private readonly IDatadogLogger _log;
         private readonly IApiRequestFactory _apiRequestFactory;
@@ -47,7 +66,7 @@ namespace Datadog.Trace.Agent
             _tracesEndpoint = new Uri(baseEndpoint, TracesPath);
             _statsd = statsd;
             _containerId = ContainerMetadata.GetContainerId();
-            _apiRequestFactory = apiRequestFactory ?? CreateRequestFactory();
+            _apiRequestFactory = apiRequestFactory ?? Api.CreateRequestFactory();
             _isPartialFlushEnabled = isPartialFlushEnabled;
         }
 
@@ -145,43 +164,36 @@ namespace Datadog.Trace.Agent
             }
         }
 
-        internal static IApiRequestFactory CreateRequestFactory()
-        {
-#if NETCOREAPP
-            StaticLog.Information("Using {FactoryType} for trace transport.", nameof(HttpClientRequestFactory));
-            return new HttpClientRequestFactory();
-#else
-            StaticLog.Information("Using {FactoryType} for trace transport.", nameof(ApiWebRequestFactory));
-            return new ApiWebRequestFactory();
-#endif
-        }
-
         private async Task<bool> SendTracesAsync(ArraySegment<byte> traces, int numberOfTraces, IApiRequest request, bool finalTry)
         {
             IApiResponse response = null;
 
             try
             {
-                try
+                if (typeof(TMode) == typeof(WithStatsD))
                 {
-                    _statsd?.Increment(TracerMetricNames.Api.Requests);
-                    response = await request.PostAsync(traces).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // count only network/infrastructure errors, not valid responses with error status codes
-                    // (which are handled below)
-                    _statsd?.Increment(TracerMetricNames.Api.Errors);
-                    throw;
-                }
+                    try
+                    {
+                        _statsd?.Increment(TracerMetricNames.Api.Requests);
+                        response = await request.PostAsync(traces).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        // count only network/infrastructure errors, not valid responses with error status codes
+                        // (which are handled below)
+                        _statsd?.Increment(TracerMetricNames.Api.Errors);
+                        throw;
+                    }
 
-                if (_statsd != null)
-                {
                     // don't bother creating the tags array if trace metrics are disabled
                     string[] tags = { $"status:{response.StatusCode}" };
 
                     // count every response, grouped by status code
                     _statsd?.Increment(TracerMetricNames.Api.Responses, tags: tags);
+                }
+                else
+                {
+                    response = await request.PostAsync(traces).ConfigureAwait(false);
                 }
 
                 // Attempt a retry if the status code is not SUCCESS
