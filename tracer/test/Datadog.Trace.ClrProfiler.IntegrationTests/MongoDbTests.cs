@@ -36,7 +36,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 // Check for manual trace
                 Assert.Equal("Main()", rootSpan.Name);
                 Assert.Equal("Samples.MongoDB", rootSpan.Service);
-                Assert.Null(rootSpan.Type);
+                Assert.Null(rootSpan.Type.Value);
 
                 int spansWithResourceName = 0;
 

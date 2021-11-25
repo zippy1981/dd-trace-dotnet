@@ -74,7 +74,7 @@ namespace Datadog.Trace.Util
         {
             if (obj is StringWithBytes swb)
             {
-                return this.Value == swb.Value;
+                return Value == swb.Value;
             }
 
             return false;
@@ -84,7 +84,14 @@ namespace Datadog.Trace.Util
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            return this.Value.GetHashCode();
+            return Value.GetHashCode();
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override string ToString()
+        {
+            return Value;
         }
     }
 }

@@ -16,6 +16,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using Datadog.Trace.ExtensionMethods;
+using Datadog.Trace.Util;
 using MessagePack;
 
 namespace Datadog.Trace.TestHelpers
@@ -320,7 +321,7 @@ namespace Datadog.Trace.TestHelpers
             public string Service { get; set; }
 
             [Key("type")]
-            public string Type { get; set; }
+            public StringWithBytes Type { get; set; }
 
             [Key("start")]
             public long Start { get; set; }

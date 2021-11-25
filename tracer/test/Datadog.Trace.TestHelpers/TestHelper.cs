@@ -14,6 +14,7 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
+using Datadog.Trace.Util;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -466,7 +467,7 @@ namespace Datadog.Trace.TestHelpers
             bool isError,
             string expectedErrorType,
             string expectedErrorMessage,
-            string expectedSpanType,
+            StringWithBytes expectedSpanType,
             string expectedResourceName,
             string expectedServiceVersion)
         {

@@ -3,6 +3,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using Datadog.Trace.Util;
+
 namespace Datadog.Trace.ClrProfiler.IntegrationTests
 {
     public class WebServerSpanExpectation : SpanExpectation
@@ -12,7 +14,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             string serviceVersion,
             string operationName,
             string resourceName,
-            string type = SpanTypes.Web,
+            StringWithBytes type,
             string statusCode = null,
             string httpMethod = null)
             : base(

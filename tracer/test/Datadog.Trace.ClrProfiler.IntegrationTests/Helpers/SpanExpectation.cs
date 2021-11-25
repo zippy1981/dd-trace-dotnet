@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Datadog.Trace.TestHelpers;
+using Datadog.Trace.Util;
 
 namespace Datadog.Trace.ClrProfiler.IntegrationTests
 {
@@ -15,7 +16,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
     /// </summary>
     public class SpanExpectation
     {
-        public SpanExpectation(string serviceName, string serviceVersion, string operationName, string resourceName, string type)
+        public SpanExpectation(string serviceName, string serviceVersion, string operationName, string resourceName, StringWithBytes type)
         {
             ServiceName = serviceName;
             ServiceVersion = serviceVersion;
@@ -29,7 +30,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             RegisterCustomExpectation(nameof(OperationName), actual: s => s.Name, expected: OperationName);
             RegisterCustomExpectation(nameof(ServiceName), actual: s => s.Service, expected: ServiceName);
             RegisterCustomExpectation(nameof(ResourceName), actual: s => s.Resource.TrimEnd(), expected: ResourceName);
-            RegisterCustomExpectation(nameof(Type), actual: s => s.Type, expected: Type);
+            RegisterCustomExpectation(nameof(Type), actual: s => s.Type.Value, expected: Type.Value);
 
             RegisterTagExpectation(
                 key: Tags.Language,
@@ -47,7 +48,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
         public bool IsTopLevel { get; set; } = true;
 
-        public string Type { get; set; }
+        public StringWithBytes Type { get; set; }
 
         public string ResourceName { get; set; }
 
@@ -198,7 +199,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 yield return "Resource must be set.";
             }
 
-            if (string.IsNullOrWhiteSpace(span.Type))
+            if (string.IsNullOrWhiteSpace(span.Type.Value))
             {
                 yield return "Type must be set.";
             }
