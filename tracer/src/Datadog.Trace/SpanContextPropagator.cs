@@ -51,9 +51,9 @@ namespace Datadog.Trace
             headers.Set(HttpHeaderNames.ParentId, context.SpanId.ToString(InvariantCulture));
 
             // avoid writing origin header if not set, keeping the previous behavior.
-            if (context.Origin != null)
+            if (context.Origin.Value != null)
             {
-                headers.Set(HttpHeaderNames.Origin, context.Origin);
+                headers.Set(HttpHeaderNames.Origin, context.Origin.Value);
             }
 
             var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);
@@ -89,9 +89,9 @@ namespace Datadog.Trace
             setter(carrier, HttpHeaderNames.ParentId, context.SpanId.ToString(InvariantCulture));
 
             // avoid writing origin header if not set, keeping the previous behavior.
-            if (context.Origin != null)
+            if (context.Origin.Value != null)
             {
-                setter(carrier, HttpHeaderNames.Origin, context.Origin);
+                setter(carrier, HttpHeaderNames.Origin, context.Origin.Value);
             }
 
             var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);

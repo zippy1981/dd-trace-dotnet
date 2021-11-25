@@ -9,6 +9,7 @@ using System.Text;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Tagging;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Serilog.Events;
 
 namespace Datadog.Trace
@@ -59,7 +60,7 @@ namespace Datadog.Trace
         /// Not to be confused with span kind.
         /// </summary>
         /// <seealso cref="SpanTypes"/>
-        public string Type { get; set; }
+        public StringWithBytes Type { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this span represents an error
@@ -322,7 +323,7 @@ namespace Datadog.Trace
                 case Trace.Tags.SamplingPriority:
                     return ((int?)(Context.TraceContext?.SamplingPriority ?? Context.SamplingPriority))?.ToString();
                 case Trace.Tags.Origin:
-                    return Context.Origin;
+                    return Context.Origin.Value;
                 default:
                     return Tags.GetTag(key);
             }

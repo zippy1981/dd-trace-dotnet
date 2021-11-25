@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.MessagePack;
 
 namespace Datadog.Trace.Tagging
@@ -314,12 +315,12 @@ namespace Datadog.Trace.Tagging
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _runtimeIdValueBytes);
             }
 
-            string origin = span.Context.Origin;
-            if (!isOriginWritten && !string.IsNullOrEmpty(origin))
+            StringWithBytes origin = span.Context.Origin;
+            if (!isOriginWritten && !string.IsNullOrEmpty(origin.Value))
             {
                 count++;
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _originBytes);
-                offset += MessagePackBinary.WriteString(ref bytes, offset, origin);
+                offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, origin.ValueInBytes);
             }
 
             if (count > 0)

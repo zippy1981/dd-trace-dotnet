@@ -11,6 +11,7 @@ using Datadog.Trace.Configuration;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
 using Datadog.Trace.Tagging;
+using Datadog.Trace.Util;
 using Microsoft.AspNetCore.Http;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Azure.Functions
@@ -20,9 +21,9 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Azure.Functions
         public const string IntegrationName = nameof(Configuration.IntegrationId.AzureFunctions);
 
         public const string OperationName = "azure-functions.invoke";
-        public const string SpanType = SpanTypes.Serverless;
         public const IntegrationId IntegrationId = Configuration.IntegrationId.AzureFunctions;
 
+        private static readonly StringWithBytes SpanType = SpanTypes.Serverless;
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(AzureFunctionsCommon));
         private static readonly AspNetCoreHttpRequestHandler AspNetCoreRequestHandler = new AspNetCoreHttpRequestHandler(Log, OperationName, IntegrationId);
 

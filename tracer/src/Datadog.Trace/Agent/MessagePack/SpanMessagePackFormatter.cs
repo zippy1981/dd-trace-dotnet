@@ -67,7 +67,7 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteString(ref bytes, offset, value.ServiceName);
 
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _typeBytes);
-            offset += MessagePackBinary.WriteString(ref bytes, offset, value.Type);
+            offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, value.Type.ValueInBytes ?? Array.Empty<byte>());
 
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _startBytes);
             offset += MessagePackBinary.WriteInt64(ref bytes, offset, value.StartTime.ToUnixTimeNanoseconds());

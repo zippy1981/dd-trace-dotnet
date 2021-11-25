@@ -30,7 +30,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.AdoNet
             {
                 Span parent = tracer.ActiveScope?.Span;
 
-                if (parent is { Type: SpanTypes.Sql } &&
+                if (parent is not null &&
+                    parent.Type == SpanTypes.Sql &&
                     parent.GetTag(Tags.DbType) == dbType &&
                     parent.ResourceName == command.CommandText)
                 {
