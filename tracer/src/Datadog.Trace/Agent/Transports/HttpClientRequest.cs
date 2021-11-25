@@ -20,6 +20,8 @@ namespace Datadog.Trace.Agent.Transports
     internal class HttpClientRequest : IApiRequest
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<HttpClientRequest>();
+        private static readonly MediaTypeHeaderValue MsgPackMediaType = new MediaTypeHeaderValue("application/msgpack");
+        private static readonly MediaTypeHeaderValue JsonMediaType = new MediaTypeHeaderValue("application/msgpack");
 
         private readonly HttpClient _client;
         private readonly HttpRequestMessage _request;
@@ -44,7 +46,7 @@ namespace Datadog.Trace.Agent.Transports
                 using (JsonWriter writer = new JsonTextWriter(sw) { CloseOutput = true })
                 {
                     serializer.Serialize(writer, events);
-                    content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    content.Headers.ContentType = JsonMediaType;
                     _request.Content = content;
                     await writer.FlushAsync().ConfigureAwait(false);
                     memoryStream.Seek(0, SeekOrigin.Begin);
@@ -69,7 +71,7 @@ namespace Datadog.Trace.Agent.Transports
             // re-create HttpContent on every retry because some versions of HttpClient always dispose of it, so we can't reuse.
             using (var content = new ByteArrayContent(traces.Array, traces.Offset, traces.Count))
             {
-                content.Headers.ContentType = new MediaTypeHeaderValue("application/msgpack");
+                content.Headers.ContentType = MsgPackMediaType;
                 _request.Content = content;
 
                 var response = await _client.SendAsync(_request).ConfigureAwait(false);

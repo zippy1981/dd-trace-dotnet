@@ -4,6 +4,7 @@
 // </copyright>
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Datadog.Trace.Vendors.MessagePack;
 using Datadog.Trace.Vendors.MessagePack.Formatters;
@@ -45,7 +46,7 @@ namespace Datadog.Trace.Agent
                 if (!_locked)
                 {
                     // Sanity check - headers are written when the buffer is locked
-                    throw new InvalidOperationException("Data was extracted from the buffer without locking");
+                    ThrowDataExtractedFromBufferWithoutLocking();
                 }
 
                 return new ArraySegment<byte>(_buffer, 0, _offset);
@@ -63,6 +64,9 @@ namespace Datadog.Trace.Agent
 
         // For tests only
         internal bool IsEmpty => !_locked && !IsFull && TraceCount == 0 && SpanCount == 0 && _offset == HeaderSize;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ThrowDataExtractedFromBufferWithoutLocking() => throw new InvalidOperationException("Data was extracted from the buffer without locking");
 
         public bool TryWrite(ArraySegment<Span> trace, ref byte[] temporaryBuffer)
         {

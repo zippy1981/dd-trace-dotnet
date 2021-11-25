@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Datadog.Trace.Agent;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.TestHelpers;
+using Datadog.Trace.Util;
 using MsgPack;
 using Xunit;
 
@@ -22,7 +23,7 @@ namespace Datadog.Trace.IntegrationTests
         {
             var settings = new TracerSettings();
             _testApi = new TestApi();
-            var agentWriter = new AgentWriter(_testApi, statsd: null);
+            var agentWriter = new AgentWriter<WithoutStatsD>(_testApi, statsd: null);
             _tracer = new Tracer(settings, agentWriter, sampler: null, scopeManager: null, statsd: null);
         }
 

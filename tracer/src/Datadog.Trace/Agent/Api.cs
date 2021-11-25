@@ -73,11 +73,13 @@ namespace Datadog.Trace.Agent
         public async Task<bool> SendTracesAsync(ArraySegment<byte> traces, int numberOfTraces)
         {
             // retry up to 5 times with exponential back-off
-            var retryLimit = 5;
-            var retryCount = 1;
-            var sleepDuration = 100; // in milliseconds
+            const int retryLimit = 5;
+            int retryCount = 1;
+            int sleepDuration = 100; // in milliseconds
 
-            _log.Debug<int>("Sending {Count} traces to the DD agent", numberOfTraces);
+            string numberOfTracesInString = numberOfTraces.ToString();
+
+            _log.Debug<string>("Sending {Count} traces to the DD agent", numberOfTracesInString);
 
             while (true)
             {
@@ -94,7 +96,7 @@ namespace Datadog.Trace.Agent
                 }
 
                 // Set additional headers
-                request.AddHeader(AgentHttpHeaderNames.TraceCount, numberOfTraces.ToString());
+                request.AddHeader(AgentHttpHeaderNames.TraceCount, numberOfTracesInString);
 
                 if (_containerId != null)
                 {
