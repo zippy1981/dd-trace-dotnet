@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text;
 using Datadog.Trace.AppSec;
 using Datadog.Trace.AppSec.Transport.Http;
+using Datadog.Trace.Ci.Coverage.Models;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.DuckTyping;
 using Datadog.Trace.ExtensionMethods;
@@ -806,7 +807,7 @@ namespace Datadog.Trace.DiagnosticListeners
                     var coverageSession = Datadog.Trace.Ci.Coverage.CoverageReporter.Handler.EndSession();
                     if (coverageSession is not null)
                     {
-                        scope.Span.SetTag("coverage", JsonConvert.SerializeObject(((Datadog.Trace.Ci.Coverage.Models.CoverageSession)coverageSession).Files, SerializerSettings));
+                        scope.Span.SetTag("coverage", JsonConvert.SerializeObject((List<FileCoverage>)coverageSession, SerializerSettings));
                         File.WriteAllText(@$"c:\temp\webpage_coverage.json", JsonConvert.SerializeObject(coverageSession, SerializerSettings));
                     }
                 }
