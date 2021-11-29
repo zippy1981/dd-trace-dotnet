@@ -22,13 +22,13 @@ namespace Datadog.Trace
 
         private static readonly CultureInfo InvariantCulture = CultureInfo.InvariantCulture;
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<SpanContextPropagator>();
-        private static readonly ConcurrentDictionary<Key, string> DefaultTagMappingCache = new ConcurrentDictionary<Key, string>();
+        private static readonly ConcurrentDictionary<Key, string> DefaultTagMappingCache = new();
 
         private SpanContextPropagator()
         {
         }
 
-        public static SpanContextPropagator Instance { get; } = new SpanContextPropagator();
+        public static SpanContextPropagator Instance { get; } = new();
 
         /// <summary>
         /// Propagates the specified context by adding new headers to a <see cref="IHeadersCollection"/>.
