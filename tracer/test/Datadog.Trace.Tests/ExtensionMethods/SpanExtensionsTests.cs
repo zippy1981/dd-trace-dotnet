@@ -31,7 +31,7 @@ namespace Datadog.Trace.Tests.ExtensionMethods
             string expectedUserId,
             string expectedHost)
         {
-            var spanContext = new SpanContext(Mock.Of<ISpanContext>(), Mock.Of<ITraceContext>(), "test");
+            var spanContext = new SpanContext(Mock.Of<ISpanContext>(), Mock.Of<TraceContext>(), "test");
             var span = new Span(spanContext, null);
 
             var commandTags = DbCommandCache.GetTagsFromDbCommand(CreateDbCommand(connectionString));
@@ -45,7 +45,7 @@ namespace Datadog.Trace.Tests.ExtensionMethods
         {
             const string connectionStringTemplate = "Server=myServerName{0};Database=myDataBase;User Id=myUsername;Password=myPassword;";
 
-            var spanContext = new SpanContext(Mock.Of<ISpanContext>(), Mock.Of<ITraceContext>(), "test");
+            var spanContext = new SpanContext(Mock.Of<ISpanContext>(), Mock.Of<TraceContext>(), "test");
             var span = new Span(spanContext, null);
 
             // Fill-up the cache and test the logic with cache enabled
