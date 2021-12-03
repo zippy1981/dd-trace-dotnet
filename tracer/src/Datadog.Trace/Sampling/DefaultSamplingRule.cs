@@ -14,12 +14,20 @@ namespace Datadog.Trace.Sampling
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<DefaultSamplingRule>();
 
-        private Dictionary<SampleRateKey, float> _sampleRates = new Dictionary<SampleRateKey, float>();
+        private Dictionary<SampleRateKey, float> _sampleRates = new();
+
+        public DefaultSamplingRule(SamplingMechanism samplingMechanism)
+        {
+            SamplingMechanism = samplingMechanism;
+        }
 
         public string RuleName => "default-rule";
 
+        public SamplingMechanism SamplingMechanism { get; }
+
         /// <summary>
-        /// Gets the lowest possible priority
+        /// Gets the priority of the rule. High numbers mean higher priority.
+        /// <see cref="DefaultSamplingRule"/> always gets the lowest possible priority, <see cref="int.MinValue"/>.
         /// </summary>
         public int Priority => int.MinValue;
 
@@ -96,8 +104,8 @@ namespace Datadog.Trace.Sampling
 
         private readonly struct SampleRateKey : IEquatable<SampleRateKey>
         {
-            private static readonly char[] PartSeparator = new[] { ',' };
-            private static readonly char[] ValueSeparator = new[] { ':' };
+            private static readonly char[] PartSeparator = { ',' };
+            private static readonly char[] ValueSeparator = { ':' };
 
             private readonly string _service;
             private readonly string _env;

@@ -3,8 +3,6 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
-using System;
-using System.Collections.Generic;
 using Datadog.Trace.Logging;
 
 namespace Datadog.Trace.Sampling
@@ -15,9 +13,10 @@ namespace Datadog.Trace.Sampling
 
         private readonly float _globalRate;
 
-        public GlobalSamplingRule(float rate)
+        public GlobalSamplingRule(float rate, SamplingMechanism samplingMechanism)
         {
             _globalRate = rate;
+            SamplingMechanism = samplingMechanism;
         }
 
         public string RuleName => "global-rate-rule";
@@ -26,6 +25,8 @@ namespace Datadog.Trace.Sampling
         /// Gets the priority which is one beneath custom rules.
         /// </summary>
         public int Priority => 0;
+
+        public SamplingMechanism SamplingMechanism { get; }
 
         public bool IsMatch(Span span)
         {

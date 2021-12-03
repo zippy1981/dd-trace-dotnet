@@ -9,6 +9,7 @@ using System.Data;
 using System.Data.Common;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Headers;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Serilog;
@@ -27,11 +28,24 @@ namespace Datadog.Trace.ExtensionMethods
         /// <param name="samplingPriority">The new sampling priority for the trace.</param>
         public static void SetTraceSamplingPriority(this ISpan span, SamplingPriority samplingPriority)
         {
+            // NOTE: this public method is for users only.
+            // Internal calls should use SetTraceSamplingDecision(this ISpan, SamplingPriority, SamplingMechanism).
+            span.SetTraceSamplingDecision(samplingPriority, SamplingMechanism.Manual);
+        }
+
+        /// <summary>
+        /// Sets the sampling priority for the trace that contains the specified <see cref="ISpan"/>.
+        /// </summary>
+        /// <param name="span">A span that belongs to the trace.</param>
+        /// <param name="priority">The new sampling priority for the trace.</param>
+        /// <param name="mechanism">The new sampling mechanism for the trace.</param>
+        internal static void SetTraceSamplingDecision(this ISpan span, SamplingPriority priority, SamplingMechanism mechanism)
+        {
             if (span == null) { throw new ArgumentNullException(nameof(span)); }
 
             if (span.Context is SpanContext spanContext && spanContext.TraceContext != null)
             {
-                spanContext.TraceContext.SamplingPriority = samplingPriority;
+                spanContext.TraceContext.SamplingDecision = new SamplingDecision(priority, mechanism, rate: null);
             }
         }
 

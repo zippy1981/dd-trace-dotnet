@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Text;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.Vendors.Serilog.Events;
 
@@ -176,7 +177,7 @@ namespace Datadog.Trace
                         Enum.IsDefined(typeof(SamplingPriority), samplingPriority))
                     {
                         // allow setting the sampling priority via a tag
-                        Context.TraceContext.SamplingPriority = samplingPriority;
+                        Context.TraceContext.SamplingDecision = new SamplingDecision(samplingPriority, SamplingMechanism.Manual, rate: null);
                     }
 
                     break;
@@ -184,7 +185,7 @@ namespace Datadog.Trace
                     if (value?.ToBoolean() == true)
                     {
                         // user-friendly tag to set UserKeep priority
-                        Context.TraceContext.SamplingPriority = SamplingPriority.UserKeep;
+                        Context.TraceContext.SamplingDecision = new SamplingDecision(SamplingPriority.UserKeep, SamplingMechanism.Manual, rate: null);
                     }
 
                     break;
@@ -192,7 +193,7 @@ namespace Datadog.Trace
                     if (value?.ToBoolean() == true)
                     {
                         // user-friendly tag to set UserReject priority
-                        Context.TraceContext.SamplingPriority = SamplingPriority.UserReject;
+                        Context.TraceContext.SamplingDecision = new SamplingDecision(SamplingPriority.UserReject, SamplingMechanism.Manual, rate: null);
                     }
 
                     break;
@@ -320,7 +321,8 @@ namespace Datadog.Trace
             switch (key)
             {
                 case Trace.Tags.SamplingPriority:
-                    return ((int?)(Context.TraceContext?.SamplingPriority ?? Context.SamplingPriority))?.ToString();
+                    var samplingPriority = Context.TraceContext?.SamplingDecision?.Priority ?? Context.SamplingPriority;
+                    return ((int?)samplingPriority)?.ToString();
                 case Trace.Tags.Origin:
                     return Context.Origin;
                 default:

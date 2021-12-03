@@ -8,6 +8,7 @@ using System.Diagnostics;
 using Datadog.Trace.ClrProfiler;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.Util;
 
@@ -20,9 +21,13 @@ namespace Datadog.Trace
         private readonly DateTimeOffset _utcStart = DateTimeOffset.UtcNow;
         private readonly long _timestamp = Stopwatch.GetTimestamp();
         private ArrayBuilder<Span> _spans;
-
         private int _openSpans;
-        private SamplingPriority? _samplingPriority;
+
+        /// <summary>
+        /// Contains <c>true</c> if the sampling decision is set and locked.
+        /// The sampling decision cannot be changed after it is locked.
+        /// </summary>
+        private bool _samplingPriorityLocked;
 
         public TraceContext(IDatadogTracer tracer)
         {
@@ -38,14 +43,20 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets or sets sampling priority.
         /// </summary>
+        [Obsolete("This property is deprecated and will be removed in a future version of the tracer. Use TraceContext.SamplingDecision instead.")]
         public SamplingPriority? SamplingPriority
         {
-            get => _samplingPriority;
+            get => SamplingDecision?.Priority;
             set
             {
                 SetSamplingPriority(value);
             }
         }
+
+        /// <summary>
+        /// Gets or sets the sampling decision.
+        /// </summary>
+        public SamplingDecision? SamplingDecision { get; set; }
 
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
@@ -70,20 +81,23 @@ namespace Datadog.Trace
                     RootSpan = span;
                     DecorateRootSpan(span);
 
-                    if (_samplingPriority == null)
+                    if (SamplingDecision == null)
                     {
                         if (span.Context.Parent is SpanContext context && context.SamplingPriority != null)
                         {
                             // this is a root span created from a propagated context that contains a sampling priority.
                             // lock sampling priority when a span is started from a propagated trace.
-                            _samplingPriority = context.SamplingPriority;
+
+                            // TODO: Stop locking the sampling priority here.
+                            //       Each service in the call chain can make a different sampling decision.
+                            SamplingDecision = new SamplingDecision(context.SamplingPriority.Value, SamplingMechanism.None, rate: null);
+                            LockSamplingPriority();
                         }
                         else
                         {
                             // this is a local root span (i.e. not propagated).
                             // determine an initial sampling priority for this trace, but don't lock it yet
-                            _samplingPriority =
-                                Tracer.Sampler?.GetSamplingPriority(RootSpan);
+                            SamplingDecision = Tracer.Sampler?.MakeSamplingDecision(RootSpan);
                         }
                     }
                 }
@@ -186,6 +200,7 @@ namespace Datadog.Trace
             // The agent looks for the sampling priority on the first span that has no parent
             // Finding those spans is not trivial, so instead we apply the priority to every span
 
+            // TODO: move this to the serializer
             var samplingPriority = _samplingPriority;
 
             if (samplingPriority == null)
