@@ -5,6 +5,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using Datadog.Trace.Util;
 
 namespace Datadog.Trace
@@ -14,7 +15,14 @@ namespace Datadog.Trace
     /// </summary>
     public class SpanContext : ISpanContext, IReadOnlyDictionary<string, string>
     {
-        private static readonly string[] KeyNames = { HttpHeaderNames.TraceId, HttpHeaderNames.ParentId, HttpHeaderNames.SamplingPriority, HttpHeaderNames.Origin };
+        private static readonly string[] KeyNames =
+        {
+            HttpHeaderNames.TraceId,
+            HttpHeaderNames.ParentId,
+            HttpHeaderNames.SamplingPriority,
+            HttpHeaderNames.Origin,
+            HttpHeaderNames.DatadogTags,
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SpanContext"/> class
@@ -191,26 +199,31 @@ namespace Datadog.Trace
             switch (key)
             {
                 case HttpHeaderNames.TraceId:
-                    value = TraceId.ToString();
+                    value = TraceId.ToString(CultureInfo.InvariantCulture);
                     return true;
 
                 case HttpHeaderNames.ParentId:
-                    value = SpanId.ToString();
+                    value = SpanId.ToString(CultureInfo.InvariantCulture);
                     return true;
 
                 case HttpHeaderNames.SamplingPriority:
                     var samplingPriority = SamplingPriority;
 
-                    value = samplingPriority != null ? ((int)samplingPriority.Value).ToString() : null;
+                    value = samplingPriority != null ? ((int)samplingPriority.Value).ToString(CultureInfo.InvariantCulture) : null;
                     return true;
 
                 case HttpHeaderNames.Origin:
                     value = Origin;
                     return true;
-            }
 
-            value = null;
-            return false;
+                case HttpHeaderNames.DatadogTags:
+                    value = TraceContext.DatadogTags;
+                    return true;
+
+                default:
+                    value = null;
+                    return false;
+            }
         }
     }
 }

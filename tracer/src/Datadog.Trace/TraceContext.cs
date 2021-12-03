@@ -49,6 +49,17 @@ namespace Datadog.Trace
 
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
+        /// <summary>
+        /// Gets or sets a collection of propagated internal Datadog tags,
+        /// formatted as "key1=value1,key2=value2".
+        /// </summary>
+        /// <remarks>
+        /// We're keeping the "on the wire" string representation to avoid having to
+        /// parse and stringify (serialize/deserialize) as much as possible.
+        /// For now, it's relatively easy to append new values.
+        /// </remarks>
+        internal string DatadogTags { get; set; }
+
         public void AddSpan(Span span)
         {
             lock (this)
