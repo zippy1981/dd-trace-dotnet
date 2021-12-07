@@ -10,6 +10,7 @@ using System.Globalization;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Headers;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Tagging.PropagatedTags;
 
 namespace Datadog.Trace
 {
@@ -53,13 +54,38 @@ namespace Datadog.Trace
                 headers.Set(HttpHeaderNames.Origin, context.Origin);
             }
 
-            var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);
+            var traceContext = context.TraceContext;
 
-            if (samplingPriority != null)
+            if (traceContext == null)
             {
-                headers.Set(
-                    HttpHeaderNames.SamplingPriority,
-                    samplingPriority.Value.ToString(InvariantCulture));
+                // a "disconnected" SpanContext without TraceContext or Span,
+                // probably used to implement distributed tracing manually
+                var spanContextSamplingPriority = context.SamplingPriority;
+
+                if (spanContextSamplingPriority != null)
+                {
+                    var samplingPriority = (int)spanContextSamplingPriority.Value;
+                    headers.Set(HttpHeaderNames.SamplingPriority, samplingPriority.ToString(InvariantCulture));
+                }
+            }
+            else
+            {
+                var traceSamplingDecision = traceContext.SamplingDecision;
+
+                if (traceSamplingDecision != null)
+                {
+                    // lock sampling priority when span propagates.
+                    traceContext.LockSamplingPriority();
+
+                    var samplingDecision = traceSamplingDecision.Value;
+                    var samplingPriority = (int)samplingDecision.Priority;
+                    headers.Set(HttpHeaderNames.SamplingPriority, samplingPriority.ToString(InvariantCulture));
+
+                    // TODO: only append if we didn't override the upstream service's sampling priority
+                    var upstreamService = new UpstreamService(traceContext.RootSpan.ServiceName, samplingDecision);
+                    var datadogTags = DatadogTagsHeader.AppendTagValue(traceContext.DatadogTags, upstreamService);
+                    headers.Set(HttpHeaderNames.DatadogTags, datadogTags);
+                }
             }
         }
 
@@ -88,11 +114,31 @@ namespace Datadog.Trace
                 setter(carrier, HttpHeaderNames.Origin, context.Origin);
             }
 
-            var samplingPriority = (int?)(context.TraceContext?.SamplingPriority ?? context.SamplingPriority);
+            var traceContext = context.TraceContext;
 
-            if (samplingPriority != null)
+            if (traceContext == null)
             {
-                setter(carrier, HttpHeaderNames.SamplingPriority, samplingPriority?.ToString(InvariantCulture));
+                // a "disconnected" SpanContext without TraceContext or Span,
+                // probably used to manually implement distributed tracing
+                if (context.SamplingPriority != null)
+                {
+                    var samplingPriority = (int)context.SamplingPriority.Value;
+                    setter(carrier, HttpHeaderNames.SamplingPriority, samplingPriority.ToString(InvariantCulture));
+                }
+            }
+            else if (traceContext.SamplingDecision != null)
+            {
+                // lock sampling priority when span propagates.
+                traceContext.LockSamplingPriority();
+
+                var samplingDecision = traceContext.SamplingDecision.Value;
+
+                setter(carrier, HttpHeaderNames.SamplingPriority, ((int)samplingDecision.Priority).ToString(InvariantCulture));
+
+                var upstreamService = new UpstreamService(traceContext.RootSpan.ServiceName, samplingDecision);
+                var datadogTags = DatadogTagsHeader.AppendTagValue(traceContext.DatadogTags, upstreamService);
+
+                setter(carrier, HttpHeaderNames.DatadogTags, datadogTags);
             }
         }
 
@@ -190,17 +236,19 @@ namespace Datadog.Trace
                     // Since the header name was saved to do the lookup in the input headers,
                     // convert the header to its final tag name once per prefix
                     var cacheKey = new Key(headerNameToTagName.Key, defaultTagPrefix);
-                    string tagNameResult = DefaultTagMappingCache.GetOrAdd(cacheKey, key =>
-                    {
-                        if (key.HeaderName.TryConvertToNormalizedHeaderTagName(out string normalizedHeaderTagName))
+                    string tagNameResult = DefaultTagMappingCache.GetOrAdd(
+                        cacheKey,
+                        key =>
                         {
-                            return key.TagPrefix + "." + normalizedHeaderTagName;
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    });
+                            if (key.HeaderName.TryConvertToNormalizedHeaderTagName(out string normalizedHeaderTagName))
+                            {
+                                return key.TagPrefix + "." + normalizedHeaderTagName;
+                            }
+                            else
+                            {
+                                return null;
+                            }
+                        });
 
                     if (tagNameResult != null)
                     {

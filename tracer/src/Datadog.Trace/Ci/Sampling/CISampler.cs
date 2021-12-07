@@ -12,7 +12,7 @@ namespace Datadog.Trace.Ci.Sampling
     {
         public SamplingDecision MakeSamplingDecision(Span span)
         {
-            return new SamplingDecision(SamplingPriority.UserKeep, SamplingMechanism.None, rate: null);
+            return new SamplingDecision(SamplingPriority.UserKeep, SamplingMechanism.Unknown, rate: null);
         }
 
         public void RegisterRule(ISamplingRule rule)

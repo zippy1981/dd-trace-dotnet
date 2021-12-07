@@ -13,7 +13,7 @@ namespace Datadog.Trace.Sampling
         /// <summary>
         /// No sampling decision was made, or it was made with an unknown mechanism.
         /// </summary>
-        None = 0,
+        Unknown = 0,
 
         /// <summary>
         /// A sampling decision was made using a sampling rate computed automatically by the Agent.

@@ -10,6 +10,7 @@ using Datadog.Trace.Ci;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.ExtensionMethods;
+using Datadog.Trace.Sampling;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
@@ -31,7 +32,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
             Span span = scope.Span;
 
             span.Type = SpanTypes.Test;
-            span.SetTraceSamplingDecision(SamplingPriority.AutoKeep);
+            // using SamplingMechanism.Unknown because CI App doesn't have an assigned mechanism ID
+            span.SetTraceSamplingDecision(SamplingPriority.AutoKeep, SamplingMechanism.Unknown);
             span.ResourceName = $"{testSuite}.{testName}";
             span.SetTag(Tags.Origin, TestTags.CIAppTestOriginName);
             span.SetTag(TestTags.Suite, testSuite);

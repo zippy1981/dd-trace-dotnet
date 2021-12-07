@@ -112,13 +112,13 @@ namespace Datadog.Trace
             {
                 var globalRate = (float)settings.GlobalSamplingRate;
 
-                if (globalRate < 0f || globalRate > 1f)
+                if (globalRate is < 0 or > 1)
                 {
                     Log.Warning("{ConfigurationKey} configuration of {ConfigurationValue} is out of range", ConfigurationKeys.GlobalSamplingRate, settings.GlobalSamplingRate);
                 }
                 else
                 {
-                    sampler.RegisterRule(new GlobalSamplingRule(globalRate));
+                    sampler.RegisterRule(new GlobalSamplingRule(globalRate, SamplingMechanism.Rule));
                 }
             }
 
@@ -128,7 +128,7 @@ namespace Datadog.Trace
         protected virtual IAgentWriter GetAgentWriter(ImmutableTracerSettings settings, IDogStatsd statsd, ISampler sampler)
         {
             var apiRequestFactory = TransportStrategy.Get(settings);
-            var api = new Api(settings.AgentUri, apiRequestFactory, statsd, rates => sampler.SetDefaultSampleRates(rates), settings.PartialFlushEnabled);
+            var api = new Api(settings.AgentUri, apiRequestFactory, statsd, sampler.SetDefaultSampleRates, settings.PartialFlushEnabled);
             return new AgentWriter(api, statsd, maxBufferSize: settings.TraceBufferSize);
         }
 
@@ -136,7 +136,7 @@ namespace Datadog.Trace
         {
             try
             {
-                var constantTags = new List<string>
+                var constantTags = new List<string>(capacity: 8)
                                    {
                                        "lang:.NET",
                                        $"lang_interpreter:{FrameworkDescription.Instance.Name}",

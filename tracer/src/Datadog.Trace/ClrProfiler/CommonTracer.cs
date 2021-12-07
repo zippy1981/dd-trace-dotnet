@@ -13,17 +13,12 @@ namespace Datadog.Trace.ClrProfiler
     {
         public int? GetSamplingPriority()
         {
-            return (int?)Tracer.Instance.InternalActiveScope?.Span.Context?.TraceContext?.SamplingPriority;
+            return (int?)Tracer.Instance.InternalActiveScope?.Span.Context?.TraceContext?.SamplingDecision?.Priority;
         }
 
         public void SetSamplingPriority(int? samplingPriority)
         {
-            var traceContext = Tracer.Instance.InternalActiveScope?.Span.Context?.TraceContext;
-
-            if (traceContext != null)
-            {
-                traceContext.SetSamplingPriority((SamplingPriority?)samplingPriority, notifyDistributedTracer: false);
-            }
+            Tracer.Instance.InternalActiveScope?.Span.Context?.TraceContext?.SetSamplingPriority((SamplingPriority?)samplingPriority, notifyDistributedTracer: false);
         }
     }
 }

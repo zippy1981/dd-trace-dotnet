@@ -90,7 +90,7 @@ namespace Datadog.Trace
 
                             // TODO: Stop locking the sampling priority here.
                             //       Each service in the call chain can make a different sampling decision.
-                            SamplingDecision = new SamplingDecision(context.SamplingPriority.Value, SamplingMechanism.None, rate: null);
+                            SamplingDecision = new SamplingDecision(context.SamplingPriority.Value, SamplingMechanism.Unknown, rate: null);
                             LockSamplingPriority();
                         }
                         else

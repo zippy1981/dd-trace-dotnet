@@ -12,7 +12,7 @@ namespace Datadog.Trace.Sampling
         /// <summary>
         /// The default sampling decision used as a fall back when there are no matching sampling rates or rules.
         /// </summary>
-        public static SamplingDecision Default = new(SamplingPriority.AutoKeep, SamplingMechanism.None, rate: null);
+        public static SamplingDecision Default = new(SamplingPriority.AutoKeep, SamplingMechanism.Unknown, rate: null);
 
         public SamplingDecision(SamplingPriority priority, SamplingMechanism mechanism, float? rate)
         {

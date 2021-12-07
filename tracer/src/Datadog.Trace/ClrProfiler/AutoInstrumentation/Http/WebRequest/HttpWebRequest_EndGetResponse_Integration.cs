@@ -75,6 +75,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Http.WebRequest
 
                     if (scope is not null)
                     {
+                        var span = scope.Span;
+
                         if (setSamplingPriority)
                         {
                             scope.Span.SetTraceSamplingDecision(existingSpanContext.SamplingPriority.Value);
@@ -82,7 +84,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Http.WebRequest
 
                         if (returnValue is HttpWebResponse response)
                         {
-                            scope.Span.SetHttpStatusCode((int)response.StatusCode, false, Tracer.Instance.Settings);
+                            span.SetHttpStatusCode((int)response.StatusCode, isServer: false, Tracer.Instance.Settings);
                         }
 
                         scope.DisposeWithException(exception);

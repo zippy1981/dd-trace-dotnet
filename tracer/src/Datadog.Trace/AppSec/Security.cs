@@ -15,6 +15,7 @@ using Datadog.Trace.AppSec.Waf.ReturnTypes.Managed;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Headers;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
 using Datadog.Trace.Vendors.Serilog.Events;
 
@@ -209,7 +210,7 @@ namespace Datadog.Trace.AppSec
         private void Report(ITransport transport, Span span, WafMatch[] results, bool blocked)
         {
             span.SetTag(Tags.AppSecEvent, "true");
-            span.SetTraceSamplingDecision(SamplingPriority.UserKeep);
+            span.SetTraceSamplingDecision(SamplingPriority.UserKeep, SamplingMechanism.AppSec);
 
             LogMatchesIfDebugEnabled(results, blocked);
 

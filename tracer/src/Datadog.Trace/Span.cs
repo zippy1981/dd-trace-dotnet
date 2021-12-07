@@ -116,6 +116,7 @@ namespace Datadog.Trace
 
         internal bool IsRootSpan => Context.TraceContext?.RootSpan == this;
 
+        // TODO: set this in the ctor to remove need to access the parent
         internal bool IsTopLevel => Context.Parent == null || Context.Parent.ServiceName != ServiceName;
 
         /// <summary>
