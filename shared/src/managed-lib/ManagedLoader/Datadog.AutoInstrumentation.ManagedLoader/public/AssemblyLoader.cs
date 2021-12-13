@@ -64,7 +64,7 @@ namespace Datadog.AutoInstrumentation.ManagedLoader
 
             // Set this env var to FALSE to disable delayed execution:
             public const string IsEnabled_EnvVarName = "DD_INTERNAL_LOADER_DELAY_ENABLED";
-            public const bool IsEnabled_DefaultVal = true;
+            public const bool IsEnabled_DefaultVal = false;
 
             // Set this env var to a POSITIVE NUMBER to force delayed execution in default IIS app domain:
             public const string IisDelayMs_EnvVarName = "DD_INTERNAL_LOADER_DELAY_IIS_MILLISEC";

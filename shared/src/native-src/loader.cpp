@@ -39,9 +39,8 @@ namespace shared
         WStr("Datadog.AutoInstrumentation.Profiler.Managed"),
     };
 
-    const WSTRING SpecificTypeToInjectName = WStr("System.AppDomain");
-    const WSTRING SpecificMethodToInjectName = WStr("IsCompatibilitySwitchSet");
-
+    const WSTRING SpecificTypeToInjectName = WStr("System.AppDomainSetup");
+    const WSTRING SpecificMethodToInjectName = WStr("set_CheckedForTargetFrameworkName");
 
     static Enumerator<mdMethodDef> EnumMethodsWithName(
         const ComPtr<IMetaDataImport2>& metadata_import,
