@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using Datadog.Trace;
+using Datadog.Trace.Configuration;
 
 namespace LogsInjectionHelper.VersionConflict
 {
@@ -10,6 +11,8 @@ namespace LogsInjectionHelper.VersionConflict
         /// In other words, they're not written within a Datadog scope 
         /// </summary>
         private static readonly string ExcludeMessagePrefix = "[ExcludeMessage]";
+
+        private static readonly string NewServiceSuffix = "NewService";
 
         public static int RunLoggingProcedure(Action<string> logAction)
         {
@@ -62,6 +65,27 @@ namespace LogsInjectionHelper.VersionConflict
                     }
 
                     logAction($"Trace: manual1");
+                }
+
+                var settings = TracerSettings.FromDefaultSources();
+                settings.ServiceName = $"{Tracer.Instance.DefaultServiceName}-{NewServiceSuffix}";
+                Tracer.Configure(settings);
+
+                using (Tracer.Instance.StartActive($"manual1.{NewServiceSuffix}"))
+                {
+                    logAction($"Trace: manual1.{NewServiceSuffix}");
+                    using (TracerUtils.StartAutomaticTraceHigherAssemblyVersion($"automatic2.{NewServiceSuffix}"))
+                    {
+                        logAction($"Trace: manual1.{NewServiceSuffix}-automatic2.{NewServiceSuffix}");
+                        using (TracerUtils.StartAutomaticTraceHigherAssemblyVersion($"automatic3.{NewServiceSuffix}"))
+                        {
+                            logAction($"Trace: manual1.{NewServiceSuffix}-automatic2.{NewServiceSuffix}-automatic3.{NewServiceSuffix}");
+                        }
+
+                        logAction($"Trace: manual1.{NewServiceSuffix}-automatic2.{NewServiceSuffix}");
+                    }
+
+                    logAction($"Trace: manual1.{NewServiceSuffix}");
                 }
 
                 logAction($"{ExcludeMessagePrefix}Exited manual1 Datadog scope.");

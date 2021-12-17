@@ -43,8 +43,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.VersionConflict
         {
             SetEnvironmentVariable("DD_LOGS_INJECTION", "true");
 
-            var expectedCorrelatedTraceCount = 1;
-            var expectedCorrelatedSpanCount = 8;
+            var expectedCorrelatedTraceCount = 2;
+            var expectedCorrelatedSpanCount = 13;
 
             int agentPort = TcpPortProvider.GetOpenPort();
             using (var agent = new MockTracerAgent(agentPort))
