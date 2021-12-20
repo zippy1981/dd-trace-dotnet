@@ -50,6 +50,9 @@ namespace Datadog.Trace.Tools.Runner
         [Option("crank-import", HelpText = "Import crank Json results file.")]
         public string CrankImportFile { get; set; }
 
+        [Option("apply-aot", HelpText = "Process target folder with AOT.")]
+        public string AOTTargetFolder { get; set; }
+
         [Value(0, Required = false, Hidden = true, HelpText = "Command to be wrapped by the cli tool.")]
         public IEnumerable<string> Value { get; set; }
     }

@@ -20,9 +20,9 @@ namespace Datadog.Trace.Tools.Runner
     {
         private static CancellationTokenSource _tokenSource = new CancellationTokenSource();
 
-        private static string RunnerFolder { get; set; }
+        internal static string RunnerFolder { get; set; }
 
-        private static Platform Platform { get; set; }
+        internal static Platform Platform { get; set; }
 
         private static void Main(string[] args)
         {
@@ -76,6 +76,8 @@ namespace Datadog.Trace.Tools.Runner
 
             // Start logic
 
+            new AOT.AOTProcessor();
+
             Dictionary<string, string> profilerEnvironmentVariables = Utils.GetProfilerEnvironmentVariables(RunnerFolder, Platform, options);
             if (profilerEnvironmentVariables is null)
             {
@@ -118,6 +120,11 @@ namespace Datadog.Trace.Tools.Runner
             else if (!string.IsNullOrEmpty(options.CrankImportFile))
             {
                 return Crank.Importer.Process(options.CrankImportFile);
+            }
+            else if (!string.IsNullOrEmpty(options.AOTTargetFolder))
+            {
+                var aotProcessor = new AOT.AOTProcessor();
+                aotProcessor.Execute(options.AOTTargetFolder);
             }
             else
             {
