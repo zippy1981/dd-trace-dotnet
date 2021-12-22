@@ -17,9 +17,6 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Elasticsearch
         public const string SpanType = "elasticsearch";
         public const string ComponentValue = "elasticsearch-net";
 
-        public static readonly Type CancellationTokenType = typeof(CancellationToken);
-        public static readonly Type RequestPipelineType = Type.GetType("Elasticsearch.Net.IRequestPipeline, Elasticsearch.Net");
-
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ElasticsearchNetCommon));
 
         public static Scope CreateScope<T>(Tracer tracer, IntegrationId integrationId, RequestPipelineStruct pipeline, T requestData)
