@@ -40,7 +40,7 @@ namespace Samples.SqlServer
             await Task.Delay(2000, cts.Token);
         }
 
-        [Trace(ResourceName = "ModifiedOpenConnection")]
+        [Trace(EnumStatuses = Status.Failed, ResourceName = "ModifiedOpenConnection", Count = 2, InputType = typeof(Program), AnotherObject = typeof(SqlConnection), OObject = 3)] // AnotherObject = new int[] {1, 3, 5}
         private static DbConnection OpenConnection(Type connectionType)
         {
             using (Tracer.Instance.StartActive("OpenConnectionAPI"))

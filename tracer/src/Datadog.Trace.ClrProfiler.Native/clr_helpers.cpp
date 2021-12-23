@@ -955,26 +955,31 @@ void ByPassSimpleTypes(unsigned char element_type, PCCOR_SIGNATURE& pbCur)
 {
     switch (element_type)
     {
-        case ELEMENT_TYPE_BOOLEAN:
-        case ELEMENT_TYPE_CHAR:
-        case ELEMENT_TYPE_I1:
-        case ELEMENT_TYPE_U1:
-            pbCur++;
-        case ELEMENT_TYPE_U2:
-        case ELEMENT_TYPE_I2:
-            pbCur++;
-        case ELEMENT_TYPE_I4:
-        case ELEMENT_TYPE_U4:
-        case ELEMENT_TYPE_R4:
-            pbCur++;
-            pbCur++;
-        case ELEMENT_TYPE_I8:
-        case ELEMENT_TYPE_U8:
-        case ELEMENT_TYPE_R8:
-            pbCur++;
-            pbCur++;
-            pbCur++;
-            pbCur++;
+        case SERIALIZATION_TYPE_UNDEFINED:
+            break;
+        case SERIALIZATION_TYPE_BOOLEAN:
+        case SERIALIZATION_TYPE_CHAR:
+        case SERIALIZATION_TYPE_I1:
+        case SERIALIZATION_TYPE_U1:
+            pbCur += 1;
+            break;
+        case SERIALIZATION_TYPE_I2:
+        case SERIALIZATION_TYPE_U2:
+            pbCur += 2;
+            break;
+        case SERIALIZATION_TYPE_I4:
+        case SERIALIZATION_TYPE_U4:
+            pbCur += 4;
+            break;
+        case SERIALIZATION_TYPE_I8:
+        case SERIALIZATION_TYPE_U8:
+            pbCur += 8;
+            break;
+        case SERIALIZATION_TYPE_R4:
+            pbCur += 4;
+            break;
+        case SERIALIZATION_TYPE_R8:
+            pbCur += 8;
             break;
         default:
             break;
@@ -1035,7 +1040,7 @@ HRESULT AttributeProperties::TryParse()
     // Parse number of fixed args
     // TODO LATER. We need it for completeness but we don't need it for our usage :)
 
-    // Parse NumNamed, which is an uncompressed, little-endian unsigned int16
+    // Parse number of named args, which is an uncompressed, little-endian unsigned int16
     IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b1));
     IfFalseRetFAIL(ParseByte(pbCur, pbEnd, &b2));
     uint_value = (b2 << 8) | b1;
@@ -1043,7 +1048,7 @@ HRESULT AttributeProperties::TryParse()
     static unsigned char operation_name_ascii_array[] = {'O', 'p', 'e', 'r', 'a', 't', 'i', 'o', 'n', 'N', 'a', 'm', 'e'};
     static unsigned char resource_name_ascii_array[] = {'R', 'e', 's', 'o', 'u', 'r', 'c', 'e', 'N', 'a', 'm', 'e'};
 
-    // Parse NamedArg*
+    // Parse zero or more named args
     for (unsigned i = 0; i < uint_value; i++)
     {
         // Parse NamedArg
@@ -1054,16 +1059,24 @@ HRESULT AttributeProperties::TryParse()
 
         // Parse FieldOrPropType. Next may be one byte (SIMPLE_ELEMENT_TYPE) or two bytes (0x51 SIMPLE_ELEMENT_TYPE)
         if (!ParseByte(pbCur, pbEnd, &elem_type)) return false;
-        if (elem_type == 0x51)
-        {
-            if (!ParseByte(pbCur, pbEnd, &elem_type)) return false;
-        }
         unsigned char simpleElementType = elem_type;
 
         // Target field/property is a SerString
         unsigned stringLength;
         if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
         if (pbCur + stringLength - 1 >= pbEnd) return false;
+
+        // For enums, there are two SerString's back-to-back:
+        // FullyQualifiedAssemblyTypeName followed by MemberName
+        if (simpleElementType == SERIALIZATION_TYPE_ENUM)
+        {
+            // Skip over SerString bytes
+            pbCur += stringLength;
+
+            // Parse the second SerString
+            if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
+            if (pbCur + stringLength - 1 >= pbEnd) return false;
+        }
 
         // Determine if SerString matches "OperationName" or "ResourceName"
         // But only do this if the NamedArg is a property, because we only do properties
@@ -1102,9 +1115,24 @@ HRESULT AttributeProperties::TryParse()
         // Skip over SerString bytes
         pbCur += stringLength;
 
-        // Parse FixedArg
+        // Convert SERIALIZATION_TYPE_TAGGED_OBJECT (0x51) to its actual type
+        if (simpleElementType == SERIALIZATION_TYPE_TAGGED_OBJECT)
+        {
+            if (!ParseByte(pbCur, pbEnd, &simpleElementType)) return false;
+        }
+        else if (simpleElementType == SERIALIZATION_TYPE_ENUM)
+        {
+            // At this point, what comes next is the literal value
+            // However, the signature itself does not tell us what integral type is backing the enum
+            //
+            // Instead of trying to figure that out now, return false and deal with this later
+            Logger::Warn("Unable to parse custom attribute because an enum was used as a named argument.");
+            return E_FAIL;
+        }
+
+        // Named arg ends with a FixedArg, so parse it
         unsigned numElements = 1;
-        if (simpleElementType == ELEMENT_TYPE_SZARRAY)
+        if (simpleElementType == SERIALIZATION_TYPE_SZARRAY)
         {
             // TODO
         }
@@ -1113,36 +1141,27 @@ HRESULT AttributeProperties::TryParse()
         {
             ByPassSimpleTypes(simpleElementType, pbCur);
 
+            unsigned stringLength;
+
             // Parse Elem
             switch (simpleElementType)
             {
-                case ELEMENT_TYPE_BOOLEAN:
-                case ELEMENT_TYPE_CHAR:
-                case ELEMENT_TYPE_I1:
-                case ELEMENT_TYPE_U1:
-                case ELEMENT_TYPE_U2:
-                case ELEMENT_TYPE_I2:
-                case ELEMENT_TYPE_I4:
-                case ELEMENT_TYPE_U4:
-                case ELEMENT_TYPE_R4:
-                case ELEMENT_TYPE_I8:
-                case ELEMENT_TYPE_U8:
-                case ELEMENT_TYPE_R8:
+                case SERIALIZATION_TYPE_UNDEFINED:
+                case SERIALIZATION_TYPE_BOOLEAN:
+                case SERIALIZATION_TYPE_CHAR:
+                case SERIALIZATION_TYPE_I1:
+                case SERIALIZATION_TYPE_U1:
+                case SERIALIZATION_TYPE_I2:
+                case SERIALIZATION_TYPE_U2:
+                case SERIALIZATION_TYPE_I4:
+                case SERIALIZATION_TYPE_U4:
+                case SERIALIZATION_TYPE_I8:
+                case SERIALIZATION_TYPE_U8:
+                case SERIALIZATION_TYPE_R4:
+                case SERIALIZATION_TYPE_R8:
                     break;
-                case ELEMENT_TYPE_OBJECT:
-                    unsigned char objElementType;
-                    if (!ParseByte(pbCur, pbEnd, &objElementType)) return false;
-                    if (objElementType == 0x51)
-                    {
-                        if (!ParseByte(pbCur, pbEnd, &objElementType)) return false;
-                    }
-                    ByPassSimpleTypes(objElementType, pbCur);
-                    break;
-                case ELEMENT_TYPE_STRING:
-                default:
-                    // Pass through from string because I don't know what else would fall here
+                case SERIALIZATION_TYPE_STRING:
                     // Parse SerString
-                    unsigned stringLength;
                     if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
                     if (pbCur + stringLength - 1 >= pbEnd) return false;
 
@@ -1158,6 +1177,20 @@ HRESULT AttributeProperties::TryParse()
 
                     // Skip over SerString bytes
                     pbCur += stringLength;
+                    break;
+                case SERIALIZATION_TYPE_SZARRAY:
+                    break;
+                case SERIALIZATION_TYPE_TYPE:
+                    // Parse SerString
+                    if (!ParseNumber(pbCur, pbEnd, &stringLength)) return false;
+                    if (pbCur + stringLength - 1 >= pbEnd) return false;
+
+                    // Skip over SerString bytes
+                    pbCur += stringLength;
+                    break;
+                case SERIALIZATION_TYPE_ENUM:
+                    break;
+                default:
                     break;
             }
         }
