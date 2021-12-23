@@ -3001,7 +3001,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
     if (IsDumpILRewriteEnabled())
     {
         original_code =
-            GetILCodes("*** CallTarget_RewriterCallback(): Original Code: ", &rewriter, *caller, module_metadata);
+            GetILCodes("*** CallTarget_RewriterCallback(): Original Code: ", &rewriter, *caller, *module_metadata);
     }
 
     // *** Create the rewriter wrapper helper
@@ -3194,7 +3194,7 @@ HRESULT CorProfiler::CallTarget_RewriterCallback_WithoutIntegration(RejitHandler
     if (IsDumpILRewriteEnabled())
     {
         Logger::Info(original_code);
-        Logger::Info(GetILCodes("*** CallTarget_RewriterCallback(): Modified Code: ", &rewriter, *caller, module_metadata));
+        Logger::Info(GetILCodes("*** CallTarget_RewriterCallback(): Modified Code: ", &rewriter, *caller, *module_metadata));
     }
 
     hr = rewriter.Export();
