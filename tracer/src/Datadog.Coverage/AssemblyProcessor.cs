@@ -53,11 +53,13 @@ namespace Datadog.Coverage
                     ReadWrite = true
                 });
 
+                /*
                 if (assemblyDefinition.Name.HasPublicKey)
                 {
                     Console.WriteLine($"Assembly: {FilePath}, StrongKey not yet supported.");
                     return;
                 }
+                */
 
                 if (assemblyDefinition.CustomAttributes.Any(cAttr =>
                     cAttr.Constructor.DeclaringType.Name == typeof(Datadog.Trace.Ci.Coverage.Attributes.AvoidCoverageAttribute).Name))
