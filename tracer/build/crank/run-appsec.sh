@@ -21,6 +21,7 @@ fi
 
 echo "Using repo=$repo commit=$commit_sha"
 
+
 repository="--application.source.repository $repo"
 commit="--application.source.branchOrCommit #$commit_sha"
 
