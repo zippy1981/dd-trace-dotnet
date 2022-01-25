@@ -160,7 +160,7 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets the active span context dictionary by consulting DistributedTracer.Instance
         /// </summary>
-        internal IReadOnlyDictionary<string, string> DistributedSpanContext => DistributedTracer.Instance.GetSpanContextRaw() ?? InternalActiveScope?.Span?.Context;
+        internal IReadOnlyDictionary<string, string> DistributedSpanContext => DistributedTracer.Instance.GetSpanContextRaw() ?? InternalActiveScope?.Span?.AsSpanContext();
 
         /// <summary>
         /// Gets the active scope
@@ -241,7 +241,7 @@ namespace Datadog.Trace
         /// <returns>A scope wrapping the newly created span</returns>
         public IScope StartActive(string operationName)
         {
-            return StartActive(operationName, parent: null, serviceName: null, startTime: null, ignoreActiveScope: false, finishOnClose: true);
+            return StartActive(operationName, parent: null, serviceName: null, startTime: null, finishOnClose: true);
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace Datadog.Trace
         /// <returns>A scope wrapping the newly created span</returns>
         public IScope StartActive(string operationName, SpanCreationSettings settings)
         {
-            return StartActive(operationName, settings.Parent, serviceName: null, settings.StartTime, ignoreActiveScope: false, finishOnClose: settings.FinishOnClose ?? true);
+            return StartActive(operationName, settings.Parent, serviceName: null, settings.StartTime, finishOnClose: settings.FinishOnClose ?? true);
         }
 
         /// <summary>
@@ -262,12 +262,11 @@ namespace Datadog.Trace
         /// <param name="parent">The span's parent</param>
         /// <param name="serviceName">The span's service name</param>
         /// <param name="startTime">An explicit start time for that span</param>
-        /// <param name="ignoreActiveScope">If set the span will not be a child of the currently active span</param>
         /// <param name="finishOnClose">If set to false, closing the returned scope will not close the enclosed span </param>
         /// <returns>A scope wrapping the newly created span</returns>
-        internal Scope StartActive(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, bool finishOnClose = true)
+        internal Scope StartActive(string operationName, ISpanContext parent, string serviceName = null, DateTimeOffset? startTime = null, bool finishOnClose = true)
         {
-            var span = StartSpan(operationName, parent: parent, serviceName: serviceName, startTime: startTime, ignoreActiveScope: ignoreActiveScope);
+            var span = StartSpan(operationName, tags: null, parent, serviceName, startTime);
             return TracerManager.ScopeManager.Activate(span, finishOnClose);
         }
 
@@ -282,7 +281,12 @@ namespace Datadog.Trace
         /// <returns>The newly created span</returns>
         ISpan IDatadogOpenTracingTracer.StartSpan(string operationName, ISpanContext parent, string serviceName, DateTimeOffset? startTime, bool ignoreActiveScope)
         {
-            return StartSpan(operationName, parent, serviceName, startTime, ignoreActiveScope);
+            if (parent == null && ignoreActiveScope)
+            {
+                parent = SpanContext.None;
+            }
+
+            return StartSpan(operationName, tags: null, parent, serviceName, startTime);
         }
 
         /// <summary>
@@ -315,62 +319,34 @@ namespace Datadog.Trace
             return TracerManager.ScopeManager.Activate(span, finishOnClose);
         }
 
-        /// <summary>
-        /// Creates a new <see cref="ISpan"/> with the specified parameters.
-        /// </summary>
-        /// <param name="operationName">The span's operation name</param>
-        /// <param name="parent">The span's parent</param>
-        /// <param name="serviceName">The span's service name</param>
-        /// <param name="startTime">An explicit start time for that span</param>
-        /// <param name="ignoreActiveScope">If set the span will not be a child of the currently active span</param>
-        /// <returns>The newly created span</returns>
-        internal Span StartSpan(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false)
+        internal Scope StartActiveInternal(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool finishOnClose = true, ITags tags = null)
         {
-            return StartSpan(operationName, tags: null, parent, serviceName, startTime, ignoreActiveScope, spanId: null);
-        }
-
-        internal SpanContext CreateSpanContext(ISpanContext parent = null, string serviceName = null, bool ignoreActiveScope = false, ulong? traceId = null, ulong? spanId = null)
-        {
-            if (parent == null && !ignoreActiveScope)
-            {
-                parent = DistributedTracer.Instance.GetSpanContext() ?? TracerManager.ScopeManager.Active?.Span?.Context;
-            }
-
-            TraceContext traceContext;
-
-            // try to get the trace context (from local spans) or
-            // sampling priority (from propagated spans),
-            // otherwise start a new trace context
-            if (parent is SpanContext parentSpanContext)
-            {
-                traceContext = parentSpanContext.TraceContext
-                    ?? new TraceContext(this) { SamplingPriority = parentSpanContext.SamplingPriority ?? DistributedTracer.Instance.GetSamplingPriority() };
-            }
-            else
-            {
-                traceContext = new TraceContext(this) { SamplingPriority = DistributedTracer.Instance.GetSamplingPriority() };
-            }
-
-            var finalServiceName = serviceName ?? DefaultServiceName;
-            var spanContext = new SpanContext(parent, traceContext, finalServiceName, traceId: traceId, spanId: spanId);
-
-            return spanContext;
-        }
-
-        internal Scope StartActiveInternal(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, bool finishOnClose = true, ITags tags = null, ulong? spanId = null)
-        {
-            var span = StartSpan(operationName, tags, parent, serviceName, startTime, ignoreActiveScope);
+            var span = StartSpan(operationName, tags, parent, serviceName, startTime);
             return TracerManager.ScopeManager.Activate(span, finishOnClose);
         }
 
-        internal Span StartSpan(string operationName, ITags tags, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool ignoreActiveScope = false, ulong? traceId = null, ulong? spanId = null, bool addToTraceContext = true)
+        internal Span StartSpan(string operationName, ITags tags = null, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, ulong? traceId = null, ulong? spanId = null, bool addToTraceContext = true)
         {
-            var spanContext = CreateSpanContext(parent, serviceName, ignoreActiveScope, traceId, spanId);
+            // to ignore the default parent, use SpanContext.Empty instead of null
+            parent ??= DistributedTracer.Instance.GetSpanContext() ??
+                       TracerManager.ScopeManager.Active?.Span ??
+                       SpanContext.None;
 
-            var span = new Span(spanContext, startTime, tags)
+            // start a new TraceContext if parent doesn't have one
+            // (e.g. parent is a propagated ISpanContext, not a Span)
+            var traceContext = (parent as Span)?.TraceContext;
+
+            if (traceContext == null)
             {
-                OperationName = operationName,
-            };
+                traceContext = new TraceContext(this, traceId);
+                traceContext.SetSamplingPriority(DistributedTracer.Instance.GetSamplingPriority());
+            }
+
+            var span = new Span(traceContext, parent, start: startTime, tags: tags)
+                       {
+                           ServiceName = serviceName ?? DefaultServiceName,
+                           OperationName = operationName,
+                       };
 
             // Apply any global tags
             if (Settings.GlobalTags.Count > 0)
@@ -390,14 +366,14 @@ namespace Datadog.Trace
 
             // automatically add the "version" tag if defined, taking precedence over an "version" tag set from a global tag
             var version = Settings.ServiceVersion;
-            if (!string.IsNullOrWhiteSpace(version) && string.Equals(spanContext.ServiceName, DefaultServiceName))
+            if (!string.IsNullOrWhiteSpace(version) && string.Equals(serviceName, DefaultServiceName))
             {
                 span.SetTag(Tags.Version, version);
             }
 
             if (addToTraceContext)
             {
-                spanContext.TraceContext.AddSpan(span);
+                traceContext.AddSpan(span);
             }
 
             return span;

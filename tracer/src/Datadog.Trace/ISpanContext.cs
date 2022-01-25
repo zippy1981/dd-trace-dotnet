@@ -3,10 +3,14 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+#nullable enable
+
+using System.Collections.Generic;
+
 namespace Datadog.Trace
 {
     /// <summary>
-    /// Span context interface.
+    /// <see cref="ISpanContext"/> represents span state that must propagate to descendant spans and across process boundaries.
     /// </summary>
     public interface ISpanContext
     {
@@ -21,8 +25,8 @@ namespace Datadog.Trace
         ulong SpanId { get; }
 
         /// <summary>
-        /// Gets the service name to propagate to child spans.
+        /// Gets the zero or more key/value pairs used to propagate the associated span.
         /// </summary>
-        string ServiceName { get; }
+        IEnumerable<KeyValuePair<string, string?>> Deconstruct();
     }
 }

@@ -14,16 +14,16 @@ namespace Datadog.Trace.Agent.MessagePack
     {
         public static readonly IMessagePackFormatter<Span> Instance = new SpanMessagePackFormatter();
 
-        private byte[] _traceIdBytes = StringEncoding.UTF8.GetBytes("trace_id");
-        private byte[] _spanIdBytes = StringEncoding.UTF8.GetBytes("span_id");
-        private byte[] _nameBytes = StringEncoding.UTF8.GetBytes("name");
-        private byte[] _resourceBytes = StringEncoding.UTF8.GetBytes("resource");
-        private byte[] _serviceBytes = StringEncoding.UTF8.GetBytes("service");
-        private byte[] _typeBytes = StringEncoding.UTF8.GetBytes("type");
-        private byte[] _startBytes = StringEncoding.UTF8.GetBytes("start");
-        private byte[] _durationBytes = StringEncoding.UTF8.GetBytes("duration");
-        private byte[] _parentIdBytes = StringEncoding.UTF8.GetBytes("parent_id");
-        private byte[] _errorBytes = StringEncoding.UTF8.GetBytes("error");
+        private readonly byte[] _traceIdBytes = StringEncoding.UTF8.GetBytes("trace_id");
+        private readonly byte[] _spanIdBytes = StringEncoding.UTF8.GetBytes("span_id");
+        private readonly byte[] _nameBytes = StringEncoding.UTF8.GetBytes("name");
+        private readonly byte[] _resourceBytes = StringEncoding.UTF8.GetBytes("resource");
+        private readonly byte[] _serviceBytes = StringEncoding.UTF8.GetBytes("service");
+        private readonly byte[] _typeBytes = StringEncoding.UTF8.GetBytes("type");
+        private readonly byte[] _startBytes = StringEncoding.UTF8.GetBytes("start");
+        private readonly byte[] _durationBytes = StringEncoding.UTF8.GetBytes("duration");
+        private readonly byte[] _parentIdBytes = StringEncoding.UTF8.GetBytes("parent_id");
+        private readonly byte[] _errorBytes = StringEncoding.UTF8.GetBytes("error");
 
         private SpanMessagePackFormatter()
         {
@@ -35,7 +35,7 @@ namespace Datadog.Trace.Agent.MessagePack
             // It should be the number of members of the object to be serialized.
             var len = 8;
 
-            if (value.Context.ParentId != null)
+            if (value.Parent != null)
             {
                 len++;
             }
@@ -52,10 +52,10 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteMapHeader(ref bytes, offset, len);
 
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _traceIdBytes);
-            offset += MessagePackBinary.WriteUInt64(ref bytes, offset, value.Context.TraceId);
+            offset += MessagePackBinary.WriteUInt64(ref bytes, offset, value.TraceId);
 
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _spanIdBytes);
-            offset += MessagePackBinary.WriteUInt64(ref bytes, offset, value.Context.SpanId);
+            offset += MessagePackBinary.WriteUInt64(ref bytes, offset, value.SpanId);
 
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _nameBytes);
             offset += MessagePackBinary.WriteString(ref bytes, offset, value.OperationName);
@@ -75,10 +75,10 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _durationBytes);
             offset += MessagePackBinary.WriteInt64(ref bytes, offset, value.Duration.ToNanoseconds());
 
-            if (value.Context.ParentId != null)
+            if (value.Parent != null)
             {
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _parentIdBytes);
-                offset += MessagePackBinary.WriteUInt64(ref bytes, offset, (ulong)value.Context.ParentId);
+                offset += MessagePackBinary.WriteUInt64(ref bytes, offset, value.Parent.SpanId);
             }
 
             if (value.Error)

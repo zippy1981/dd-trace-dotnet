@@ -53,9 +53,9 @@ namespace Datadog.Trace.Ci.Agent
 
             if (!_isPartialFlushEnabled)
             {
-                // Check if the last span (the root) is a test, bechmark or build span
+                // Check if the last span (the root) is a test, benchmark or build span
                 Span lastSpan = trace.Array[trace.Offset + trace.Count - 1];
-                if (lastSpan.Context.Parent is null &&
+                if (lastSpan.Parent is null &&
                     lastSpan.Type != SpanTypes.Test &&
                     lastSpan.Type != SpanTypes.Benchmark &&
                     lastSpan.Type != SpanTypes.Build)
@@ -68,7 +68,9 @@ namespace Datadog.Trace.Ci.Agent
             foreach (var span in trace)
             {
                 // Sets the origin tag to any other spans to ensure the CI track.
-                span.Context.Origin = TestTags.CIAppTestOriginName;
+                // TODO: no need to do for each span if they are guaranteed to all have the same TraceContext,
+                // we will handle adding the tag to each span  in the serializer
+                span.TraceContext.Origin = TestTags.CIAppTestOriginName;
             }
 
             _agentWriter.WriteTrace(trace);

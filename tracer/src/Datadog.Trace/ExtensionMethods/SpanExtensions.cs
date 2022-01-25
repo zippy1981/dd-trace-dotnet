@@ -29,6 +29,11 @@ namespace Datadog.Trace.ExtensionMethods
         {
             if (span == null) { ThrowHelper.ThrowArgumentNullException(nameof(span)); }
 
+            if (span is Span s)
+            {
+                s.TraceContext.SetSamplingPriority(samplingPriority, notifyDistributedTracer: true);
+            }
+
             if (span.Context is SpanContext spanContext && spanContext.TraceContext != null)
             {
                 spanContext.TraceContext.SamplingPriority = samplingPriority;

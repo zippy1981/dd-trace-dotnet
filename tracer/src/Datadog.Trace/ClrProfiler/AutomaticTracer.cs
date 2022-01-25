@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Datadog.Trace.DuckTyping;
 using Datadog.Trace.Logging;
@@ -24,14 +25,7 @@ namespace Datadog.Trace.ClrProfiler
 
         IReadOnlyDictionary<string, string> IDistributedTracer.GetSpanContextRaw()
         {
-            if (_child is null)
-            {
-                return null;
-            }
-            else
-            {
-                return DistributedTrace.Value;
-            }
+            return _child is null ? null : DistributedTrace.Value;
         }
 
         IScope IDistributedTracer.GetActiveScope()
@@ -40,7 +34,7 @@ namespace Datadog.Trace.ClrProfiler
             return null;
         }
 
-        SpanContext IDistributedTracer.GetSpanContext()
+        ISpanContext IDistributedTracer.GetSpanContext()
         {
             if (_child is null)
             {
@@ -57,12 +51,12 @@ namespace Datadog.Trace.ClrProfiler
             return SpanContextPropagator.Instance.Extract(value);
         }
 
-        void IDistributedTracer.SetSpanContext(IReadOnlyDictionary<string, string> value)
+        void IDistributedTracer.SetSpanContext(IReadOnlyDictionary<string, string> values)
         {
             // This is a performance optimization. See comment in GetDistributedTrace() about potential race condition
             if (_child != null)
             {
-                DistributedTrace.Value = value;
+                DistributedTrace.Value = values;
             }
         }
 
@@ -97,7 +91,9 @@ namespace Datadog.Trace.ClrProfiler
             // This is a compromise: we add an additional asynclocal read for the manual tracer when there is no parent trace,
             // but it allows us to remove the asynclocal write for the automatic tracer when running without manual instrumentation.
 
-            return DistributedTrace.Value ?? Tracer.Instance.InternalActiveScope?.Span?.Context;
+            // TODO: remove ToDictionary()
+            return DistributedTrace.Value ??
+                   Tracer.Instance.InternalActiveScope?.Span.AsSpanContext().Deconstruct().ToDictionary(p => p.Key, p => p.Value);
         }
 
         /// <summary>

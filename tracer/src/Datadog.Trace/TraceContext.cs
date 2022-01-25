@@ -3,8 +3,12 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+#nullable enable
+
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using Datadog.Trace.ClrProfiler;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
@@ -19,17 +23,21 @@ namespace Datadog.Trace
 
         private readonly DateTimeOffset _utcStart = DateTimeOffset.UtcNow;
         private readonly long _timestamp = Stopwatch.GetTimestamp();
+        private readonly object _lock = new();
         private ArrayBuilder<Span> _spans;
 
         private int _openSpans;
         private SamplingPriority? _samplingPriority;
 
-        public TraceContext(IDatadogTracer tracer)
+        public TraceContext(IDatadogTracer tracer, ulong? traceId = null)
         {
             Tracer = tracer;
+            TraceId = traceId ?? SpanIdGenerator.ThreadInstance.CreateNew();
         }
 
-        public Span RootSpan { get; private set; }
+        public ulong TraceId { get; }
+
+        public Span? RootSpan { get; private set; }
 
         public DateTimeOffset UtcNow => _utcStart.Add(Elapsed);
 
@@ -47,6 +55,11 @@ namespace Datadog.Trace
             }
         }
 
+        /// <summary>
+        /// Gets or sets the origin of the trace
+        /// </summary>
+        public string? Origin { get; set; }
+
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
         /// <summary>
@@ -57,21 +70,26 @@ namespace Datadog.Trace
         /// We're keeping this as the string representation to avoid having to parse.
         /// For now, it's relatively easy to append new values when needed.
         /// </remarks>
-        public string DatadogTags { get; set; }
+        public string? DatadogTags { get; set; }
 
         public void AddSpan(Span span)
         {
-            lock (this)
+            lock (_lock)
             {
                 if (RootSpan == null)
                 {
                     // first span added is the root span
                     RootSpan = span;
-                    DecorateRootSpan(span);
+                    _samplingPriority ??= Tracer.Sampler?.GetSamplingPriority(span);
+
+                    if (AzureAppServices.Metadata.IsRelevant)
+                    {
+                        SetAzureAppServicesTags(span);
+                    }
 
                     if (_samplingPriority == null)
                     {
-                        if (span.Context.Parent is SpanContext context && context.SamplingPriority != null)
+                        if (span.ParentContext is SpanContext context && context.SamplingPriority != null)
                         {
                             // this is a root span created from a propagated context that contains a sampling priority.
                             // lock sampling priority when a span is started from a propagated trace.
@@ -81,13 +99,15 @@ namespace Datadog.Trace
                         {
                             // this is a local root span (i.e. not propagated).
                             // determine an initial sampling priority for this trace, but don't lock it yet
-                            _samplingPriority =
-                                Tracer.Sampler?.GetSamplingPriority(RootSpan);
+                            _samplingPriority = Tracer.Sampler?.GetSamplingPriority(RootSpan);
                         }
                     }
                 }
 
-                _openSpans++;
+                if (!span.IsFinished)
+                {
+                    _openSpans++;
+                }
             }
         }
 
@@ -111,7 +131,7 @@ namespace Datadog.Trace
 
             bool shouldPropagateMetadata = false;
 
-            lock (this)
+            lock (_lock)
             {
                 _spans.Add(span);
                 _openSpans--;
@@ -168,6 +188,13 @@ namespace Datadog.Trace
             return Elapsed + (_utcStart - date);
         }
 
+        public IEnumerable<KeyValuePair<string, string?>> GetBaggageItems()
+        {
+            yield return new(HttpHeaderNames.SamplingPriority, ((int?)SamplingPriority)?.ToString(CultureInfo.InvariantCulture));
+            yield return new(HttpHeaderNames.Origin, Origin);
+            yield return new(HttpHeaderNames.DatadogTags, DatadogTags);
+        }
+
         private static void SetSamplingPriority(Span span, SamplingPriority samplingPriority)
         {
             if (span.Tags is CommonTags tags)
@@ -199,22 +226,19 @@ namespace Datadog.Trace
             }
         }
 
-        private void DecorateRootSpan(Span span)
+        private void SetAzureAppServicesTags(Span span)
         {
-            if (AzureAppServices.Metadata.IsRelevant)
-            {
-                span.SetTag(Tags.AzureAppServicesSiteName, AzureAppServices.Metadata.SiteName);
-                span.SetTag(Tags.AzureAppServicesSiteKind, AzureAppServices.Metadata.SiteKind);
-                span.SetTag(Tags.AzureAppServicesSiteType, AzureAppServices.Metadata.SiteType);
-                span.SetTag(Tags.AzureAppServicesResourceGroup, AzureAppServices.Metadata.ResourceGroup);
-                span.SetTag(Tags.AzureAppServicesSubscriptionId, AzureAppServices.Metadata.SubscriptionId);
-                span.SetTag(Tags.AzureAppServicesResourceId, AzureAppServices.Metadata.ResourceId);
-                span.SetTag(Tags.AzureAppServicesInstanceId, AzureAppServices.Metadata.InstanceId);
-                span.SetTag(Tags.AzureAppServicesInstanceName, AzureAppServices.Metadata.InstanceName);
-                span.SetTag(Tags.AzureAppServicesOperatingSystem, AzureAppServices.Metadata.OperatingSystem);
-                span.SetTag(Tags.AzureAppServicesRuntime, AzureAppServices.Metadata.Runtime);
-                span.SetTag(Tags.AzureAppServicesExtensionVersion, AzureAppServices.Metadata.SiteExtensionVersion);
-            }
+            span.SetTag(Tags.AzureAppServicesSiteName, AzureAppServices.Metadata.SiteName);
+            span.SetTag(Tags.AzureAppServicesSiteKind, AzureAppServices.Metadata.SiteKind);
+            span.SetTag(Tags.AzureAppServicesSiteType, AzureAppServices.Metadata.SiteType);
+            span.SetTag(Tags.AzureAppServicesResourceGroup, AzureAppServices.Metadata.ResourceGroup);
+            span.SetTag(Tags.AzureAppServicesSubscriptionId, AzureAppServices.Metadata.SubscriptionId);
+            span.SetTag(Tags.AzureAppServicesResourceId, AzureAppServices.Metadata.ResourceId);
+            span.SetTag(Tags.AzureAppServicesInstanceId, AzureAppServices.Metadata.InstanceId);
+            span.SetTag(Tags.AzureAppServicesInstanceName, AzureAppServices.Metadata.InstanceName);
+            span.SetTag(Tags.AzureAppServicesOperatingSystem, AzureAppServices.Metadata.OperatingSystem);
+            span.SetTag(Tags.AzureAppServicesRuntime, AzureAppServices.Metadata.Runtime);
+            span.SetTag(Tags.AzureAppServicesExtensionVersion, AzureAppServices.Metadata.SiteExtensionVersion);
         }
     }
 }

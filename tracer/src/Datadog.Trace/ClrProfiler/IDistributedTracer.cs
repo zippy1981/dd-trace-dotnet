@@ -13,11 +13,11 @@ namespace Datadog.Trace.ClrProfiler
 
         IReadOnlyDictionary<string, string> GetSpanContextRaw();
 
-        SpanContext GetSpanContext();
+        ISpanContext GetSpanContext();
 
         IScope GetActiveScope();
 
-        void SetSpanContext(IReadOnlyDictionary<string, string> value);
+        void SetSpanContext(IReadOnlyDictionary<string, string> values);
 
         SamplingPriority? GetSamplingPriority();
 

@@ -33,7 +33,7 @@ namespace Datadog.Trace
             var scope = new Scope(newParent, span, this, finishOnClose);
 
             Active = scope;
-            DistributedTracer.Instance.SetSpanContext(scope.Span.Context);
+            DistributedTracer.Instance.SetSpanContext(scope.Span.AsSpanContext().Deconstruct());
 
             return scope;
         }
@@ -41,7 +41,6 @@ namespace Datadog.Trace
         public void Close(Scope scope)
         {
             var current = Active;
-            var isRootSpan = scope.Parent == null;
 
             if (current == null || current != scope)
             {
@@ -51,10 +50,11 @@ namespace Datadog.Trace
 
             // if the scope that was just closed was the active scope,
             // set its parent as the new active scope
+            // TODO: if the parent is already closed, keep looking up the hierarchy
             Active = scope.Parent;
 
             // scope.Parent is null for distributed traces, so use scope.Span.Context.Parent
-            DistributedTracer.Instance.SetSpanContext(scope.Span.Context.Parent as SpanContext);
+            DistributedTracer.Instance.SetSpanContext(scope.Span.Parent?.Deconstruct());
         }
     }
 }

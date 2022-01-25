@@ -190,7 +190,7 @@ namespace Datadog.Trace.AppSec
 
         private static Span GetLocalRootSpan(Span span)
         {
-            var localRootSpan = span.Context.TraceContext?.RootSpan;
+            var localRootSpan = span.TraceContext?.RootSpan;
             return localRootSpan ?? span;
         }
 

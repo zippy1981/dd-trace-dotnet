@@ -16,6 +16,16 @@ namespace Datadog.Trace
     public interface ISpan : IDisposable
     {
         /// <summary>
+        /// Gets the trace identifier.
+        /// </summary>
+        ulong TraceId { get; }
+
+        /// <summary>
+        /// Gets the span identifier.
+        /// </summary>
+        ulong SpanId { get; }
+
+        /// <summary>
         /// Gets or sets operation name
         /// </summary>
         string OperationName { get; set; }
@@ -41,21 +51,6 @@ namespace Datadog.Trace
         /// Gets or sets the service name.
         /// </summary>
         string ServiceName { get; set; }
-
-        /// <summary>
-        /// Gets the trace's unique identifier.
-        /// </summary>
-        ulong TraceId { get; }
-
-        /// <summary>
-        /// Gets the span's unique identifier.
-        /// </summary>
-        ulong SpanId { get; }
-
-        /// <summary>
-        /// Gets the span's span context
-        /// </summary>
-        ISpanContext Context { get;  }
 
         /// <summary>
         /// Add a the specified tag to this span.

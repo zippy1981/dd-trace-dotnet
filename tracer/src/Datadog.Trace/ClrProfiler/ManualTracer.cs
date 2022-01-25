@@ -61,7 +61,7 @@ namespace Datadog.Trace.ClrProfiler
 
         IReadOnlyDictionary<string, string> IDistributedTracer.GetSpanContextRaw() => _parent.GetDistributedTrace();
 
-        SpanContext IDistributedTracer.GetSpanContext()
+        ISpanContext IDistributedTracer.GetSpanContext()
         {
             var values = _parent.GetDistributedTrace();
 
@@ -69,15 +69,13 @@ namespace Datadog.Trace.ClrProfiler
             {
                 return spanContext;
             }
-            else
-            {
-                return SpanContextPropagator.Instance.Extract(values);
-            }
+
+            return SpanContextPropagator.Instance.Extract(values);
         }
 
-        void IDistributedTracer.SetSpanContext(IReadOnlyDictionary<string, string> value)
+        void IDistributedTracer.SetSpanContext(IReadOnlyDictionary<string, string> values)
         {
-            _parent.SetDistributedTrace(value);
+            _parent.SetDistributedTrace(values);
         }
 
         SamplingPriority? IDistributedTracer.GetSamplingPriority()
