@@ -89,7 +89,7 @@ namespace Datadog.Trace.AppSec
 
                 _instrumentationGateway = instrumentationGateway ?? new InstrumentationGateway();
 
-                _dogStatsd = dogStatsd ?? TracerManager.Instance.Statsd;
+                _dogStatsd = dogStatsd ?? Tracer.Instance.TracerManager.Statsd;
 
                 _settings.Enabled = _settings.Enabled && AreArchitectureAndOsSupported();
                 if (_settings.Enabled)
