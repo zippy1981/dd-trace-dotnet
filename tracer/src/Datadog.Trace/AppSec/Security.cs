@@ -10,11 +10,13 @@ using Datadog.Trace.AppSec.Transports;
 using Datadog.Trace.AppSec.Transports.Http;
 using Datadog.Trace.AppSec.Waf;
 using Datadog.Trace.AppSec.Waf.ReturnTypes.Managed;
+using Datadog.Trace.DogStatsd;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Headers;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
 using Datadog.Trace.Vendors.Serilog.Events;
+using Datadog.Trace.Vendors.StatsdClient;
 
 namespace Datadog.Trace.AppSec
 {
@@ -35,6 +37,7 @@ namespace Datadog.Trace.AppSec
         private readonly RateLimiterTimer _rateLimiter;
         private readonly IWaf _waf;
         private readonly InstrumentationGateway _instrumentationGateway;
+        private readonly IDogStatsd _dogStatsd;
         private readonly SecuritySettings _settings;
 
         static Security()
@@ -74,17 +77,19 @@ namespace Datadog.Trace.AppSec
         /// Initializes a new instance of the <see cref="Security"/> class with default settings.
         /// </summary>
         public Security()
-            : this(null, null)
+            : this(null, null, null, null)
         {
         }
 
-        private Security(SecuritySettings settings = null, InstrumentationGateway instrumentationGateway = null, IWaf waf = null)
+        private Security(SecuritySettings settings = null, InstrumentationGateway instrumentationGateway = null, IWaf waf = null, IDogStatsd dogStatsd = null)
         {
             try
             {
                 _settings = settings ?? SecuritySettings.FromDefaultSources();
 
                 _instrumentationGateway = instrumentationGateway ?? new InstrumentationGateway();
+
+                _dogStatsd = dogStatsd ?? TracerManager.Instance.Statsd;
 
                 _settings.Enabled = _settings.Enabled && AreArchitectureAndOsSupported();
                 if (_settings.Enabled)
@@ -262,7 +267,7 @@ namespace Datadog.Trace.AppSec
             }
             else
             {
-                span.SetMetric(Metrics.AppSecRateLimitDroppedTraces, exceededTraces);
+                _dogStatsd?.Increment(AppSecMetricNames.AppSecRateLimitDroppedTraces);
                 if (!_settings.KeepTraces)
                 {
                     span.SetTraceSamplingPriority(SamplingPriority.AutoReject);

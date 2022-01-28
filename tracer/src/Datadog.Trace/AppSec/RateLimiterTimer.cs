@@ -19,24 +19,33 @@ namespace Datadog.Trace.AppSec
         public RateLimiterTimer(int traceRateLimit)
         {
             _traceRateLimit = traceRateLimit;
-            var now = DateTime.UtcNow;
-            var intwoSecs = DateTime.UtcNow.AddSeconds(2);
-            var onlyWithSeconds = new DateTime(intwoSecs.Year, intwoSecs.Month, intwoSecs.Day, intwoSecs.Hour, intwoSecs.Minute, intwoSecs.Second);
-            var diff = onlyWithSeconds.Add(-now.TimeOfDay);
 
-            _timer = new Timer(
-                   _ =>
-                   {
-                       Reset();
-                   },
-                   null,
-                   diff.TimeOfDay,
-                   TimeSpan.FromSeconds(1));
+            if (traceRateLimit > 0)
+            {
+                var now = DateTime.UtcNow;
+                var intwoSecs = DateTime.UtcNow.AddSeconds(2);
+                var onlyWithSeconds = new DateTime(intwoSecs.Year, intwoSecs.Month, intwoSecs.Day, intwoSecs.Hour, intwoSecs.Minute, intwoSecs.Second);
+                var diff = onlyWithSeconds.Add(-now.TimeOfDay);
+
+                _timer = new Timer(
+                       _ =>
+                       {
+                           Reset();
+                       },
+                       null,
+                       diff.TimeOfDay,
+                       TimeSpan.FromSeconds(1));
+            }
+            else
+            {
+                Log.Warning<int>("Rate limit deactivated, traceRateLimit: {traceRateLimit}", traceRateLimit);
+                _timer = null;
+            }
         }
 
         public int RateLimiterCounter => tracesCount;
 
-        public void Dispose() => _timer.Dispose();
+        public void Dispose() => _timer?.Dispose();
 
         public void Reset()
         {
@@ -49,8 +58,13 @@ namespace Datadog.Trace.AppSec
         /// <returns>returns the number of exceeded traces, 0 if ok</returns>
         public int UpdateTracesCounter()
         {
-            Interlocked.Increment(ref tracesCount);
-            return tracesCount - _traceRateLimit;
+            if (_traceRateLimit > 0)
+            {
+                Interlocked.Increment(ref tracesCount);
+                return tracesCount - _traceRateLimit;
+            }
+
+            return 0;
         }
     }
 }
