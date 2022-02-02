@@ -4,9 +4,9 @@
 // </copyright>
 
 using System;
-using System.IO;
 using System.Linq;
 using Datadog.Trace.Sampling;
+using Moq;
 using Xunit;
 
 namespace Datadog.Trace.Tests.Sampling
@@ -14,12 +14,25 @@ namespace Datadog.Trace.Tests.Sampling
     [Collection(nameof(Datadog.Trace.Tests.Sampling))]
     public class CustomSamplingRuleTests
     {
-        private static readonly ulong Id = 1;
-        private static readonly Span CartCheckoutSpan = new Span(new SpanContext(Id++, Id++, origin: null, datadogTags: "shopping-cart-service"), DateTimeOffset.Now) { OperationName = "checkout" };
-        private static readonly Span AddToCartSpan = new Span(new SpanContext(Id++, Id++, origin: null, datadogTags: "shopping-cart-service"), DateTimeOffset.Now) { OperationName = "cart-add" };
-        private static readonly Span ShippingAuthSpan = new Span(new SpanContext(Id++, Id++, origin: null, datadogTags: "shipping-auth-service"), DateTimeOffset.Now) { OperationName = "authorize" };
-        private static readonly Span ShippingRevertSpan = new Span(new SpanContext(Id++, Id++, origin: null, datadogTags: "shipping-auth-service"), DateTimeOffset.Now) { OperationName = "authorize-revert" };
-        private static readonly Span RequestShippingSpan = new Span(new SpanContext(Id++, Id++, origin: null, datadogTags: "request-shipping"), DateTimeOffset.Now) { OperationName = "submit" };
+        public CustomSamplingRuleTests()
+        {
+            var tracer = new Mock<IDatadogTracer>();
+            CartCheckoutSpan = new(new TraceContext(tracer.Object)) { ServiceName = "shopping-cart-service", OperationName = "checkout" };
+            AddToCartSpan = new(new TraceContext(tracer.Object)) { ServiceName = "shopping-cart-service", OperationName = "cart-add" };
+            ShippingAuthSpan = new(new TraceContext(tracer.Object)) { ServiceName = "shipping-auth-service", OperationName = "authorize" };
+            ShippingRevertSpan = new(new TraceContext(tracer.Object)) { ServiceName = "shipping-auth-service", OperationName = "authorize-revert" };
+            RequestShippingSpan = new(new TraceContext(tracer.Object), start:  DateTimeOffset.Now) { ServiceName = "request-shipping", OperationName = "submit" };
+        }
+
+        private Span CartCheckoutSpan { get; }
+
+        private Span AddToCartSpan { get; }
+
+        private Span ShippingAuthSpan { get; }
+
+        private Span ShippingRevertSpan { get; }
+
+        private Span RequestShippingSpan { get; }
 
         [Fact]
         public void Constructs_ZeroRateOnly_From_Config_String()

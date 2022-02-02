@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Datadog.Trace.Sampling;
 using Datadog.Trace.TestHelpers;
 using Datadog.Trace.Util;
+using Moq;
 using Xunit;
 
 namespace Datadog.Trace.Tests.Sampling
@@ -22,8 +23,7 @@ namespace Datadog.Trace.Tests.Sampling
         public void One_Is_Allowed()
         {
             var traceContext = new TraceContext(TracerHelper.Create());
-            var spanContext = new SpanContext(null, traceContext, origin: "Weeeee");
-            var span = new Span(spanContext, null);
+            var span = new Span(traceContext);
             var rateLimiter = new RateLimiter(maxTracesPerInterval: null);
             var allowed = rateLimiter.Allowed(span);
             Assert.True(allowed);
@@ -112,8 +112,7 @@ namespace Datadog.Trace.Tests.Sampling
         private static int AskTheRateLimiterABunchOfTimes(RateLimiter rateLimiter, int howManyTimes)
         {
             var traceContext = new TraceContext(TracerHelper.Create());
-            var spanContext = new SpanContext(null, traceContext, origin: "Weeeee");
-            var span = new Span(spanContext, null);
+            var span = new Span(traceContext);
 
             var remaining = howManyTimes;
             var allowedCount = 0;
@@ -146,6 +145,7 @@ namespace Datadog.Trace.Tests.Sampling
             var workers = new Task[parallelism];
             int totalAttempted = 0;
             int totalAllowed = 0;
+            var tracer = new Mock<IDatadogTracer>();
 
             for (int i = 0; i < workers.Length; i++)
             {
@@ -161,11 +161,7 @@ namespace Datadog.Trace.Tests.Sampling
 
                             for (int j = 0; j < numberPerThread; j++)
                             {
-                                // trace id and span id are not used in rate-limiting
-                                var spanContext = new SpanContext(traceId: 1, spanId: 1, origin: "Weeeee");
-
-                                // pass a specific start time since there is no TraceContext
-                                var span = new Span(spanContext, DateTimeOffset.UtcNow);
+                                var span = new Span(new TraceContext(tracer.Object));
 
                                 Interlocked.Increment(ref totalAttempted);
 

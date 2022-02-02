@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using Datadog.Trace.Sampling;
 using Datadog.Trace.Util;
+using Moq;
 using Xunit;
 
 namespace Datadog.Trace.Tests.Sampling
@@ -101,7 +102,9 @@ namespace Datadog.Trace.Tests.Sampling
 
         private static Span GetMyServiceSpan(ulong traceId)
         {
-            var span = new Span(new SpanContext(traceId, spanId: 1, origin: null, datadogTags: ServiceName), DateTimeOffset.Now) { OperationName = OperationName };
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId);
+            var span = new Span(traceContext, spanId: 1, start: DateTimeOffset.Now) { OperationName = OperationName };
             span.SetTag(Tags.Env, Env);
             return span;
         }

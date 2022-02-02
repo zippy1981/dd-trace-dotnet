@@ -9,7 +9,8 @@ using System.Linq;
 using Datadog.Trace.Agent;
 using Datadog.Trace.Agent.MessagePack;
 using Datadog.Trace.TestHelpers;
-using MessagePack; // use nuget MessagePack to deserialize
+using MessagePack;
+using Moq; // use nuget MessagePack to deserialize
 using Xunit;
 
 namespace Datadog.Trace.Tests.Agent
@@ -24,12 +25,12 @@ namespace Datadog.Trace.Tests.Agent
         public void SerializeSpans(int traceCount, int spanCount, bool resizeExpected)
         {
             var buffer = new SpanBuffer(10 * 1024 * 1024, SpanFormatterResolver.Instance);
-
             var traces = new List<ArraySegment<Span>>();
+            var tracer = new Mock<IDatadogTracer>();
 
             for (int i = 0; i < traceCount; i++)
             {
-                var traceContext = new TraceContext(tracer: null!, traceId: (ulong)i);
+                var traceContext = new TraceContext(tracer.Object, traceId: (ulong)i);
                 var spans = new Span[spanCount];
 
                 for (int j = 0; j < spanCount; j++)
@@ -146,7 +147,8 @@ namespace Datadog.Trace.Tests.Agent
 
         private static Span CreateTraceAndSpan(ulong traceId, ulong spanId)
         {
-            var traceContext = new TraceContext(tracer: null!, traceId);
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId);
             return new Span(traceContext, spanId: spanId, start: DateTimeOffset.UtcNow);
         }
     }

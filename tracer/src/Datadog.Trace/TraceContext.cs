@@ -112,7 +112,11 @@ namespace Datadog.Trace
 
         public void CloseSpan(Span span)
         {
-            bool ShouldTriggerPartialFlush() => Tracer.Settings.Exporter.PartialFlushEnabled && _spans.Count >= Tracer.Settings.Exporter.PartialFlushMinSpans;
+            bool ShouldTriggerPartialFlush()
+            {
+                var exporterSettings = Tracer.Settings.Exporter;
+                return exporterSettings.PartialFlushEnabled && _spans.Count >= exporterSettings.PartialFlushMinSpans;
+            }
 
             if (span == RootSpan)
             {

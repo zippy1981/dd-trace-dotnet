@@ -377,7 +377,8 @@ namespace Datadog.Trace.Tests
 
         private static Span CreateTraceAndSpan(ulong traceId, ulong spanId)
         {
-            var traceContext = new TraceContext(tracer: null!, traceId);
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId);
             return new Span(traceContext, spanId: spanId, start: DateTimeOffset.UtcNow);
         }
     }
