@@ -5,8 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Headers;
 using Datadog.Trace.Tagging;
@@ -32,11 +30,6 @@ namespace Datadog.Trace.ExtensionMethods
             if (span is Span s)
             {
                 s.TraceContext.SetSamplingPriority(samplingPriority, notifyDistributedTracer: true);
-            }
-
-            if (span.Context is SpanContext spanContext && spanContext.TraceContext != null)
-            {
-                spanContext.TraceContext.SamplingPriority = samplingPriority;
             }
         }
 

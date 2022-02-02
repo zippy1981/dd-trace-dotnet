@@ -5,8 +5,7 @@
 
 #nullable enable
 
-using System.Collections.Generic;
-using System.Globalization;
+using System;
 
 namespace Datadog.Trace;
 
@@ -22,11 +21,6 @@ internal class ReadOnlySpanContext : ISpanContext
 
     public ulong SpanId { get; }
 
-    public IEnumerable<KeyValuePair<string, string?>> Deconstruct()
-    {
-        var invariant = CultureInfo.InvariantCulture;
-
-        yield return new(HttpHeaderNames.TraceId, TraceId.ToString(invariant));
-        yield return new(HttpHeaderNames.SpanId, SpanId.ToString(invariant));
-    }
+    [Obsolete]
+    string ISpanContext.ServiceName => string.Empty;
 }

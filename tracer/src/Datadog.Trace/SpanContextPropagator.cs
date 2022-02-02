@@ -24,7 +24,6 @@ namespace Datadog.Trace
 
         private const NumberStyles NumberStyles = System.Globalization.NumberStyles.Integer;
 
-        private readonly CultureInfo _invariantCulture = CultureInfo.InvariantCulture;
         private readonly IDatadogLogger _log = DatadogLogging.GetLoggerFor<SpanContextPropagator>();
         private readonly ConcurrentDictionary<Key, string?> _defaultTagMappingCache = new();
         private readonly Func<IReadOnlyDictionary<string, string?>?, string, IEnumerable<string?>> _readOnlyDictionaryValueGetterDelegate;
@@ -80,9 +79,17 @@ namespace Datadog.Trace
             if (carrier == null) { ThrowHelper.ThrowArgumentNullException(nameof(carrier)); }
             if (setter == null!) { ThrowHelper.ThrowArgumentNullException(nameof(setter)); }
 
-            foreach (var pair in context.Deconstruct())
+            if (context is IReadOnlyDictionary<string, string?> dictionary)
             {
-                setter(carrier, pair.Key, pair.Value);
+                foreach (var pair in dictionary)
+                {
+                    setter(carrier, pair.Key, pair.Value);
+                }
+            }
+            else
+            {
+                setter(carrier, HttpHeaderNames.TraceId, context.TraceId.ToString(CultureInfo.InvariantCulture));
+                setter(carrier, HttpHeaderNames.ParentId, context.SpanId.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -127,7 +134,7 @@ namespace Datadog.Trace
             {
                 TraceId = (ulong)traceId,
                 SpanId = parentId,
-                SamplingPriority = samplingPriority,
+                SamplingPriority = (SamplingPriority?)samplingPriority,
                 Origin = origin,
                 DatadogTags = datadogTags
             };
@@ -223,7 +230,7 @@ namespace Datadog.Trace
 
             foreach (string? headerValue in headerValues)
             {
-                if (ulong.TryParse(headerValue, NumberStyles, _invariantCulture, out var result))
+                if (ulong.TryParse(headerValue, NumberStyles, CultureInfo.InvariantCulture, out var result))
                 {
                     return result;
                 }

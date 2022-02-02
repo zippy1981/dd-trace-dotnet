@@ -5,7 +5,7 @@
 
 #nullable enable
 
-using System.Collections.Generic;
+using System;
 
 namespace Datadog.Trace
 {
@@ -25,8 +25,9 @@ namespace Datadog.Trace
         ulong SpanId { get; }
 
         /// <summary>
-        /// Gets the zero or more key/value pairs used to propagate the associated span.
+        /// Gets the service name to propagate to child spans.
         /// </summary>
-        IEnumerable<KeyValuePair<string, string?>> Deconstruct();
+        [Obsolete]
+        string? ServiceName { get; }
     }
 }

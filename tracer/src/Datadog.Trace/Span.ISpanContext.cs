@@ -5,8 +5,7 @@
 
 #nullable enable
 
-using System.Collections.Generic;
-using System.Globalization;
+using System;
 
 namespace Datadog.Trace;
 
@@ -22,14 +21,6 @@ internal partial class Span
 
     ulong ISpanContext.SpanId => SpanId;
 
-    IEnumerable<KeyValuePair<string, string?>> ISpanContext.Deconstruct()
-    {
-        var invariant = CultureInfo.InvariantCulture;
-
-        yield return new(HttpHeaderNames.TraceId, TraceId.ToString(invariant));
-        yield return new(HttpHeaderNames.SpanId, SpanId.ToString(invariant));
-        yield return new(HttpHeaderNames.SamplingPriority, ((int?)TraceContext.SamplingPriority)?.ToString(invariant));
-        yield return new(HttpHeaderNames.Origin, TraceContext.Origin);
-        yield return new(HttpHeaderNames.DatadogTags, TraceContext.DatadogTags);
-    }
+    [Obsolete]
+    string ISpanContext.ServiceName => string.Empty;
 }

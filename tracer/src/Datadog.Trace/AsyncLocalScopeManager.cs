@@ -3,6 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using System.Collections.Generic;
 using System.Threading;
 using Datadog.Trace.ClrProfiler;
 using Datadog.Trace.Logging;
@@ -33,7 +34,7 @@ namespace Datadog.Trace
             var scope = new Scope(newParent, span, this, finishOnClose);
 
             Active = scope;
-            DistributedTracer.Instance.SetSpanContext(scope.Span.AsSpanContext().Deconstruct());
+            DistributedTracer.Instance.SetSpanContext(scope.Span);
 
             return scope;
         }
@@ -54,7 +55,7 @@ namespace Datadog.Trace
             Active = scope.Parent;
 
             // scope.Parent is null for distributed traces, so use scope.Span.Context.Parent
-            DistributedTracer.Instance.SetSpanContext(scope.Span.Parent?.Deconstruct());
+            DistributedTracer.Instance.SetSpanContext(scope.Span.Parent as IReadOnlyDictionary<string, string>);
         }
     }
 }

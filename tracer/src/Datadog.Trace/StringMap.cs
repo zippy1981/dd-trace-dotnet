@@ -12,7 +12,7 @@ using Datadog.Trace.Headers;
 
 namespace Datadog.Trace
 {
-    internal class StringMap : IDictionary<string, string?>, IReadOnlyDictionary<string, string?>, IHeadersCollection
+    internal class StringMap : IReadOnlyDictionary<string, string?>, IHeadersCollection
     {
         // We usually have 3-5 key/value pairs:
         //  x-datadog-trace-id           required
@@ -38,15 +38,9 @@ namespace Datadog.Trace
 
         public int Count => _keys.Count;
 
-        ICollection<string> IDictionary<string, string?>.Keys => _keys;
-
-        ICollection<string?> IDictionary<string, string?>.Values => _values;
-
         IEnumerable<string> IReadOnlyDictionary<string, string?>.Keys => _keys;
 
         IEnumerable<string?> IReadOnlyDictionary<string, string?>.Values => _values;
-
-        bool ICollection<KeyValuePair<string, string?>>.IsReadOnly => false;
 
         public string? this[string key]
         {
@@ -73,26 +67,6 @@ namespace Datadog.Trace
 
                 Add(key, value);
             }
-        }
-
-        void ICollection<KeyValuePair<string, string?>>.Add(KeyValuePair<string, string?> item)
-        {
-            Add(item.Key, item.Value);
-        }
-
-        bool ICollection<KeyValuePair<string, string?>>.Contains(KeyValuePair<string, string?> item)
-        {
-            throw new NotImplementedException();
-        }
-
-        void ICollection<KeyValuePair<string, string?>>.CopyTo(KeyValuePair<string, string?>[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        bool ICollection<KeyValuePair<string, string?>>.Remove(KeyValuePair<string, string?> item)
-        {
-            throw new NotImplementedException();
         }
 
         public void Clear()

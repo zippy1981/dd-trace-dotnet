@@ -12,8 +12,13 @@ namespace Datadog.Trace.ServiceFabric
 {
     internal static class ServiceRemotingRequestMessageHeaderExtensions
     {
-        public static bool TryAddHeader(this IServiceRemotingRequestMessageHeader headers, string headerName, string headerValue)
+        public static bool TryAddHeader(this IServiceRemotingRequestMessageHeader headers, string headerName, string? headerValue)
         {
+            if (headerValue == null)
+            {
+                return false;
+            }
+
             if (!headers.TryGetHeaderValue(headerName, out _))
             {
                 byte[] bytes = Encoding.UTF8.GetBytes(headerValue);

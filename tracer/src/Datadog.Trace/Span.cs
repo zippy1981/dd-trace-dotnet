@@ -6,6 +6,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Datadog.Trace.ExtensionMethods;
 using Datadog.Trace.Logging;
@@ -21,7 +22,7 @@ namespace Datadog.Trace
     /// tracks the duration of an operation as well as associated metadata in
     /// the form of a resource name, a service name, and user defined tags.
     /// </summary>
-    internal partial class Span : ISpan, ISpanContext
+    internal partial class Span : ISpan, ISpanContext, IReadOnlyDictionary<string, string?>
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor<Span>();
         private static readonly bool IsLogLevelDebugEnabled = Log.IsEnabled(LogEventLevel.Debug);
@@ -107,6 +108,9 @@ namespace Datadog.Trace
         public bool IsRootSpan => TraceContext.RootSpan == this;
 
         public bool IsTopLevel => (Parent as ISpan)?.ServiceName != ServiceName;
+
+        [Obsolete]
+        public ISpanContext Context => this;
 
         /// <summary>
         /// Record the end time of the span and flushes it to the backend.
@@ -366,11 +370,6 @@ namespace Datadog.Trace
         internal void ResetStartTime()
         {
             StartTime = TraceContext.UtcNow;
-        }
-
-        internal ISpanContext AsSpanContext()
-        {
-            return this;
         }
     }
 }

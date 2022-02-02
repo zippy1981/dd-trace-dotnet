@@ -51,7 +51,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.AWS.SQS
 
             if (scope?.Span != null)
             {
-                ContextPropagation.InjectHeadersIntoMessage<TSendMessageRequest>(requestProxy, scope.Span.AsSpanContext());
+                ContextPropagation.InjectHeadersIntoMessage<TSendMessageRequest>(requestProxy, scope.Span);
             }
 
             return new CallTargetState(scope);

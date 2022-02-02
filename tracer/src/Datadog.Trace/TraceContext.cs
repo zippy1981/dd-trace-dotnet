@@ -80,7 +80,6 @@ namespace Datadog.Trace
                 {
                     // first span added is the root span
                     RootSpan = span;
-                    _samplingPriority ??= Tracer.Sampler?.GetSamplingPriority(span);
 
                     if (AzureAppServices.Metadata.IsRelevant)
                     {
@@ -89,16 +88,16 @@ namespace Datadog.Trace
 
                     if (_samplingPriority == null)
                     {
-                        if (span.ParentContext is SpanContext context && context.SamplingPriority != null)
+                        if (span.Parent is ISpanContextInternal context && context.SamplingPriority != null)
                         {
-                            // this is a root span created from a propagated context that contains a sampling priority.
-                            // lock sampling priority when a span is started from a propagated trace.
+                            // this is a root span created from a propagated context
+                            // that contains a sampling priority.
                             _samplingPriority = context.SamplingPriority;
                         }
                         else
                         {
                             // this is a local root span (i.e. not propagated).
-                            // determine an initial sampling priority for this trace, but don't lock it yet
+                            // calculate sampling priority for this trace.
                             _samplingPriority = Tracer.Sampler?.GetSamplingPriority(RootSpan);
                         }
                     }
@@ -220,9 +219,12 @@ namespace Datadog.Trace
             }
 
             // Using a for loop to avoid the boxing allocation on ArraySegment.GetEnumerator
-            for (int i = 0; i < spans.Count; i++)
+            if (spans.Array != null)
             {
-                SetSamplingPriority(spans.Array[i + spans.Offset], samplingPriority.Value);
+                for (int i = 0; i < spans.Count; i++)
+                {
+                    SetSamplingPriority(spans.Array[i + spans.Offset], samplingPriority.Value);
+                }
             }
         }
 

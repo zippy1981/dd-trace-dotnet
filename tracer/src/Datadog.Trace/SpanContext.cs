@@ -15,7 +15,7 @@ namespace Datadog.Trace
     /// <summary>
     /// The SpanContext contains all the information needed to express relationships between spans inside or outside the process boundaries.
     /// </summary>
-    internal class SpanContext : ISpanContext, IReadOnlyDictionary<string, string?>
+    internal class SpanContext : ISpanContextInternal, IReadOnlyDictionary<string, string?>
     {
         // TODO: rename to PropagatedSpanContext?
         internal static readonly string[] AllKeys =
@@ -45,6 +45,11 @@ namespace Datadog.Trace
         public ulong SpanId { get; set; }
 
         /// <summary>
+        /// Gets an empty string. Obsolete. Do not use.
+        /// </summary>
+        string? ISpanContext.ServiceName => string.Empty;
+
+        /// <summary>
         /// Gets or sets the origin of the trace
         /// </summary>
         public string? Origin { get; set; }
@@ -62,7 +67,7 @@ namespace Datadog.Trace
         /// <summary>
         /// Gets or sets the sampling priority.
         /// </summary>
-        public int? SamplingPriority { get; set; }
+        public SamplingPriority? SamplingPriority { get; set; }
 
         /// <inheritdoc/>
         int IReadOnlyCollection<KeyValuePair<string, string?>>.Count => AllKeys.Length;
@@ -146,7 +151,7 @@ namespace Datadog.Trace
                     return true;
 
                 case HttpHeaderNames.SamplingPriority:
-                    value = SamplingPriority?.ToString(invariant);
+                    value = ((int?)SamplingPriority)?.ToString(invariant);
                     return true;
 
                 case HttpHeaderNames.Origin:
@@ -160,16 +165,6 @@ namespace Datadog.Trace
                 default:
                     value = null;
                     return false;
-            }
-        }
-
-        IEnumerable<KeyValuePair<string, string?>> ISpanContext.Deconstruct()
-        {
-            var dictionary = (IReadOnlyDictionary<string, string?>)this;
-
-            foreach (var key in AllKeys)
-            {
-                yield return new KeyValuePair<string, string?>(key, dictionary[key]);
             }
         }
     }
