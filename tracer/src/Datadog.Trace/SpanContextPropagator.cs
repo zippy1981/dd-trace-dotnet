@@ -130,14 +130,12 @@ namespace Datadog.Trace
             var origin = FirstNotNullOrEmpty(carrier, getter, HttpHeaderNames.Origin);
             var datadogTags = FirstNotNullOrEmpty(carrier, getter, HttpHeaderNames.DatadogTags);
 
-            return new SpanContext
-            {
-                TraceId = (ulong)traceId,
-                SpanId = parentId,
-                SamplingPriority = (SamplingPriority?)samplingPriority,
-                Origin = origin,
-                DatadogTags = datadogTags
-            };
+            return new SpanContext(
+                (ulong)traceId,
+                parentId,
+                (SamplingPriority?)samplingPriority,
+                origin,
+                datadogTags);
         }
 
         public IEnumerable<KeyValuePair<string, string?>> ExtractHeaderTags<T>(T headers, IEnumerable<KeyValuePair<string, string?>> headerToTagMap, string defaultTagPrefix)

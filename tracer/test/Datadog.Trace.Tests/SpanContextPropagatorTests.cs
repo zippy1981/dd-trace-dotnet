@@ -44,7 +44,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_IHeadersCollection()
         {
-            var context = new SpanContext(TraceId, SpanId, SamplingPriority, serviceName: null, Origin) { DatadogTags = DatadogTags };
+            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null) { DatadogTags = DatadogTags };
             var headers = new Mock<IHeadersCollection>();
 
             SpanContextPropagator.Instance.Inject(context, headers.Object);
@@ -55,7 +55,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_CarrierAndDelegate()
         {
-            var context = new SpanContext(TraceId, SpanId, SamplingPriority, serviceName: null, Origin) { DatadogTags = DatadogTags };
+            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null) { DatadogTags = DatadogTags };
 
             // using IHeadersCollection for convenience, but carrier could be any type
             var headers = new Mock<IHeadersCollection>();
@@ -68,7 +68,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_TraceIdSpanIdOnly()
         {
-            var context = new SpanContext(TraceId, SpanId, samplingPriority: null, serviceName: null, origin: null) { DatadogTags = null };
+            var context = new SpanContext(TraceId, SpanId, samplingPriority: null, origin: null, datadogTags: null) { DatadogTags = null };
             var headers = new Mock<IHeadersCollection>();
 
             SpanContextPropagator.Instance.Inject(context, headers.Object);
@@ -175,7 +175,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void SpanContextRoundTrip()
         {
-            var context = new SpanContext(TraceId, SpanId, SamplingPriority, serviceName: null, Origin);
+            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null);
 
             // use `object` so Should() below works correctly,
             // otherwise it picks up the IEnumerable<KeyValuePair<string, string>> overload
@@ -188,7 +188,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Identity()
         {
-            var context = new SpanContext(TraceId, SpanId, SamplingPriority, serviceName: null, Origin);
+            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null);
             var headers = new NameValueHeadersCollection(new NameValueCollection());
 
             // use `object` so Should() below works correctly,

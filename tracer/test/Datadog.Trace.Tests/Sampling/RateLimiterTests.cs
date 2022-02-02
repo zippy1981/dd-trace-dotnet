@@ -22,7 +22,7 @@ namespace Datadog.Trace.Tests.Sampling
         public void One_Is_Allowed()
         {
             var traceContext = new TraceContext(TracerHelper.Create());
-            var spanContext = new SpanContext(null, traceContext, "Weeeee");
+            var spanContext = new SpanContext(null, traceContext, origin: "Weeeee");
             var span = new Span(spanContext, null);
             var rateLimiter = new RateLimiter(maxTracesPerInterval: null);
             var allowed = rateLimiter.Allowed(span);
@@ -112,7 +112,7 @@ namespace Datadog.Trace.Tests.Sampling
         private static int AskTheRateLimiterABunchOfTimes(RateLimiter rateLimiter, int howManyTimes)
         {
             var traceContext = new TraceContext(TracerHelper.Create());
-            var spanContext = new SpanContext(null, traceContext, "Weeeee");
+            var spanContext = new SpanContext(null, traceContext, origin: "Weeeee");
             var span = new Span(spanContext, null);
 
             var remaining = howManyTimes;
@@ -162,7 +162,7 @@ namespace Datadog.Trace.Tests.Sampling
                             for (int j = 0; j < numberPerThread; j++)
                             {
                                 // trace id and span id are not used in rate-limiting
-                                var spanContext = new SpanContext(traceId: 1, spanId: 1, serviceName: "Weeeee");
+                                var spanContext = new SpanContext(traceId: 1, spanId: 1, origin: "Weeeee");
 
                                 // pass a specific start time since there is no TraceContext
                                 var span = new Span(spanContext, DateTimeOffset.UtcNow);

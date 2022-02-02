@@ -16,7 +16,7 @@ namespace Datadog.Trace.Tests
             const ulong expectedTraceId = 41;
             const ulong expectedSpanId = 42;
 
-            var spanContext = new SpanContext(parent: null, traceContext: null, serviceName: "service", traceId: expectedTraceId, spanId: expectedSpanId);
+            var spanContext = new SpanContext(traceId: null, traceId: expectedTraceId, spanId: null, spanId: expectedSpanId, origin: "service");
 
             spanContext.SpanId.Should().Be(expectedSpanId);
             spanContext.TraceId.Should().Be(expectedTraceId);
@@ -33,7 +33,7 @@ namespace Datadog.Trace.Tests
 
             var parent = new SpanContext(parentTraceId, parentSpanId);
 
-            var spanContext = new SpanContext(parent: parent, traceContext: null, serviceName: "service", traceId: childTraceId, spanId: childSpanId);
+            var spanContext = new SpanContext(traceId: parent, traceId: childTraceId, spanId: null, spanId: childSpanId, origin: "service");
 
             spanContext.SpanId.Should().Be(childSpanId);
             spanContext.TraceId.Should().Be(parentTraceId, "trace id shouldn't be overriden if a parent trace exists. Doing so would break the HttpWebRequest.GetRequestStream/GetResponse integration.");

@@ -36,7 +36,7 @@ namespace Datadog.Trace.Tests.DistributedTracer
 
             automaticTracer.GetDistributedTrace().Should().BeNull();
 
-            var expectedSpanContext = new SpanContext(1, 2, SamplingPriority.UserKeep, "Service", "Origin");
+            var expectedSpanContext = new SpanContext(1, 2, "Origin", SamplingPriority.UserKeep, "Service");
 
             automaticTracer.SetDistributedTrace(expectedSpanContext);
 

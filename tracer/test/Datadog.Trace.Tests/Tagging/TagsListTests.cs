@@ -102,7 +102,7 @@ namespace Datadog.Trace.Tests.Tagging
                 // Assign a parent to prevent the span from being considered as top-level
                 var traceContext = new TraceContext(Mock.Of<IDatadogTracer>());
                 var parent = new SpanContext(42, 41);
-                span = new Span(new SpanContext(parent, traceContext, null), DateTimeOffset.UtcNow, tags);
+                span = new Span(new SpanContext(parent, traceContext, origin: null), DateTimeOffset.UtcNow, tags);
             }
 
             // The span has 1 "common" tag and 15 additional tags (and same number of metrics)
@@ -129,7 +129,7 @@ namespace Datadog.Trace.Tests.Tagging
             var buffer = new byte[0];
 
             // use vendored MessagePack to serialize
-            var resolver = new FormatterResolverWrapper(SpanFormatterResolver.Instance);
+            var resolver = SpanFormatterResolver.Instance;
             Vendors.MessagePack.MessagePackSerializer.Serialize(ref buffer, 0, span, resolver);
 
             // use nuget MessagePack to deserialize

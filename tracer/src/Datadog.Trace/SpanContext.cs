@@ -27,6 +27,15 @@ namespace Datadog.Trace
             HttpHeaderNames.DatadogTags,
         };
 
+        public SpanContext(ulong traceId, ulong spanId, SamplingPriority? samplingPriority = null, string? origin = null, string? datadogTags = null)
+        {
+            TraceId = traceId;
+            SpanId = spanId;
+            SamplingPriority = samplingPriority;
+            Origin = origin;
+            DatadogTags = datadogTags;
+        }
+
         /// <summary>
         /// Gets a <see cref="ISpanContext"/> with default values. Can be used as the value for
         /// <see cref="SpanCreationSettings.Parent"/> in <see cref="Tracer.StartActive(string, SpanCreationSettings)"/>
@@ -35,14 +44,14 @@ namespace Datadog.Trace
         public static ISpanContext None => new ReadOnlySpanContext(traceId: 0, spanId: 0);
 
         /// <summary>
-        /// Gets or sets the trace id.
+        /// Gets the trace id.
         /// </summary>
-        public ulong TraceId { get; set; }
+        public ulong TraceId { get; }
 
         /// <summary>
-        /// Gets or sets the span id.
+        /// Gets the span id.
         /// </summary>
-        public ulong SpanId { get; set; }
+        public ulong SpanId { get; }
 
         /// <summary>
         /// Gets an empty string. Obsolete. Do not use.
@@ -50,24 +59,24 @@ namespace Datadog.Trace
         string? ISpanContext.ServiceName => string.Empty;
 
         /// <summary>
-        /// Gets or sets the origin of the trace
+        /// Gets the origin of the trace.
         /// </summary>
-        public string? Origin { get; set; }
+        public string? Origin { get; }
 
         /// <summary>
-        /// Gets or sets a collection of propagated internal Datadog tags,
+        /// Gets a collection of propagated internal Datadog tags,
         /// formatted as "key1=value1,key2=value2".
         /// </summary>
         /// <remarks>
         /// We're keeping this as the string representation to avoid having to parse.
         /// For now, it's relatively easy to append new values when needed.
         /// </remarks>
-        public string? DatadogTags { get; set; }
+        public string? DatadogTags { get; }
 
         /// <summary>
-        /// Gets or sets the sampling priority.
+        /// Gets the sampling priority.
         /// </summary>
-        public SamplingPriority? SamplingPriority { get; set; }
+        public SamplingPriority? SamplingPriority { get; }
 
         /// <inheritdoc/>
         int IReadOnlyCollection<KeyValuePair<string, string?>>.Count => AllKeys.Length;

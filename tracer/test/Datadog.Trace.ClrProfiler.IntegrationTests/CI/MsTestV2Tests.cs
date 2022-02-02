@@ -217,7 +217,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.CI
 
         private static void CheckCIEnvironmentValuesDecoration(MockSpan targetSpan)
         {
-            var context = new SpanContext(null, null, null, null);
+            var context = new SpanContext(null, null, origin: null, datadogTags: null);
             var span = new Span(context, DateTimeOffset.UtcNow);
             CIEnvironmentValues.DecorateSpan(span);
 

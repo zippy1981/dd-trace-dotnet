@@ -60,7 +60,7 @@ namespace Datadog.Trace.OpenTracing.Tests
             const ulong traceId = 7;
             const SamplingPriority samplingPriority = SamplingPriority.UserKeep;
 
-            var ddSpanContext = new SpanContext(traceId, spanId, samplingPriority);
+            var ddSpanContext = new SpanContext(traceId, spanId, origin: samplingPriority);
             var spanContext = new OpenTracingSpanContext(ddSpanContext);
             var headers = new MockTextMap();
 

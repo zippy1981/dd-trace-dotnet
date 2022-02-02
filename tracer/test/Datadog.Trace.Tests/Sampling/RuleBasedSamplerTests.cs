@@ -101,7 +101,7 @@ namespace Datadog.Trace.Tests.Sampling
 
         private static Span GetMyServiceSpan(ulong traceId)
         {
-            var span = new Span(new SpanContext(traceId, spanId: 1, null, serviceName: ServiceName), DateTimeOffset.Now) { OperationName = OperationName };
+            var span = new Span(new SpanContext(traceId, spanId: 1, origin: null, datadogTags: ServiceName), DateTimeOffset.Now) { OperationName = OperationName };
             span.SetTag(Tags.Env, Env);
             return span;
         }

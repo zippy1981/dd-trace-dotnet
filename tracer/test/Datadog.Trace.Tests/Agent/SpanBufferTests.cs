@@ -29,11 +29,12 @@ namespace Datadog.Trace.Tests.Agent
 
             for (int i = 0; i < traceCount; i++)
             {
+                var traceContext = new TraceContext(tracer: null!, traceId: (ulong)i);
                 var spans = new Span[spanCount];
 
                 for (int j = 0; j < spanCount; j++)
                 {
-                    spans[j] = new Span(new SpanContext((ulong)i, (ulong)i), DateTimeOffset.UtcNow);
+                    spans[j] = new Span(traceContext, spanId: (ulong)j, start: DateTimeOffset.UtcNow);
                 }
 
                 traces.Add(new ArraySegment<Span>(spans));
@@ -70,7 +71,8 @@ namespace Datadog.Trace.Tests.Agent
 
             Assert.False(buffer.IsFull);
 
-            var trace = new ArraySegment<Span>(new[] { new Span(new SpanContext(1, 1), DateTimeOffset.UtcNow) });
+            var span = CreateTraceAndSpan(1, 1);
+            var trace = new ArraySegment<Span>(new[] { span });
 
             var result = buffer.TryWrite(trace, ref _temporaryBuffer);
 
@@ -94,7 +96,8 @@ namespace Datadog.Trace.Tests.Agent
         {
             var buffer = new SpanBuffer(10 * 1024 * 1024, SpanFormatterResolver.Instance);
 
-            var trace = new ArraySegment<Span>(new[] { new Span(new SpanContext(1, 1), DateTimeOffset.UtcNow) });
+            var span = CreateTraceAndSpan(1, 1);
+            var trace = new ArraySegment<Span>(new[] { span });
 
             Assert.True(buffer.TryWrite(trace, ref _temporaryBuffer));
 
@@ -114,9 +117,9 @@ namespace Datadog.Trace.Tests.Agent
 
             var trace = new ArraySegment<Span>(new[]
             {
-                new Span(new SpanContext(1, 1), DateTimeOffset.UtcNow),
-                new Span(new SpanContext(2, 2), DateTimeOffset.UtcNow),
-                new Span(new SpanContext(3, 3), DateTimeOffset.UtcNow),
+                CreateTraceAndSpan(1, 1),
+                CreateTraceAndSpan(2, 2),
+                CreateTraceAndSpan(3, 3),
             });
 
             Assert.True(buffer.TryWrite(trace, ref _temporaryBuffer));
@@ -139,6 +142,12 @@ namespace Datadog.Trace.Tests.Agent
         public void InvalidSize()
         {
             Assert.Throws<ArgumentException>(() => new SpanBuffer(4, SpanFormatterResolver.Instance));
+        }
+
+        private static Span CreateTraceAndSpan(ulong traceId, ulong spanId)
+        {
+            var traceContext = new TraceContext(tracer: null!, traceId);
+            return new Span(traceContext, spanId: spanId, start: DateTimeOffset.UtcNow);
         }
     }
 }

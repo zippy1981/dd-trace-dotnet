@@ -172,7 +172,7 @@ namespace Datadog.Trace.Tests
 
         private ulong GenerateId()
         {
-            return new SpanContext(null, null, string.Empty).SpanId;
+            return new SpanContext(null, null, origin: string.Empty).SpanId;
         }
     }
 }
