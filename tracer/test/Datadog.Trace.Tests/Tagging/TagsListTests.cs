@@ -8,11 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Datadog.Trace.Agent.MessagePack;
-using Datadog.Trace.ClrProfiler;
 using Datadog.Trace.SourceGenerators;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.TestHelpers;
-using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.MessagePack;
 using FluentAssertions;
 using Moq;
@@ -25,8 +23,10 @@ namespace Datadog.Trace.Tests.Tagging
         [Fact]
         public void GetTag_GetMetric_ReturnUpdatedValues()
         {
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId: 42);
             var tags = new CommonTags();
-            var span = new Span(new SpanContext(42, 41), DateTimeOffset.UtcNow, tags);
+            var span = new Span(traceContext, spanId: 21, tags: tags);
 
             tags.Environment = "Test";
             tags.SamplingLimitDecision = 0.5;
@@ -89,20 +89,21 @@ namespace Datadog.Trace.Tests.Tagging
         [InlineData(false)]
         public void Serialization(bool topLevelSpan)
         {
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId: 42);
             var tags = new CommonTags();
 
             Span span;
 
             if (topLevelSpan)
             {
-                span = new Span(new SpanContext(42, 41), DateTimeOffset.UtcNow, tags);
+                span = new Span(traceContext, spanId: 21, tags: tags);
             }
             else
             {
                 // Assign a parent to prevent the span from being considered as top-level
-                var traceContext = new TraceContext(Mock.Of<IDatadogTracer>());
                 var parent = new SpanContext(42, 41);
-                span = new Span(new SpanContext(parent, traceContext, origin: null), DateTimeOffset.UtcNow, tags);
+                span = new Span(traceContext, parent, tags: tags);
             }
 
             // The span has 1 "common" tag and 15 additional tags (and same number of metrics)
@@ -126,7 +127,7 @@ namespace Datadog.Trace.Tests.Tagging
                 span.SetMetric(i.ToString(), i);
             }
 
-            var buffer = new byte[0];
+            var buffer = Array.Empty<byte>();
 
             // use vendored MessagePack to serialize
             var resolver = SpanFormatterResolver.Instance;

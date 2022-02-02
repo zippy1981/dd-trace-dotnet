@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using Datadog.Trace.Sampling;
+using Moq;
 using Xunit;
 
 namespace Datadog.Trace.Tests.Sampling
@@ -31,7 +32,9 @@ namespace Datadog.Trace.Tests.Sampling
 
             rule.SetDefaultSampleRates(new[] { new KeyValuePair<string, float>(key, .5f) });
 
-            var span = new Span(new SpanContext(1, 1, origin: null, datadogTags: expectedService), DateTimeOffset.Now);
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId: 1);
+            var span = new Span(traceContext, spanId: 1) { ServiceName = expectedService };
             span.SetTag(Tags.Env, expectedEnv);
 
             var samplingRate = rule.GetSamplingRate(span);

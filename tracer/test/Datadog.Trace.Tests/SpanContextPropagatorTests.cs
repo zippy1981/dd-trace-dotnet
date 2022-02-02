@@ -44,7 +44,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_IHeadersCollection()
         {
-            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null) { DatadogTags = DatadogTags };
+            var context = new SpanContext(TraceId, SpanId, SamplingPriority, Origin, DatadogTags);
             var headers = new Mock<IHeadersCollection>();
 
             SpanContextPropagator.Instance.Inject(context, headers.Object);
@@ -55,7 +55,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_CarrierAndDelegate()
         {
-            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null) { DatadogTags = DatadogTags };
+            var context = new SpanContext(TraceId, SpanId, SamplingPriority, Origin, DatadogTags);
 
             // using IHeadersCollection for convenience, but carrier could be any type
             var headers = new Mock<IHeadersCollection>();
@@ -68,7 +68,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Inject_TraceIdSpanIdOnly()
         {
-            var context = new SpanContext(TraceId, SpanId, samplingPriority: null, origin: null, datadogTags: null) { DatadogTags = null };
+            var context = new SpanContext(TraceId, SpanId);
             var headers = new Mock<IHeadersCollection>();
 
             SpanContextPropagator.Instance.Inject(context, headers.Object);
@@ -95,8 +95,9 @@ namespace Datadog.Trace.Tests
                        {
                            TraceId = TraceId,
                            SpanId = SpanId,
+                           SamplingPriority = SamplingPriority,
                            Origin = Origin,
-                           SamplingPriority = SamplingPriority
+                           DatadogTags = DatadogTags,
                        });
         }
 
@@ -175,7 +176,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void SpanContextRoundTrip()
         {
-            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null);
+            var context = new SpanContext(TraceId, SpanId, SamplingPriority, Origin, DatadogTags);
 
             // use `object` so Should() below works correctly,
             // otherwise it picks up the IEnumerable<KeyValuePair<string, string>> overload
@@ -188,7 +189,7 @@ namespace Datadog.Trace.Tests
         [Fact]
         public void Identity()
         {
-            var context = new SpanContext(TraceId, SpanId, Origin, SamplingPriority, datadogTags: null);
+            var context = new SpanContext(TraceId, SpanId, SamplingPriority, Origin, DatadogTags);
             var headers = new NameValueHeadersCollection(new NameValueCollection());
 
             // use `object` so Should() below works correctly,
@@ -340,17 +341,13 @@ namespace Datadog.Trace.Tests
 
         public ulong SpanId { get; set; }
 
-        public string Origin { get; set; }
-
         public SamplingPriority? SamplingPriority { get; set; }
 
-        public ISpanContext Parent { get; set; }
+        public string Origin { get; set; }
 
-        public ulong? ParentId { get; set; }
+        public string DatadogTags { get; set; }
 
         public string ServiceName { get; set; }
-
-        public TraceContext TraceContext { get; set; }
     }
 #pragma warning restore SA1402 // File may only contain a single type
 }

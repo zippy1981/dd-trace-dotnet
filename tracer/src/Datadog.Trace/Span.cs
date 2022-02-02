@@ -45,6 +45,12 @@ namespace Datadog.Trace
                 TraceId);
         }
 
+        // If parent is Span, we can use its TraceContext. Only used for testing.
+        public Span(Span parent, ulong? spanId = null, DateTimeOffset? start = null, ITags? tags = null)
+            : this(parent.TraceContext, parent, spanId, start, tags)
+        {
+        }
+
         /// <summary>
         /// Gets the trace's unique identifier.
         /// </summary>

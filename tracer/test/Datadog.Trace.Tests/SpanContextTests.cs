@@ -4,6 +4,7 @@
 // </copyright>
 
 using FluentAssertions;
+using Moq;
 using Xunit;
 
 namespace Datadog.Trace.Tests
@@ -16,10 +17,12 @@ namespace Datadog.Trace.Tests
             const ulong expectedTraceId = 41;
             const ulong expectedSpanId = 42;
 
-            var spanContext = new SpanContext(traceId: null, traceId: expectedTraceId, spanId: null, spanId: expectedSpanId, origin: "service");
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, expectedTraceId);
+            var span = new Span(traceContext, spanId: expectedSpanId);
 
-            spanContext.SpanId.Should().Be(expectedSpanId);
-            spanContext.TraceId.Should().Be(expectedTraceId);
+            span.SpanId.Should().Be(expectedSpanId);
+            span.TraceId.Should().Be(expectedTraceId);
         }
 
         [Fact]
@@ -28,15 +31,16 @@ namespace Datadog.Trace.Tests
             const ulong parentTraceId = 41;
             const ulong parentSpanId = 42;
 
-            const ulong childTraceId = 43;
+            // const ulong childTraceId = 43;
             const ulong childSpanId = 44;
 
-            var parent = new SpanContext(parentTraceId, parentSpanId);
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, parentTraceId);
+            var parentSpan = new Span(traceContext, spanId: parentSpanId);
+            var childSpan = new Span(parentSpan, spanId: childSpanId);
 
-            var spanContext = new SpanContext(traceId: parent, traceId: childTraceId, spanId: null, spanId: childSpanId, origin: "service");
-
-            spanContext.SpanId.Should().Be(childSpanId);
-            spanContext.TraceId.Should().Be(parentTraceId, "trace id shouldn't be overriden if a parent trace exists. Doing so would break the HttpWebRequest.GetRequestStream/GetResponse integration.");
+            childSpan.SpanId.Should().Be(childSpanId);
+            childSpan.TraceId.Should().Be(parentTraceId, "trace id shouldn't be overriden if a parent trace exists. Doing so would break the HttpWebRequest.GetRequestStream/GetResponse integration.");
         }
     }
 }

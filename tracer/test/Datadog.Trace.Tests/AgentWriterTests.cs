@@ -12,6 +12,7 @@ using Datadog.Trace.Agent.MessagePack;
 using Datadog.Trace.DogStatsd;
 using Datadog.Trace.Vendors.StatsdClient;
 using Moq;
+using NLog.LayoutRenderers;
 using Xunit;
 
 namespace Datadog.Trace.Tests
@@ -262,9 +263,8 @@ namespace Datadog.Trace.Tests
             var tracer = new Mock<IDatadogTracer>();
             tracer.Setup(x => x.DefaultServiceName).Returns("Default");
             var traceContext = new TraceContext(tracer.Object);
-            var rootSpanContext = new SpanContext(null, traceContext, origin: null);
-            var rootSpan = new Span(rootSpanContext, DateTimeOffset.UtcNow);
-            var childSpan = new Span(new SpanContext(rootSpanContext, traceContext, origin: null), DateTimeOffset.UtcNow);
+            var rootSpan = new Span(traceContext);
+            var childSpan = new Span(rootSpan);
             traceContext.AddSpan(rootSpan);
             traceContext.AddSpan(childSpan);
             var trace = new ArraySegment<Span>(new[] { rootSpan, childSpan });
@@ -323,7 +323,8 @@ namespace Datadog.Trace.Tests
                     return Task.FromResult(true);
                 });
 
-            var trace = new ArraySegment<Span>(new[] { new Span(new SpanContext(1, 1), DateTimeOffset.UtcNow) });
+            var tracer = new Mock<IDatadogTracer>();
+            var trace = new ArraySegment<Span>(new[] { new Span(new TraceContext(tracer.Object, traceId: 1), spanId: 1) });
 
             // Write trace to the front buffer
             agentWriter.WriteTrace(trace);
@@ -368,9 +369,12 @@ namespace Datadog.Trace.Tests
 
         private static ArraySegment<Span> CreateTrace(int numberOfSpans)
         {
-            var array = Enumerable.Range(0, numberOfSpans)
-                .Select(i => new Span(new SpanContext((ulong)i + 1, (ulong)i + 1), DateTimeOffset.UtcNow))
-                .ToArray();
+            var tracer = new Mock<IDatadogTracer>();
+            var traceContext = new TraceContext(tracer.Object, traceId: 1);
+
+            var array = Enumerable.Range(1, numberOfSpans)
+                                  .Select(i => new Span(traceContext, spanId: (ulong)i))
+                                  .ToArray();
 
             return new ArraySegment<Span>(array);
         }
