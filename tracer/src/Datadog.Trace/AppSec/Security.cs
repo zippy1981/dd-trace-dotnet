@@ -112,7 +112,15 @@ namespace Datadog.Trace.AppSec
                             Log.Error(ex, "Unable to query the IIS pipeline. Request and response information may be limited.");
                         }
 
+                        // TODO: Delete log lines
+                        Log.Information($"System.Web.HttpRuntime.UsingIntegratedPipeline: {System.Web.HttpRuntime.UsingIntegratedPipeline}");
+                        Log.Information($"System.Web.HttpRuntime.IISVersion: {System.Web.HttpRuntime.IISVersion}");
+
                         if (_usingIntegratedPipeline)
+                        {
+                            _instrumentationGateway.LastChanceToWriteTags += InstrumentationGateway_AddHeadersResponseTags;
+                        }
+                        else if (System.Web.HttpRuntime.IISVersion is null)
                         {
                             _instrumentationGateway.LastChanceToWriteTags += InstrumentationGateway_AddHeadersResponseTags;
                         }
