@@ -112,15 +112,13 @@ namespace Datadog.Trace.AppSec
                             Log.Error(ex, "Unable to query the IIS pipeline. Request and response information may be limited.");
                         }
 
-                        // TODO: Delete log lines
-                        Log.Information($"System.Web.HttpRuntime.UsingIntegratedPipeline: {System.Web.HttpRuntime.UsingIntegratedPipeline}");
-                        Log.Information($"System.Web.HttpRuntime.IISVersion: {System.Web.HttpRuntime.IISVersion}");
+                        // Avoid modifying response headers in an IIS Application Pool in Classic Mode (and using Managed Code)
+                        // For all other scenarios, enable the modification of response headers:
+                        // - Running in an IIS Application Pool in Integrated Mode (and using Managed Code)
+                        // - Running in an IIS Application Pool with No Managed Code
+                        // - Running outside of IIS
 
-                        if (_usingIntegratedPipeline)
-                        {
-                            _instrumentationGateway.LastChanceToWriteTags += InstrumentationGateway_AddHeadersResponseTags;
-                        }
-                        else if (System.Web.HttpRuntime.IISVersion is null)
+                        if (_usingIntegratedPipeline || System.Web.HttpRuntime.IISVersion is null)
                         {
                             _instrumentationGateway.LastChanceToWriteTags += InstrumentationGateway_AddHeadersResponseTags;
                         }
