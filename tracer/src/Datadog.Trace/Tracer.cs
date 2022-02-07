@@ -359,9 +359,7 @@ namespace Datadog.Trace
             }
 
             var finalServiceName = serviceName ?? DefaultServiceName;
-            var spanContext = new SpanContext(parent, traceContext, finalServiceName, traceId: traceId, spanId: spanId);
-
-            return spanContext;
+            return new SpanContext(parent, traceContext, finalServiceName, traceId: traceId, spanId: spanId);
         }
 
         internal Scope StartActiveInternal(string operationName, ISpanContext parent = null, string serviceName = null, DateTimeOffset? startTime = null, bool finishOnClose = true, ITags tags = null)

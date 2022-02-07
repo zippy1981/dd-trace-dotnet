@@ -4,11 +4,14 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Datadog.Trace.ClrProfiler;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PlatformHelpers;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Tagging;
+using Datadog.Trace.Tagging.PropagatedTags;
 using Datadog.Trace.Util;
 
 namespace Datadog.Trace
@@ -21,9 +24,25 @@ namespace Datadog.Trace
         private readonly DateTimeOffset _utcStart = DateTimeOffset.UtcNow;
         private readonly long _timestamp = Stopwatch.GetTimestamp();
         private ArrayBuilder<Span> _spans;
-
         private int _openSpans;
-        private int? _samplingPriority;
+
+        /// <summary>
+        /// The original sampling priority value propagated from an upstream service, if any.
+        /// The current value may be different and is found in <see cref="_samplingDecision"/>.
+        /// </summary>
+        private int? _propagatedSamplingPriority;
+
+        /// <summary>
+        /// The original value of "_dd.p.upstream_services" propagated from an upstream service, if any.
+        /// The current value may be different and is found in <see cref="_traceTags"/>.
+        /// </summary>
+        private string _propagatedUpstreamServices;
+
+        /// <summary>
+        /// The sampling decision made by this service, if any.
+        /// Can be different from <see cref="_propagatedSamplingPriority"/>.
+        /// </summary>
+        private SamplingDecision? _samplingDecision;
 
         public TraceContext(IDatadogTracer tracer, string propagatedTags = null)
         {
@@ -40,43 +59,81 @@ namespace Datadog.Trace
         public TraceTags Tags { get; }
 
         /// <summary>
-        /// Gets the trace's sampling priority.
+        /// Gets this trace's sampling decision.
         /// </summary>
-        public int? SamplingPriority
-        {
-            get => _samplingPriority;
-        }
+        public SamplingDecision? SamplingDecision => _samplingDecision;
 
         private TimeSpan Elapsed => StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp);
 
         public void AddSpan(Span span)
         {
+            var isRootSpan = false;
+
             lock (_globalLock)
             {
                 if (RootSpan == null)
                 {
                     // first span added is the root span
                     RootSpan = span;
-                    DecorateRootSpan(span);
 
-                    if (_samplingPriority == null)
-                    {
-                        if (span.Context.Parent is SpanContext context && context.SamplingPriority != null)
-                        {
-                            // this is a root span created from a propagated context that contains a sampling priority.
-                            // lock sampling priority when a span is started from a propagated trace.
-                            _samplingPriority = context.SamplingPriority;
-                        }
-                        else
-                        {
-                            // this is a local root span (i.e. not propagated).
-                            // determine an initial sampling priority for this trace, but don't lock it yet
-                            _samplingPriority = Tracer.Sampler?.GetSamplingPriority(RootSpan);
-                        }
-                    }
+                    // we can do the rest outside of the lock
+                    isRootSpan = true;
                 }
 
                 _openSpans++;
+            }
+
+            if (isRootSpan)
+            {
+                AddedRootSpan(span);
+            }
+        }
+
+        private void AddedRootSpan(Span span)
+        {
+            if (span.Context.Parent is SpanContext parentContext)
+            {
+                if (parentContext.SamplingPriority != null)
+                {
+                    // this is a root span whose parent is a propagated context from an upstream service.
+                    // save the upstream service's sampling priority, we will need later if it was overridden.
+                    _propagatedSamplingPriority = parentContext.SamplingPriority;
+
+                    // keep the same sampling priority as the upstream service
+                    // (can be overridden later by AppSec or manually in code by users)
+                    SetSamplingDecision(parentContext.SamplingPriority.Value, SamplingMechanism.Propagated);
+                }
+                else
+                {
+                    // if there are multiple tracer versions, use the shared sampling decision, if any.
+                    // otherwise use the sampler to compute an initial sampling priority for this trace.
+                    // (can be overridden later by AppSec or manually in code by users)
+                    var samplingDecision = DistributedTracer.Instance.GetSamplingDecision() ??
+                                           Tracer.Sampler?.MakeSamplingDecision(RootSpan);
+
+                    SetSamplingDecision(samplingDecision);
+                }
+
+                // the collection of Datadog tags is propagated to downstream services via headers, like http
+                _traceTags = DatadogTagsHeader.Parse(parentContext.DatadogTags ?? string.Empty);
+
+                // the individual tags are propagated to the Agent as trace-level tags (e.g. as tags on root spans)
+                _propagatedUpstreamServices = DatadogTagsHeader.GetTagValue(datadogTags, Tags.Propagated.UpstreamServices);
+            }
+
+            if (AzureAppServices.Metadata.IsRelevant)
+            {
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteName, AzureAppServices.Metadata.SiteName);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteKind, AzureAppServices.Metadata.SiteKind);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteType, AzureAppServices.Metadata.SiteType);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesResourceGroup, AzureAppServices.Metadata.ResourceGroup);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSubscriptionId, AzureAppServices.Metadata.SubscriptionId);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesResourceId, AzureAppServices.Metadata.ResourceId);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesInstanceId, AzureAppServices.Metadata.InstanceId);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesInstanceName, AzureAppServices.Metadata.InstanceName);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesOperatingSystem, AzureAppServices.Metadata.OperatingSystem);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesRuntime, AzureAppServices.Metadata.Runtime);
+                span.SetTag(Datadog.Trace.Tags.AzureAppServicesExtensionVersion, AzureAppServices.Metadata.SiteExtensionVersion);
             }
         }
 
@@ -86,13 +143,15 @@ namespace Datadog.Trace
 
             if (span == RootSpan)
             {
-                if (_samplingPriority == null)
+                var samplingPriority = _samplingDecision?.Priority;
+
+                if (samplingPriority == null)
                 {
                     Log.Warning("Cannot set span metric for sampling priority before it has been set.");
                 }
                 else
                 {
-                    AddSamplingPriorityTags(span, _samplingPriority.Value);
+                    AddSamplingPriorityTags(span, samplingPriority.Value);
                 }
             }
 
@@ -142,13 +201,31 @@ namespace Datadog.Trace
             }
         }
 
-        public void SetSamplingPriority(int? samplingPriority, bool notifyDistributedTracer = true)
+        public void SetSamplingDecision(int priority, int mechanism, float? rate = null, bool notifyDistributedTracer = true, string serviceName = null)
         {
-            _samplingPriority = samplingPriority;
+            var samplingDecision = new SamplingDecision(priority, mechanism, rate);
+            SetSamplingDecision(samplingDecision, notifyDistributedTracer, serviceName);
+        }
+
+        public void SetSamplingDecision(SamplingDecision? samplingDecision, bool notifyDistributedTracer = true, string serviceName = null)
+        {
+            _samplingDecision = samplingDecision;
 
             if (notifyDistributedTracer)
             {
-                DistributedTracer.Instance.SetSamplingPriority(samplingPriority);
+                DistributedTracer.Instance.SetSamplingDecision(samplingDecision);
+            }
+
+            // if there was no sampling priority value from upstream,
+            // or if this service changed the sampling priority from the upstream value,
+            // update "_dd.p.upstream_services" and "x-datadog-tags"
+            if (samplingDecision != null && samplingDecision.Value.Priority != _propagatedSamplingPriority)
+            {
+                var upstreamService = new UpstreamService(serviceName ?? Tracer.DefaultServiceName, samplingDecision.Value);
+                _upstreamServices = UpstreamService.
+
+                // append a tuple to the "_dd.p.upstream_services" tag in DatadogTags.
+                _datadogTags = DatadogTagsHeader.AppendTagValue(DatadogTags, upstreamService);
             }
         }
 
@@ -162,6 +239,7 @@ namespace Datadog.Trace
             if (span.Tags is CommonTags tags)
             {
                 tags.SamplingPriority = samplingPriority;
+                // TODO: tags.UpstreamService = new UpstreamService(Tracer.DefaultServiceName, samplingDecision.Value).ToString();
             }
             else
             {
@@ -174,35 +252,17 @@ namespace Datadog.Trace
             // The agent looks for the sampling priority on the first span that has no parent
             // Finding those spans is not trivial, so instead we apply the priority to every span
 
-            var samplingPriority = _samplingPriority;
-
-            if (samplingPriority == null)
+            if (SamplingDecision == null)
             {
                 return;
             }
 
+            var samplingPriority = SamplingDecision.Value.Priority;
+
             // Using a for loop to avoid the boxing allocation on ArraySegment.GetEnumerator
             for (int i = 0; i < spans.Count; i++)
             {
-                AddSamplingPriorityTags(spans.Array[i + spans.Offset], samplingPriority.Value);
-            }
-        }
-
-        private void DecorateRootSpan(Span span)
-        {
-            if (AzureAppServices.Metadata.IsRelevant)
-            {
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteName, AzureAppServices.Metadata.SiteName);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteKind, AzureAppServices.Metadata.SiteKind);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSiteType, AzureAppServices.Metadata.SiteType);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesResourceGroup, AzureAppServices.Metadata.ResourceGroup);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesSubscriptionId, AzureAppServices.Metadata.SubscriptionId);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesResourceId, AzureAppServices.Metadata.ResourceId);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesInstanceId, AzureAppServices.Metadata.InstanceId);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesInstanceName, AzureAppServices.Metadata.InstanceName);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesOperatingSystem, AzureAppServices.Metadata.OperatingSystem);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesRuntime, AzureAppServices.Metadata.Runtime);
-                span.SetTag(Datadog.Trace.Tags.AzureAppServicesExtensionVersion, AzureAppServices.Metadata.SiteExtensionVersion);
+                AddSamplingPriorityTags(spans.Array[i + spans.Offset], samplingPriority);
             }
         }
     }
