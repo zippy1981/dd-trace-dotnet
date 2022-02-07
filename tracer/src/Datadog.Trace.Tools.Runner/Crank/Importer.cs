@@ -12,6 +12,7 @@ using Datadog.Trace.Ci;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.ExtensionMethods;
+using Datadog.Trace.Sampling;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
 using Spectre.Console;
 
@@ -108,7 +109,7 @@ namespace Datadog.Trace.Tools.Runner.Crank
 
                         Span span = tracer.StartSpan("crank.test", startTime: minTimeStamp);
 
-                        span.SetTraceSamplingPriority(SamplingPriorityValues.AutoKeep);
+                        span.SetTraceSamplingDecision(SamplingPriorityValues.UserKeep, SamplingMechanism.Manual);
                         span.Type = SpanTypes.Test;
                         span.ResourceName = $"{fileName}/{jobItem.Key}";
                         CIEnvironmentValues.Instance.DecorateSpan(span);
