@@ -348,13 +348,13 @@ namespace Datadog.Trace
                 traceContext = parentSpanContext.TraceContext;
                 if (traceContext == null)
                 {
-                    traceContext = new TraceContext(this);
+                    traceContext = new TraceContext(this, propagatedTags: parentSpanContext.DatadogTags);
                     traceContext.SetSamplingPriority(parentSpanContext.SamplingPriority ?? DistributedTracer.Instance.GetSamplingPriority());
                 }
             }
             else
             {
-                traceContext = new TraceContext(this);
+                traceContext = new TraceContext(this, propagatedTags: null);
                 traceContext.SetSamplingPriority(DistributedTracer.Instance.GetSamplingPriority());
             }
 
