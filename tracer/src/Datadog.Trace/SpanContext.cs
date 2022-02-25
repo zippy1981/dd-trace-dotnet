@@ -22,6 +22,7 @@ namespace Datadog.Trace
             HttpHeaderNames.SamplingPriority,
             HttpHeaderNames.Origin,
             HttpHeaderNames.DatadogTags,
+            HttpHeaderNames.TraceParent,
         };
 
         /// <summary>
@@ -156,6 +157,11 @@ namespace Datadog.Trace
         /// </summary>
         internal int? SamplingPriority { get; }
 
+        /// <summary>
+        /// Gets or sets the trace parent from the W3C header
+        /// </summary>
+        internal string TraceParent { get; set; }
+
         /// <inheritdoc/>
         int IReadOnlyCollection<KeyValuePair<string, string>>.Count => KeyNames.Length;
 
@@ -243,6 +249,10 @@ namespace Datadog.Trace
 
                 case HttpHeaderNames.DatadogTags:
                     value = DatadogTags;
+                    return true;
+
+                case HttpHeaderNames.TraceParent:
+                    value = TraceParent;
                     return true;
 
                 default:

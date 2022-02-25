@@ -26,7 +26,8 @@ namespace Datadog.Trace.Propagation
         private readonly Func<IReadOnlyDictionary<string, string?>?, string, IEnumerable<string?>> _readOnlyDictionaryValueGetterDelegate;
         private IReadOnlyList<ISpanContextPropagator> _propagators = new List<ISpanContextPropagator>
         {
-            new DatadogSpanContextPropagator()
+            new DatadogSpanContextPropagator(),
+            new W3CSpanContextPropagator(),
         };
 
         private SpanContextPropagator()
