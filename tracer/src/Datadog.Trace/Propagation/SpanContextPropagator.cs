@@ -27,7 +27,6 @@ namespace Datadog.Trace.Propagation
         private IReadOnlyList<ISpanContextPropagator> _propagators = new List<ISpanContextPropagator>
         {
             new DatadogSpanContextPropagator(),
-            new W3CSpanContextPropagator(),
         };
 
         private SpanContextPropagator()
