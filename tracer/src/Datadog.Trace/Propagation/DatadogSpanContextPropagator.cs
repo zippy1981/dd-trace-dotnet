@@ -8,7 +8,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Datadog.Trace.Util;
 
 namespace Datadog.Trace.Propagation
 {
