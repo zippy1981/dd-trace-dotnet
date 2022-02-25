@@ -10,6 +10,7 @@ using System.Net;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.DuckTyping;
 using Datadog.Trace.ExtensionMethods;
+using Datadog.Trace.Propagation;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Http.WebRequest
 {

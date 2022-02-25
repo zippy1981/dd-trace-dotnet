@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Datadog.Trace.Propagation;
 
 namespace Datadog.Trace.ServiceFabric
 {

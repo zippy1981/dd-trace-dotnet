@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using Datadog.Trace.Headers;
+using Datadog.Trace.Propagation;
 using FluentAssertions;
 using Moq;
 using Xunit;

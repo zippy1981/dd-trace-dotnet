@@ -5,6 +5,7 @@
 
 using System;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Propagation;
 using Datadog.Trace.Tagging;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Kafka

@@ -5,6 +5,7 @@
 
 using System.Collections;
 using System.Text;
+using Datadog.Trace.Propagation;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.AWS.SQS
 {
