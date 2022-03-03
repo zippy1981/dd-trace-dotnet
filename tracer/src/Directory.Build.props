@@ -32,8 +32,4 @@
     <Compile Include="$(MSBuildThisFileDirectory)GlobalSuppressions.cs" Link="GlobalSuppressions.src.cs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="$(MSBuildThisFileDirectory)Datadog.Trace.Tools.Analyzers\Datadog.Trace.Tools.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
 </Project>
