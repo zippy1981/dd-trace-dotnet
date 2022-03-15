@@ -61,7 +61,7 @@ namespace Datadog.Trace.ClrProfiler.AspNetCore
                         }
                         else
                         {
-                            for (int i = 0; i < defaultModelBindingContext.ValueProvider.Count; i++)
+                            for (var i = 0; i < defaultModelBindingContext.ValueProvider.Count; i++)
                             {
                                 var provider = defaultModelBindingContext.ValueProvider[i];
                                 if (provider.TryDuckCast(out BindingSourceValueProvider prov))
