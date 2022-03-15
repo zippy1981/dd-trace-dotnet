@@ -57,11 +57,9 @@ namespace Datadog.Trace.AppSec.Waf
             _ => throw new Exception($"Unknown return code: {rc}")
         };
 
-        private static string TruncateLongString(string s) =>
-            s.Length > MaxStringLength ? s.Substring(0, MaxStringLength) : s;
+        private static string TruncateLongString(string s) => s.Length > MaxStringLength ? s.Substring(0, MaxStringLength) : s;
 
-        public Obj Encode(object o, List<Obj> argCache, bool applySafetyLimits) =>
-            EncodeInternal(o, argCache, MaxObjectDepth, applySafetyLimits);
+        public Obj Encode(object o, List<Obj> argCache, bool applySafetyLimits) => EncodeInternal(o, argCache, MaxObjectDepth, applySafetyLimits);
 
         private Obj EncodeInternal(object o, List<Obj> argCache, int remainingDepth, bool applyLimits)
         {
