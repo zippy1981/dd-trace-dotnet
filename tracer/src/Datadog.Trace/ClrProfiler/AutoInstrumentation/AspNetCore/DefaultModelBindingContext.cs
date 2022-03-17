@@ -26,7 +26,6 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.AspNetCore
         /// <summary>
         /// Gets the HttpContext
         /// </summary>
-        [Duck(BindingFlags = DuckAttribute.DefaultFlags | BindingFlags.IgnoreCase, Kind = DuckKind.Property)]
         public HttpContext HttpContext;
 
         [Duck(BindingFlags = DuckAttribute.DefaultFlags | BindingFlags.IgnoreCase)]
