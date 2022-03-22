@@ -70,24 +70,35 @@ namespace Datadog.Trace.AppSec
 
                 var field = fields[i];
 
-                var nameMatch = NameExtractor.Match(field.Name);
-                if (!nameMatch.Success || nameMatch.Groups.Count == 0)
+                var propertyName = GetPropertyName(field.Name);
+                if (string.IsNullOrEmpty(propertyName))
                 {
                     throw new Exception("Can't extract property name from " + field.Name);
                 }
 
-                var key = nameMatch.Groups["PropertyName"].Value;
                 var value = field.GetValue(body);
 
-                Log.Debug("ExtractProperties - property: {Name} {Value}", key, value);
+                Log.Debug("ExtractProperties - property: {Name} {Value}", propertyName, value);
 
                 var item =
                     value == null ?
                         null :
                         ExtractType(field.FieldType, value, depth, visited);
 
-                dic.Add(key, item);
+                dic.Add(propertyName, item);
             }
+        }
+
+        private static string GetPropertyName(string fieldName)
+        {
+            if (fieldName[0] == '<')
+            {
+                var end = fieldName.IndexOf('>');
+
+                return fieldName.Substring(1, end - 1);
+            }
+
+            return null;
         }
 
         private static object ExtractType(Type itemType, object value, int depth, HashSet<object> visited)

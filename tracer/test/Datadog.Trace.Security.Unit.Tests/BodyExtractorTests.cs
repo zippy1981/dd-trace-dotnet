@@ -445,6 +445,14 @@ namespace Datadog.Trace.Security.Unit.Tests
     {
         public string StringValue { get; set; }
 
+        private int myVar;
+
+        public int MyProperty
+        {
+            get { return myVar; }
+            set { myVar = value; }
+        }
+
         public string WriteOnlyProp
         {
             set { }
