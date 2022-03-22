@@ -18,8 +18,6 @@ namespace Datadog.Trace.AppSec
     {
         private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(BodyExtractor));
 
-        private static readonly Regex NameExtractor = new Regex(@"\<(?'PropertyName'[^\>]+)\>", RegexOptions.Compiled);
-
         private static readonly HashSet<Type> AdditionalPrimitives = new()
         {
             typeof(string),
@@ -164,7 +162,7 @@ namespace Datadog.Trace.AppSec
             var i = 0;
             foreach (var item in (IEnumerable)value)
             {
-                if (item.GetType().IsPrimitive || item is string)
+                if (IsOurKindOfPrimitive(item.GetType()))
                 {
                     items.Add(item);
                 }

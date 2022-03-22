@@ -81,7 +81,7 @@ namespace Datadog.Trace.Security.Unit.Tests
         }
 
         [Fact]
-        public void TestWriteOnlyProperits()
+        public void TestWriteOnlyProperties()
         {
             var target = new TestWriteOnlyPropertyPoco()
             {
@@ -444,14 +444,6 @@ namespace Datadog.Trace.Security.Unit.Tests
     public class TestWriteOnlyPropertyPoco
     {
         public string StringValue { get; set; }
-
-        private int myVar;
-
-        public int MyProperty
-        {
-            get { return myVar; }
-            set { myVar = value; }
-        }
 
         public string WriteOnlyProp
         {
