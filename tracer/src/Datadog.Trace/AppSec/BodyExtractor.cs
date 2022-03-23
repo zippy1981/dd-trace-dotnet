@@ -8,7 +8,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Datadog.Trace.AppSec.Waf;
 using Datadog.Trace.Logging;
 
@@ -28,7 +27,7 @@ namespace Datadog.Trace.AppSec
             typeof(TimeSpan)
         };
 
-        internal static object GetKeysAndValues(object body)
+        internal static object Extract(object body)
         {
             var visted = new HashSet<object>();
             var item = ExtractType(body.GetType(), body, 0, visted);
@@ -41,11 +40,11 @@ namespace Datadog.Trace.AppSec
             return t.IsPrimitive || AdditionalPrimitives.Contains(t) || t.IsEnum;
         }
 
-        private static void ExtractProperties(Dictionary<string, object> dic, object body, int depth, HashSet<object> visited)
+        private static Dictionary<string, object> ExtractProperties(object body, int depth, HashSet<object> visited)
         {
             if (visited.Contains(body))
             {
-                return;
+                return new Dictionary<string, object>(0);
             }
 
             visited.Add(body);
@@ -59,11 +58,14 @@ namespace Datadog.Trace.AppSec
 
             depth++;
 
+            var dictSize = Math.Min(WafConstants.MaxMapOrArrayLength, fields.Length);
+            var dict = new Dictionary<string, object>(dictSize);
+
             for (var i = 0; i < fields.Length; i++)
             {
-                if (dic.Count >= WafConstants.MaxMapOrArrayLength || depth >= WafConstants.MaxObjectDepth)
+                if (dict.Count >= WafConstants.MaxMapOrArrayLength || depth >= WafConstants.MaxObjectDepth)
                 {
-                    return;
+                    return dict;
                 }
 
                 var field = fields[i];
@@ -71,7 +73,8 @@ namespace Datadog.Trace.AppSec
                 var propertyName = GetPropertyName(field.Name);
                 if (string.IsNullOrEmpty(propertyName))
                 {
-                    throw new Exception("Can't extract property name from " + field.Name);
+                    Log.Warning("ExtractProperties - couldn't extract property name from: {FieldName}", field.Name);
+                    continue;
                 }
 
                 var value = field.GetValue(body);
@@ -83,8 +86,10 @@ namespace Datadog.Trace.AppSec
                         null :
                         ExtractType(field.FieldType, value, depth, visited);
 
-                dic.Add(propertyName, item);
+                dict.Add(propertyName, item);
             }
+
+            return dict;
         }
 
         private static string GetPropertyName(string fieldName)
@@ -115,22 +120,23 @@ namespace Datadog.Trace.AppSec
             }
             else
             {
-                var nestedDic = new Dictionary<string, object>();
-                ExtractProperties(nestedDic, value, depth, visited);
-                return nestedDic;
+                var nestedDict = ExtractProperties(value, depth, visited);
+                return nestedDict;
             }
         }
 
         private static Dictionary<string, object> ExtractDictionary(object value, Type dictType, int depth, HashSet<object> visited)
         {
-            var items = new Dictionary<string, object>();
             var gtkvp = typeof(KeyValuePair<,>);
             var tkvp = gtkvp.MakeGenericType(dictType.GetGenericArguments());
             var keyProp = tkvp.GetProperty("Key");
             var valueProp = tkvp.GetProperty("Value");
 
-            var i = 0;
-            foreach (var item in (IEnumerable)value)
+            var sourceDict = (ICollection)value;
+            var dictSize = Math.Min(WafConstants.MaxMapOrArrayLength, sourceDict.Count);
+            var items = new Dictionary<string, object>(dictSize);
+
+            foreach (var item in sourceDict)
             {
                 var dictKey = keyProp.GetValue(item)?.ToString();
                 var dictValue = valueProp.GetValue(item);
@@ -140,13 +146,11 @@ namespace Datadog.Trace.AppSec
                 }
                 else
                 {
-                    var nestedDic = new Dictionary<string, object>();
-                    ExtractProperties(nestedDic, dictValue, depth, visited);
-                    items.Add(dictKey, nestedDic);
+                    var nestedDict = ExtractProperties(dictValue, depth, visited);
+                    items.Add(dictKey, nestedDict);
                 }
 
-                i++;
-                if (i >= WafConstants.MaxMapOrArrayLength)
+                if (items.Count >= WafConstants.MaxMapOrArrayLength)
                 {
                     break;
                 }
@@ -157,10 +161,11 @@ namespace Datadog.Trace.AppSec
 
         private static List<object> ExtractListOrArray(object value, int depth, HashSet<object> visited)
         {
-            var items = new List<object>();
+            var sourceList = (ICollection)value;
+            var listSize = Math.Min(WafConstants.MaxMapOrArrayLength, sourceList.Count);
+            var items = new List<object>(listSize);
 
-            var i = 0;
-            foreach (var item in (IEnumerable)value)
+            foreach (var item in sourceList)
             {
                 if (IsOurKindOfPrimitive(item.GetType()))
                 {
@@ -168,13 +173,11 @@ namespace Datadog.Trace.AppSec
                 }
                 else
                 {
-                    var nestedDic = new Dictionary<string, object>();
-                    ExtractProperties(nestedDic, item, depth, visited);
-                    items.Add(nestedDic);
+                    var nestedDict = ExtractProperties(item, depth, visited);
+                    items.Add(nestedDict);
                 }
 
-                i++;
-                if (i >= WafConstants.MaxMapOrArrayLength)
+                if (items.Count >= WafConstants.MaxMapOrArrayLength)
                 {
                     break;
                 }

@@ -113,10 +113,10 @@ namespace Benchmarks.Trace
         public void AllCycleMoreComplexBody() => ExecuteCycle(complexModel);
 
         [Benchmark]
-        public void BodyExtractorSimpleBody() => BodyExtractor.GetKeysAndValues(new { });
+        public void BodyExtractorSimpleBody() => BodyExtractor.Extract(new { });
 
         [Benchmark]
-        public void BodyExtractorMoreComplexBody() => BodyExtractor.GetKeysAndValues(complexModel);
+        public void BodyExtractorMoreComplexBody() => BodyExtractor.Extract(complexModel);
     }
 
     public class ComplexModel

@@ -83,7 +83,7 @@ namespace Datadog.Trace.AppSec
 
                 if (body != null)
                 {
-                    var keysAndValues = BodyExtractor.GetKeysAndValues(body);
+                    var keysAndValues = BodyExtractor.Extract(body);
 
                     if (eventData == null)
                     {
