@@ -100,6 +100,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                         adminSpan.Tags.Should().Contain("mongodb.query", "{ \"getLastError\" : 1 }");
                     }
                 }
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

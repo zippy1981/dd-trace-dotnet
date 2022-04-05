@@ -55,6 +55,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
             }
 
             telemetry.AssertIntegrationEnabled(IntegrationId.AdoNet);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

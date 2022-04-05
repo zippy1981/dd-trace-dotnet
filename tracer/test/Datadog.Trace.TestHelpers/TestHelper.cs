@@ -15,6 +15,7 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Trace.Configuration;
+using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -59,6 +60,20 @@ namespace Datadog.Trace.TestHelpers
         protected string TestPrefix => $"{EnvironmentTools.GetBuildConfiguration()}.{EnvironmentHelper.GetTargetFramework()}";
 
         protected ITestOutputHelper Output { get; }
+
+        public void AssertDatadogAsembliesNotInApplicationDirectory(string packageVersion = "", string framework = "")
+        {
+            // get path to sample app that the profiler will attach to
+            string sampleAppPath = EnvironmentHelper.GetSampleApplicationPath(packageVersion, framework);
+            if (!File.Exists(sampleAppPath))
+            {
+                throw new Exception($"application not found: {sampleAppPath}");
+            }
+
+            var directory = Directory.GetParent(sampleAppPath);
+            var datadogAssemblies = Directory.GetFiles(directory.FullName, "Datadog.*.dll");
+            datadogAssemblies.Should().BeEmpty();
+        }
 
         public Process StartDotnetTestSample(MockTracerAgent agent, string arguments, string packageVersion, int aspNetCorePort, string framework = "")
         {

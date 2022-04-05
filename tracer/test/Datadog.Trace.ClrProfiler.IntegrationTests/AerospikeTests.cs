@@ -70,6 +70,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 spans.Select(span => span.Resource).Should().ContainInOrder(expectedSpans);
                 telemetry.AssertIntegrationEnabled(IntegrationId.Aerospike);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
 

@@ -166,6 +166,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             }
 
             telemetry.AssertIntegrationEnabled(IntegrationId.GraphQL);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
 
         private void InitializeExpectations(string sampleName)

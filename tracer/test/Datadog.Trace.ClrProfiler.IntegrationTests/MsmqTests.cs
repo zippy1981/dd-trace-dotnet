@@ -110,6 +110,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             receiveCount.Should().Be(expectedReceiveCount);
             peekCount.Should().Be(expectedPeekCount);
             telemetry.AssertIntegrationEnabled(IntegrationId.Msmq);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

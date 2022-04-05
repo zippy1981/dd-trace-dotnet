@@ -217,7 +217,9 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             Assert.Equal(1, exchangeDeclareCount);
             Assert.Equal(1, queueBindCount);
             Assert.Equal(4, queueDeclareCount);
+
             telemetry.AssertIntegrationEnabled(IntegrationId.RabbitMQ);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

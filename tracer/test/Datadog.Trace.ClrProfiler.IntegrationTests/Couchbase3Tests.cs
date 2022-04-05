@@ -65,6 +65,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 ValidateSpans(spans, (span) => span.Resource, expected);
                 telemetry.AssertIntegrationEnabled(IntegrationId.Couchbase);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

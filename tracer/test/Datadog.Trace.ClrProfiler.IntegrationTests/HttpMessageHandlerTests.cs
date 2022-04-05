@@ -87,6 +87,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 Assert.Equal(firstSpan.TraceId.ToString(CultureInfo.InvariantCulture), traceId);
                 Assert.Equal(firstSpan.SpanId.ToString(CultureInfo.InvariantCulture), parentSpanId);
 
+                AssertDatadogAsembliesNotInApplicationDirectory();
+
                 using var scope = new AssertionScope();
                 telemetry.AssertIntegrationEnabled(IntegrationId.HttpMessageHandler);
                 // ignore for now auto enabled for simplicity
@@ -122,6 +124,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 Assert.Null(traceId);
                 Assert.Null(parentSpanId);
                 Assert.Equal("false", tracingEnabled);
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
 
                 using var scope = new AssertionScope();
                 // ignore auto enabled for simplicity

@@ -134,6 +134,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             }
 
             telemetry.AssertIntegrationEnabled(IntegrationId.Kafka);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
 
         private void VerifyProducerSpanProperties(List<MockSpan> producerSpans, string resourceName, int expectedCount)

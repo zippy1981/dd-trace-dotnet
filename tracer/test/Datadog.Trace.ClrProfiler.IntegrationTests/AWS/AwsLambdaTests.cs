@@ -58,6 +58,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AWS
                 spans[6].Resource.Should().Be("GET localhost/function/HandlerNoParamVoid");
                 spans[7].Resource.Should().Be("GET localhost/function/HandlerOneParamVoid");
                 spans[8].Resource.Should().Be("GET localhost/function/HandlerTwoParamsVoid");
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

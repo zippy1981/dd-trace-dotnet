@@ -67,6 +67,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 var logFiles = GetLogFiles(packageVersion, logsInjectionEnabled: true);
                 ValidateLogCorrelation(spans, logFiles, expectedCorrelatedTraceCount, expectedCorrelatedSpanCount, packageVersion);
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
 
@@ -94,6 +96,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 var logFiles = GetLogFiles(packageVersion, logsInjectionEnabled: false);
                 ValidateLogCorrelation(spans, logFiles, expectedCorrelatedTraceCount, expectedCorrelatedSpanCount, packageVersion, disableLogCorrelation: true);
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
 

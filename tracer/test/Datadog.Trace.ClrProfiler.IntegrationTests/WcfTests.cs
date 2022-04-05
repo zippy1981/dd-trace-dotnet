@@ -88,6 +88,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 // The custom binding doesn't trigger the integration
                 telemetry.AssertIntegration(IntegrationId.Wcf, enabled: binding != "Custom", autoEnabled: true);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

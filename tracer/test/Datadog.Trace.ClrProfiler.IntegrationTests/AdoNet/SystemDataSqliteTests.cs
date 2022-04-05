@@ -1,4 +1,4 @@
-﻿// <copyright file="SystemDataSqliteTests.cs" company="Datadog">
+// <copyright file="SystemDataSqliteTests.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
@@ -47,6 +47,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
             }
 
             telemetry.AssertIntegrationEnabled(IntegrationId.Sqlite);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
 
         [SkippableFact]
@@ -67,6 +68,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
             Assert.NotEmpty(spans);
             Assert.Empty(spans.Where(s => s.Name.Equals(expectedOperationName)));
             telemetry.AssertIntegrationDisabled(IntegrationId.Sqlite);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

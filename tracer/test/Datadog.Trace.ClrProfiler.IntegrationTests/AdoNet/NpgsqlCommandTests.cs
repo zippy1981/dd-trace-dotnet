@@ -62,6 +62,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
             }
 
             telemetry.AssertIntegrationEnabled(IntegrationId.Npgsql);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
 
         [SkippableFact]
@@ -82,6 +83,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
             Assert.NotEmpty(spans);
             Assert.Empty(spans.Where(s => s.Name.Equals(expectedOperationName)));
             telemetry.AssertIntegrationDisabled(IntegrationId.Npgsql);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

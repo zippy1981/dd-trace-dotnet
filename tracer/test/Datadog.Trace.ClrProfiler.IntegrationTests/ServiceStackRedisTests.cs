@@ -90,6 +90,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 }
 
                 telemetry.AssertIntegrationEnabled(IntegrationId.ServiceStackRedis);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

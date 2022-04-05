@@ -40,6 +40,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
                     Assert.Equal(dbType, span.Tags?[Tags.DbType]);
                     Assert.False(span.Tags?.ContainsKey(Tags.Version), "External service span should not have service version tag.");
                 }
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
 
@@ -66,6 +68,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AdoNet
                     Assert.Equal(dbType, span.Tags?[Tags.DbType]);
                     Assert.False(span.Tags?.ContainsKey(Tags.Version), "External service span should not have service version tag.");
                 }
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

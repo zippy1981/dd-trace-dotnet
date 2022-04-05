@@ -148,6 +148,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 var settings = VerifyHelper.GetSpanVerifierSettings();
                 await Verifier.Verify(orderedSpans, settings)
                               .UseMethodName("_");
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
 
             telemetry?.Dispose();

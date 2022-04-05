@@ -85,6 +85,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                 dbTags.Should().Be(10);
                 containerTags.Should().Be(4);
                 telemetry.AssertIntegrationEnabled(IntegrationId.CosmosDb);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }

@@ -140,6 +140,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
                 ValidateSpans(spans, (span) => span.Resource, expected);
                 telemetry.AssertIntegrationEnabled(IntegrationId.ElasticsearchNet);
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
 
@@ -158,6 +159,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
             Assert.Empty(spans);
             telemetry.AssertIntegrationDisabled(IntegrationId.ElasticsearchNet);
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

@@ -83,6 +83,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests.AspNetCore
             await Verifier.Verify(spans, settings)
                           .UseMethodName("_")
                           .UseTypeName(_testName);
+
+            AssertDatadogAsembliesNotInApplicationDirectory();
         }
     }
 }

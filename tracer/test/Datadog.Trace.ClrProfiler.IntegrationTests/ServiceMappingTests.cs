@@ -46,6 +46,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                     Assert.Matches("WebRequest|HttpMessageHandler", span.Tags[Tags.InstrumentationName]);
                     Assert.False(span.Tags?.ContainsKey(Tags.Version), "External service span should not have service version tag.");
                 }
+
+                AssertDatadogAsembliesNotInApplicationDirectory();
             }
         }
     }
