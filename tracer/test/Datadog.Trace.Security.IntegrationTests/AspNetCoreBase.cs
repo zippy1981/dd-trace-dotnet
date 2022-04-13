@@ -22,6 +22,7 @@ namespace Datadog.Trace.Security.IntegrationTests
         [InlineData(true, HttpStatusCode.OK)]
         [InlineData(false, HttpStatusCode.OK)]
         [InlineData(true,  HttpStatusCode.OK, "/Health/?test&[$slice]")]
+        [InlineData(true,  HttpStatusCode.InternalServerError, "/Home/PressMe?test&[$slice]")]
         [InlineData(true,  HttpStatusCode.NotFound, "/Health/login.php")]
         [Trait("RunOnWindows", "True")]
         public async Task TestSecurity(bool enableSecurity, HttpStatusCode expectedStatusCode, string url = DefaultAttackUrl)

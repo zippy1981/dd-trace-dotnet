@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Samples.Security.AspNetCore5.Models;
+using System;
 using System.Diagnostics;
 using System.Linq;
 
@@ -26,6 +27,8 @@ namespace Samples.Security.AspNetCore5.Controllers
         }
 
         public IActionResult Privacy() => View();
+
+        public IActionResult PressMe() => throw new Exception("Boom!");
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
