@@ -36,6 +36,12 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
             {
                 TestRunnerStruct runnerInstance = instance.DuckCast<TestRunnerStruct>();
 
+                // TODO: This is the way to skip tests on xUnit
+                if (instance.TryDuckCast<ITestRunnerSkippeable>(out var skippeableRunnerInstance))
+                {
+                    skippeableRunnerInstance.SkipReason = $"Skip test case: {runnerInstance.TestClass.FullName}.{runnerInstance.TestMethod.Name}()";
+                }
+
                 // Skip test support
                 if (runnerInstance.SkipReason != null)
                 {
