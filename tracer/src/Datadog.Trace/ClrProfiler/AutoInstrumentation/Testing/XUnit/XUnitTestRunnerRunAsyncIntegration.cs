@@ -41,7 +41,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
                 // ***
                 if (instance.TryDuckCast<ITestRunnerSkippeable>(out var skippeableRunnerInstance))
                 {
-                    skippeableRunnerInstance.SkipReason = $"Skip test case: {runnerInstance.TestClass.FullName}.{runnerInstance.TestMethod.Name}()";
+                    // skippeableRunnerInstance.SkipReason = $"Skip test case: {runnerInstance.TestClass.FullName}.{runnerInstance.TestMethod.Name}()";
                 }
 
                 // Skip test support
