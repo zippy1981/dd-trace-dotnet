@@ -301,7 +301,7 @@ namespace Datadog.Trace
                     value = RawSpanId;
                     return true;
 
-                case HttpHeaderNames.DatadogTags:
+                case Keys.DatadogTags:
                     value = DatadogTags;
                     return true;
 
@@ -314,12 +314,14 @@ namespace Datadog.Trace
         internal static class Keys
         {
             private const string Prefix = "__DistributedKey-";
+
             public const string TraceId = $"{Prefix}TraceId";
             public const string ParentId = $"{Prefix}ParentId";
             public const string SamplingPriority = $"{Prefix}SamplingPriority";
             public const string Origin = $"{Prefix}Origin";
             public const string RawTraceId = $"{Prefix}RawTraceId";
             public const string RawSpanId = $"{Prefix}RawSpanId";
+            public const string DatadogTags = $"{Prefix}DatadogTags";
         }
     }
 }
