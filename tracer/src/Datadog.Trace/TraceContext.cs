@@ -36,6 +36,10 @@ namespace Datadog.Trace
 
         public IDatadogTracer Tracer { get; }
 
+        /// <summary>
+        /// Gets the collection of trace-level tags. How each tag is serialized depends
+        /// on the tag and the format used to send traces.
+        /// </summary>
         public TraceTagCollection Tags { get; }
 
         /// <summary>

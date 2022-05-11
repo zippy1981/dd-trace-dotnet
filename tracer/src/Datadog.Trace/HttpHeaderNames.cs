@@ -43,8 +43,8 @@ namespace Datadog.Trace
 
         /// <summary>
         /// Internal Datadog tags.
-        /// A collection of internal Datadog tags. Only tags with names that
-        /// begin with "_dd.p.*" will be propagated using this header.
+        /// A collection of internal Datadog tags. Only trace-level tags with
+        /// the "_dd.p.*" prefix will be propagated using this header.
         /// </summary>
         public const string DatadogTags = "x-datadog-tags";
 
