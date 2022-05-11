@@ -110,6 +110,13 @@ namespace Datadog.Trace.Propagators
             {
                 _injectors[i].Inject(context, carrier, carrierSetter);
             }
+
+            var datadogTags = context.TraceContext?.Tags?.ToPropagationHeader() ?? context.DatadogTags;
+
+            if (datadogTags != null)
+            {
+                setter(carrier, HttpHeaderNames.DatadogTags, datadogTags);
+            }
         }
 
         /// <summary>
