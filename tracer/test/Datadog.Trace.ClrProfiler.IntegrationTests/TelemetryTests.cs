@@ -36,7 +36,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
             using var telemetry = new MockTelemetryAgent<TelemetryData>();
             Output.WriteLine($"Assigned port {telemetry.Port} for the telemetry port.");
-            EnableTelemetry(standaloneAgentPort: telemetry.Port);
+            EnableAgentlessTelemetry(telemetry.Port);
 
             int httpPort = TcpPortProvider.GetOpenPort();
             Output.WriteLine($"Assigning port {httpPort} for the httpPort.");
@@ -62,7 +62,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             using var agent = new MockTracerAgent(useTelemetry: true);
             Output.WriteLine($"Assigned port {agent.Port} for the agentPort.");
 
-            EnableTelemetry();
+            EnableAgentProxyTelemetry();
 
             int httpPort = TcpPortProvider.GetOpenPort();
             Output.WriteLine($"Assigning port {httpPort} for the httpPort.");
@@ -86,7 +86,8 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             using var agent = new MockTracerAgent(useTelemetry: true);
             Output.WriteLine($"Assigned port {agent.Port} for the agentPort.");
 
-            EnableTelemetry(enabled: false);
+            // disabled by default in integration tests, but make sure
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false");
 
             int httpPort = TcpPortProvider.GetOpenPort();
             Output.WriteLine($"Assigning port {httpPort} for the httpPort.");
@@ -138,6 +139,22 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
         {
             spans.Should().ContainSingle(span => span.Name == "http.request");
             spans.Should().ContainSingle(span => span.Name == "HttpListener.ReceivedRequest");
+        }
+
+        private void EnableAgentlessTelemetry(int standaloneAgentPort)
+        {
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "true");
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED", "true");
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_AGENT_PROXY_ENABLED", "false");
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_URL", $"http://localhost:{standaloneAgentPort}");
+            // API key is required for agentless
+            SetEnvironmentVariable("DD_API_KEY", "INVALID_KEY_FOR_TESTS");
+        }
+
+        private void EnableAgentProxyTelemetry()
+        {
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "true");
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED", "false");
         }
     }
 }
