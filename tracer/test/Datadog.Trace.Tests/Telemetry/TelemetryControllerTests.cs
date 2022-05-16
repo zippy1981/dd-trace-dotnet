@@ -184,6 +184,8 @@ namespace Datadog.Trace.Tests.Telemetry
                 _data.Push(data);
                 return Task.FromResult(_pushResult);
             }
+
+            public string GetTransportInfo() => nameof(TestTelemetryTransport);
         }
     }
 }
