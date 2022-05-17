@@ -46,7 +46,7 @@ namespace Datadog.Trace
         /// A collection of internal Datadog tags. Only trace-level tags with
         /// the "_dd.p.*" prefix will be propagated using this header.
         /// </summary>
-        public const string DatadogTags = "x-datadog-tags";
+        public const string PropagatedTags = "x-datadog-tags";
 
         /// <summary>
         /// ID of a span.
