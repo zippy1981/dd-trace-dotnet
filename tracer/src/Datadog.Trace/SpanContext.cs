@@ -23,12 +23,12 @@ namespace Datadog.Trace
             Keys.Origin,
             Keys.RawTraceId,
             Keys.RawSpanId,
+            Keys.DatadogTags,
             // For mismatch version support we need to keep supporting old keys.
             HttpHeaderNames.TraceId,
             HttpHeaderNames.ParentId,
             HttpHeaderNames.SamplingPriority,
             HttpHeaderNames.Origin,
-            HttpHeaderNames.DatadogTags,
         };
 
         /// <summary>
@@ -180,7 +180,7 @@ namespace Datadog.Trace
         /// We're keeping this as the string representation to avoid having to parse.
         /// For now, it's relatively easy to append new values when needed.
         /// </remarks>
-        internal string DatadogTags { get; set; }
+        internal string PropagatedTags { get; set; }
 
         /// <summary>
         /// Gets the trace context.
@@ -302,7 +302,7 @@ namespace Datadog.Trace
                     return true;
 
                 case Keys.DatadogTags:
-                    value = DatadogTags;
+                    value = PropagatedTags;
                     return true;
 
                 default:

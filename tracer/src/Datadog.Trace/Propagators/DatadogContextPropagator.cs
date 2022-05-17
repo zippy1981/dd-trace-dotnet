@@ -46,7 +46,7 @@ namespace Datadog.Trace.Propagators
 
             if (propagatedTraceTags != null)
             {
-                carrierSetter.Set(carrier, HttpHeaderNames.DatadogTags, propagatedTraceTags);
+                carrierSetter.Set(carrier, HttpHeaderNames.PropagatedTags, propagatedTraceTags);
             }
         }
 
@@ -65,7 +65,7 @@ namespace Datadog.Trace.Propagators
             var parentId = ParseUtility.ParseUInt64(carrier, carrierGetter, HttpHeaderNames.ParentId) ?? 0;
             var samplingPriority = ParseUtility.ParseInt32(carrier, carrierGetter, HttpHeaderNames.SamplingPriority);
             var origin = ParseUtility.ParseString(carrier, carrierGetter, HttpHeaderNames.Origin);
-            var propagatedTraceTags = ParseUtility.ParseString(carrier, carrierGetter, HttpHeaderNames.DatadogTags);
+            var propagatedTraceTags = ParseUtility.ParseString(carrier, carrierGetter, HttpHeaderNames.PropagatedTags);
 
             spanContext = new SpanContext(traceId, parentId, samplingPriority, serviceName: null, origin)
                           {
