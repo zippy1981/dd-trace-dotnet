@@ -180,7 +180,7 @@ public class TraceTagsCollectionTests
     [MemberData(nameof(ParseData))]
     public void ParseFromPropagationHeader(string header, KeyValuePair<string, string>[] expectedPairs)
     {
-        var tags = TraceTagCollection.ParseFromPropagationHeader(header);
+        var tags = TraceTagCollection.ParseHeader(header);
         tags.ToEnumerable().Should().BeEquivalentTo(expectedPairs);
     }
 
@@ -244,7 +244,7 @@ public class TraceTagsCollectionTests
         var header = "_dd.p.key1=value1";
 
         // should cache original header
-        var tags = TraceTagCollection.ParseFromPropagationHeader(header);
+        var tags = TraceTagCollection.ParseHeader(header);
         var cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().BeSameAs(header);
 
@@ -271,7 +271,7 @@ public class TraceTagsCollectionTests
         var header = "key1=value1";
 
         // should not cache original header
-        var tags = TraceTagCollection.ParseFromPropagationHeader(header);
+        var tags = TraceTagCollection.ParseHeader(header);
         var cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().NotBeSameAs(header);
     }
