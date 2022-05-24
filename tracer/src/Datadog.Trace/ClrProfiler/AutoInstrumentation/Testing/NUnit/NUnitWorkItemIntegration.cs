@@ -41,7 +41,11 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
             // ***
             // TODO: This is the way to skip tests on NUNIT
             // ***
-            // instance.MarkNotRunnable("Skip test");
+            // if (instance.Result.Test?.Method?.MethodInfo is not null)
+            // {
+            //    instance.Test.RunState = RunState.Ignored;
+            //    instance.Test.Properties.Set("_SKIPREASON", "Ignored by ITR");
+            // }
 
             return CallTargetState.GetDefault();
         }

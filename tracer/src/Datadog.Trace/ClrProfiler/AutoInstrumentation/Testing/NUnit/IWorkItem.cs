@@ -11,14 +11,13 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
     internal interface IWorkItem
     {
         /// <summary>
+        /// Gets the test being executed by the work item
+        /// </summary>
+        ITest Test { get; }
+
+        /// <summary>
         /// Gets the test result
         /// </summary>
         ITestResult Result { get; }
-
-        /// <summary>
-        /// Marks the WorkItem as NotRunnable.
-        /// </summary>
-        /// <param name="reason">Reason for test being NotRunnable.</param>
-        void MarkNotRunnable(string reason);
     }
 }

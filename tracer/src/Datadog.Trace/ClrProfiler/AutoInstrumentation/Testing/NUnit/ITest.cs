@@ -35,5 +35,10 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
         /// Gets the properties for this test
         /// </summary>
         IPropertyBag Properties { get; }
+
+        /// <summary>
+        /// Gets or sets whether or not the test should be run
+        /// </summary>
+        public RunState RunState { get; set; }
     }
 }
