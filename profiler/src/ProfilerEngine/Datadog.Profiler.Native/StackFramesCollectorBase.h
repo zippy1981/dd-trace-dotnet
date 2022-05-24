@@ -15,12 +15,9 @@ class StackFramesCollectorBase
 protected:
     StackFramesCollectorBase();
 
-    bool TryAddFrame(StackFrameCodeKind codeKind,
-                     FunctionID clrFunctionId,
-                     UINT_PTR nativeInstructionPointer,
-                     std::uint64_t moduleHandle);
-
     bool TryApplyTraceContextDataFromCurrentCollectionThreadToSnapshot(void);
+    bool AddFrame(std::uintptr_t ip);
+    void AddFakeFrame();
 
     StackSnapshotResultBuffer* GetStackSnapshotResult(void);
     bool IsCurrentCollectionAbortRequested();
@@ -32,7 +29,7 @@ protected:
     virtual void PrepareForNextCollectionImplementation(void);
     virtual bool SuspendTargetThreadImplementation(ManagedThreadInfo* pThreadInfo, bool* pIsTargetThreadSuspended);
     virtual void ResumeTargetThreadIfRequiredImplementation(ManagedThreadInfo* pThreadInfo, bool isTargetThreadSuspended, uint32_t* pErrorCodeHR);
-    virtual StackSnapshotResultBuffer* CollectStackSampleImplementation(ManagedThreadInfo* pThreadInfo, uint32_t* pHR);
+    virtual StackSnapshotResultBuffer* CollectStackSampleImplementation(ManagedThreadInfo* pThreadInfo, uint32_t* pHR, bool selfCollect);
 
 public:
     virtual ~StackFramesCollectorBase();

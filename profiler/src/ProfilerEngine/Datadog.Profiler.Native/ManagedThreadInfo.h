@@ -9,7 +9,6 @@
 #include "corprof.h"
 
 #include "RefCountingObject.h"
-#include "ResolvedSymbolsCache.h"
 #include "Semaphore.h"
 #include "shared/src/native-src/string.h"
 
@@ -28,12 +27,12 @@ public:
 struct ManagedThreadInfo : public RefCountingObject
 {
 private:
-    ManagedThreadInfo(ThreadID clrThreadId, DWORD osThreadId, HANDLE osThreadHandle, shared::WSTRING* pThreadName);
+    ManagedThreadInfo(ThreadID clrThreadId, DWORD osThreadId, HANDLE osThreadHandle, shared::WSTRING pThreadName);
     static std::uint32_t GenerateProfilerThreadInfoId(void);
 
 public:
     explicit ManagedThreadInfo(ThreadID clrThreadId);
-    ~ManagedThreadInfo() override;
+    ~ManagedThreadInfo() override = default;
 
     inline std::uint32_t GetProfilerThreadInfoId(void) const;
 
@@ -44,10 +43,12 @@ public:
     inline void SetOsInfo(DWORD osThreadId, HANDLE osThreadHandle);
 
     inline const shared::WSTRING& GetThreadName(void) const;
-    inline void SetThreadName(shared::WSTRING* pThreadName);
+    inline void SetThreadName(shared::WSTRING pThreadName);
 
     inline std::uint64_t GetLastSampleHighPrecisionTimestampNanoseconds(void) const;
     inline std::uint64_t SetLastSampleHighPrecisionTimestampNanoseconds(std::uint64_t value);
+    inline std::uint64_t GetCpuConsumptionMilliseconds(void) const;
+    inline std::uint64_t SetCpuConsumptionMilliseconds(std::uint64_t value);
 
     inline void GetLastKnownSampleUnixTimestamp(std::uint64_t* realUnixTimeUtc, std::int64_t* highPrecisionNanosecsAtLastUnixTimeUpdate) const;
     inline void SetLastKnownSampleUnixTimestamp(std::uint64_t realUnixTimeUtc, std::int64_t highPrecisionNanosecsAtThisUnixTimeUpdate);
@@ -83,9 +84,10 @@ private:
     ThreadID _clrThreadId;
     DWORD _osThreadId;
     HANDLE _osThreadHandle;
-    shared::WSTRING* _pThreadName;
+    shared::WSTRING _pThreadName;
 
     std::uint64_t _lastSampleHighPrecisionTimestampNanoseconds;
+    std::uint64_t _cpuConsumptionMilliseconds;
     std::uint64_t _lastKnownSampleUnixTimeUtc;
     std::int64_t _highPrecisionNanosecsAtLastUnixTimeUpdate;
 
@@ -131,23 +133,12 @@ inline void ManagedThreadInfo::SetOsInfo(DWORD osThreadId, HANDLE osThreadHandle
 
 inline const shared::WSTRING& ManagedThreadInfo::GetThreadName(void) const
 {
-    return *_pThreadName;
+    return _pThreadName;
 }
 
-inline void ManagedThreadInfo::SetThreadName(shared::WSTRING* pThreadName)
+inline void ManagedThreadInfo::SetThreadName(shared::WSTRING pThreadName)
 {
-    if (pThreadName == nullptr)
-    {
-        pThreadName = const_cast<shared::WSTRING*>(&ResolvedSymbolsCache::UnknownThreadName);
-    }
-
-    shared::WSTRING* prevPThreadName = _pThreadName;
-    _pThreadName = pThreadName;
-
-    if (prevPThreadName != nullptr && !ResolvedSymbolsCache::IsSharedStaticConstant(prevPThreadName))
-    {
-        delete prevPThreadName;
-    }
+    _pThreadName = std::move(pThreadName);
 }
 
 inline std::uint64_t ManagedThreadInfo::GetLastSampleHighPrecisionTimestampNanoseconds(void) const
@@ -159,6 +150,18 @@ inline std::uint64_t ManagedThreadInfo::SetLastSampleHighPrecisionTimestampNanos
 {
     std::uint64_t prevValue = _lastSampleHighPrecisionTimestampNanoseconds;
     _lastSampleHighPrecisionTimestampNanoseconds = value;
+    return prevValue;
+}
+
+inline std::uint64_t ManagedThreadInfo::GetCpuConsumptionMilliseconds(void) const
+{
+    return _cpuConsumptionMilliseconds;
+}
+
+inline std::uint64_t ManagedThreadInfo::SetCpuConsumptionMilliseconds(std::uint64_t value)
+{
+    std::uint64_t prevValue = _cpuConsumptionMilliseconds;
+    _cpuConsumptionMilliseconds = value;
     return prevValue;
 }
 

@@ -50,10 +50,8 @@ partial class Build : NukeBuild
     readonly AbsolutePath DDTracerHome;
     [Parameter("The location to place NuGet packages and other packages. Default is ./bin/artifacts ")]
     readonly AbsolutePath Artifacts;
-    [Parameter("An optional suffix for the beta profiler-tracer MSI. Default is '' ")]
-    readonly string BetaMsiSuffix = string.Empty;
 
-    [Parameter("The location to the find the profiler build artifacts. Default is ./profiler/_build/DDProf-Deploy")]
+    [Parameter("The location to the find the profiler build artifacts. Default is ./shared/bin/monitoring-home/continousprofiler")]
     readonly AbsolutePath ProfilerHome;
 
     [Parameter("The location to restore Nuget packages (optional) ")]
@@ -62,11 +60,17 @@ partial class Build : NukeBuild
     [Parameter("Is the build running on Alpine linux? Default is 'false'")]
     readonly bool IsAlpine = false;
 
-    [Parameter("The build version. Default is latest")]
-    readonly string Version = "2.7.0";
+    [Parameter("The current version of the source and build")]
+    readonly string Version = "2.10.0";
 
-    [Parameter("Whether the build version is a prerelease(for packaging purposes). Default is latest")]
+    [Parameter("Whether the current build version is a prerelease(for packaging purposes)")]
     readonly bool IsPrerelease = false;
+
+    [Parameter("The new build version to set")]
+    readonly string NewVersion;
+
+    [Parameter("Whether the new build version is a prerelease(for packaging purposes)")]
+    readonly bool? NewIsPrerelease;
 
     [Parameter("Prints the available drive space before executing each target. Defaults to false")]
     readonly bool PrintDriveSpace = false;
@@ -82,6 +86,9 @@ partial class Build : NukeBuild
 
     [Parameter("The directory to install the tool to")]
     readonly AbsolutePath ToolDestination;
+    
+    [Parameter("Should we build and run tests that require docker. true = only docker integration tests, false = no docker integration tests, null = all", List = false)]
+    readonly bool? IncludeTestsRequiringDocker;
 
     Target Info => _ => _
         .Description("Describes the current configuration")
@@ -123,6 +130,8 @@ partial class Build : NukeBuild
             EnsureCleanDirectory(ExplorationTestsDirectory);
             DeleteFile(WindowsTracerHomeZip);
 
+            EnsureCleanDirectory(ProfilerOutputDirectory);
+
             void DeleteReparsePoints(string path)
             {
                 new DirectoryInfo(path)
@@ -157,7 +166,8 @@ partial class Build : NukeBuild
         .Description("Builds the Profiler native and managed src, and publishes the profiler home directory")
         .After(Clean)
         .DependsOn(CompileProfilerManagedSrc)
-        .DependsOn(CompileProfilerNativeSrc);
+        .DependsOn(CompileProfilerNativeSrc)
+        .DependsOn(PublishProfiler);
 
     Target BuildNativeLoader => _ => _
         .Description("Builds the Native Loader, and publishes to the monitoring home directory")
@@ -166,21 +176,16 @@ partial class Build : NukeBuild
         .DependsOn(PublishNativeLoader);
 
     Target PackageTracerHome => _ => _
-        .Description("Packages the already built src")
-        .After(Clean, BuildTracerHome)
+        .Description("Builds NuGet packages, MSIs, and zip files, from already built source")
+        .After(Clean, BuildTracerHome, BuildProfilerHome, BuildNativeLoader)
         .DependsOn(CreateRequiredDirectories)
-        .DependsOn(ZipTracerHome)
+        .DependsOn(ZipMonitoringHome)
         .DependsOn(BuildMsi)
         .DependsOn(PackNuGet);
 
-    Target PackageMonitoringHomeBeta => _ => _
-        .Description("Packages the already built src")
-        .After(Clean, BuildTracerHome, BuildProfilerHome, BuildNativeLoader)
-        .DependsOn(BuildMsi);
-
     Target BuildAndRunManagedUnitTests => _ => _
         .Description("Builds the managed unit tests and runs them")
-        .After(Clean, BuildTracerHome)
+        .After(Clean, BuildTracerHome, BuildProfilerHome)
         .DependsOn(CreateRequiredDirectories)
         .DependsOn(BuildRunnerTool)
         .DependsOn(CompileManagedUnitTests)
@@ -188,7 +193,7 @@ partial class Build : NukeBuild
 
     Target BuildAndRunNativeUnitTests => _ => _
         .Description("Builds the native unit tests and runs them")
-        .After(Clean, BuildTracerHome)
+        .After(Clean, BuildTracerHome, BuildProfilerHome)
         .DependsOn(CreateRequiredDirectories)
         .DependsOn(CompileNativeTests)
         .DependsOn(RunNativeTests);
@@ -200,11 +205,21 @@ partial class Build : NukeBuild
         .DependsOn(CompileDependencyLibs)
         .DependsOn(CompileManagedTestHelpers)
         .DependsOn(CreatePlatformlessSymlinks)
-        .DependsOn(CompileSamples)
-        .DependsOn(PublishIisSamples)
+        .DependsOn(CompileSamplesWindows)
         .DependsOn(CompileIntegrationTests)
         .DependsOn(BuildNativeLoader)
         .DependsOn(BuildRunnerTool);
+
+    Target BuildAspNetIntegrationTests => _ => _
+        .Unlisted()
+        .Requires(() => IsWin)
+        .Description("Builds the ASP.NET integration tests for Windows")
+        .DependsOn(CompileDependencyLibs)
+        .DependsOn(CompileManagedTestHelpers)
+        .DependsOn(CreatePlatformlessSymlinks)
+        .DependsOn(PublishIisSamples)
+        .DependsOn(CompileIntegrationTests)
+        .DependsOn(BuildNativeLoader);
 
     Target BuildWindowsRegressionTests => _ => _
         .Unlisted()
@@ -230,12 +245,6 @@ partial class Build : NukeBuild
         .DependsOn(BuildWindowsRegressionTests)
         .DependsOn(RunWindowsRegressionTests);
 
-    Target BuildAndRunWindowsIisIntegrationTests => _ => _
-        .Requires(() => IsWin)
-        .Description("Builds and runs the Windows IIS integration tests")
-        .DependsOn(BuildWindowsIntegrationTests)
-        .DependsOn(RunWindowsIisIntegrationTests);
-
     Target BuildLinuxIntegrationTests => _ => _
         .Requires(() => !IsWin)
         .Description("Builds the linux integration tests")
@@ -245,7 +254,6 @@ partial class Build : NukeBuild
         .DependsOn(CompileSamplesLinux)
         .DependsOn(CompileMultiApiPackageVersionSamples)
         .DependsOn(CompileLinuxIntegrationTests)
-        .DependsOn(BuildNativeLoader)
         .DependsOn(BuildRunnerTool);
 
     Target BuildAndRunLinuxIntegrationTests => _ => _

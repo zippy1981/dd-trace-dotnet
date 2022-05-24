@@ -1,5 +1,198 @@
 # Datadog .NET Tracer (`dd-trace-dotnet`) Release Notes
 
+
+
+
+## [Release 2.9.0](https://github.com/DataDog/dd-trace-dotnet/releases/tag/v2.9.0)
+
+## Summary
+
+This version mainly contains Tracer bug fixes:
+- Avoid a Stackoverflow exception in the context of ci-app or Azure functions when using different versions of the Tracer for automatic and custom instrumentation
+- Fix the order of precedence of the parameters to connect to the Trace agent.
+
+
+## Changes
+
+### Tracer
+* [Tracer] Fix precedence in ExporterSettings (#2737)
+* Call get_Instance instead of GetDistributedTracer in case of version mismatch (#2767)
+* Don't check agent connectivity when tracing is disabled (#2772)
+* Fix number of spans in telemetry tests (#2786)
+* Throw `ArgumentNullException` when trying to set `Tracer.Instance` to `null` (#2437)
+* Instrument custom methods using New Relic attributes (#2780)
+
+### CI App
+* [CiApp] - Avoid setting env:none if not environment variable has been set (#2783)
+
+### ASM
+* [ASM] Little waf metrics changes (#2745)
+
+### Continuous Profiler
+* [Profiler] Remove classes/files part of the old pipeline (#2750)
+* [Profiler] build profiler linux in AzDo (#2761)
+* [Profiler] Rename `pid` tag into `process id` (#2789)
+* [Profiler] Rename tests apps with "Samples." prefix instead of "Datadog.Demos." (#2788)
+
+### Serverless
+* Convert AWS lambda tests to using snapshots (#2681)
+
+### Fixes
+* Delete obsolete AutomapperTest sample (#2771)
+
+### Build / Test
+* [Release] Trigger AAS release automatically (#2721)
+* Stop building 1.x branch daily (#2732)
+* Monitor the pipeline from a final stage (#2746)
+* [Build] Don't build twice docker image in ITests (#2760)
+* Split benchmarks between 6 different agents (#2763)
+* Fix all sample package versions and `UpdateVersion` task (#2766)
+* Remove timeouts from .NET install and add default timeout (#2768)
+* Write integration test logs directly to `build_data` directory (#2773)
+* Refactor Windows Integration tests (#2779)
+* Use the same .NET SDK version in GitHub Actions as we do in Azure Devops (#2781)
+* Improve git checkout to handle rebases on Benchmark VMs (#2782)
+* Run `git clean -ffdx` in checkout code (#2785)
+* Add missing GraphQL 5 tests (#2757)
+
+### Miscellaneous
+* [All] - Refactor ITags/TagsList tracer implementation (#2753)
+* Minor UDS support updates (#2787)
+* Remove dependency to libuuid (#2792)
+* [Test Package Versions Bump] Updating package versions (#2795)
+
+
+[Changes since 2.8.0](https://github.com/DataDog/dd-trace-dotnet/compare/v2.8.0...v2.9.0)
+
+## [Release 2.8.0](https://github.com/DataDog/dd-trace-dotnet/releases/tag/v2.8.0)
+
+## Summary
+
+This version mainly:
+* Solves a use case where the tracer would hang on startup, on CentOs.
+* Runtime Metrics now matches traces for service names that were normalized by the Tracer.
+* Changes the default resource name when using `[Trace]` attributes
+* The profiler now reports the same service name, environment and version as the Tracer (even when configuring the Tracer by code)
+
+## Changes
+
+### Tracer
+* Activity Compatibility Layer (#2446)
+* Use native `HttpClient` for UDS in .NET 6 (#2665)
+* Add more Debug logs in the tracer loader. (#2673)
+* Refactor base endpoint calculations (#2688)
+* Read profiler application info from tracer (#2699)
+* [dnlib] Enable THREAD_SAFE preprocessor constant (#2718)
+* Update default resource name for TraceAnnotationsIntegration (#2720)
+* Improve profiler logging in the tracer (#2733)
+* [DuckTyping] Two pass check to avoid creation of invalid types in memory. (#2716)
+* Return `CORPROF_E_PROFILER_CANCEL_ACTIVATION` if Tracing is Disabled (#2685)
+* Normalize DogStatsD client service name with Trace Agent logic (#2719)
+* Add support for GraphQL 5.x (#2632)
+* Fix hang on Centos and Improve installer smoke tests (#2726)
+
+### AppSec
+* [AppSec] Unhandled exception bug (#2698)
+* [AppSec] Monitor path params for asp.net core 3.0 routing endpoints, webforms and webapi (#2715)
+* [Appsec] Remove unused data model files (#2722)
+
+### Continuous Profiler
+* [Profiler] CPU profiling implementation (#2645)
+* [Profiler] Add Undefined-Behavior sanitizer on the profiler (#2690)
+* [Profiler] Fix duration computation in CPU time profiler (#2738)
+* [Profiler] Allow Stack collector to collect callstack of the current thread (#2740)
+* [Profiler] Rework the linux stack frames collectors (#2747)
+
+### Miscellaneous
+
+* [ALL] Add overload to create std::string from WCHAR* (+ size) (#2744)
+
+### Build / Test
+* Allows our pipeline to be monitored (#2704)
+* Convert GraphQL tests to snapshot tests (#2707)
+* Try building samples in parallel (#2709)
+* [Tests] Remove Datadog.Trace references from samples (#2710)
+* Add additional entry to version bump files (#2714)
+* Add tests for extension methods with DD_TRACE_METHODS (#2717)
+* If we kill the process in our GraphQL tests on Linux, raise a `SkipException` (#2727)
+* [Pipeline Monitoring] Works better with an agent (#2728)
+* Consolidate custom frameworks (#2729)
+* Delete Samples.MultiDomainHost test application and its dependencies (#2731)
+* Use ARM64 AWS auto scale group (#2734)
+* Don't wait forever for a hanging sample to end (#2735)
+* Rework RabbitMQ sample to try avoid race condition (#2736)
+* Refactor Windows Build and clean Beta Msi related code (#2742)
+* Use a separate agent pool for running status updates (#2749)
+* [Build] Add timeout to dotnet installs (#2752)
+* Try using local git configuration instead of global (#2755)
+
+[Changes since 2.7.0](https://github.com/DataDog/dd-trace-dotnet/compare/v2.7.0...v2.8.0)
+
+
+## [Release 2.7.0](https://github.com/DataDog/dd-trace-dotnet/releases/tag/v2.7.0)
+
+## Summary
+
+This version includes:
+-  Support for automatic custom tracing using `[Trace]` attributes, using [Datadog.Trace.Annotations](https://www.nuget.org/packages/Datadog.Trace.Annotations)
+- API for easier correlation with distributed tracing
+- [Profiler] The Code Hotspot feature is now available: You can now see profiles associated to your traces
+- [AppSec] New API for setting the user associated with a trace
+
+
+## Changes
+
+### Tracer
+* Add net6.0 target (#2405, #2658)
+* [Tracer] Add API to extract SpanContext (#2694)
+* If DirectLogSubmission is enabled, enable Logs Injection by default (#2697)
+* Adds Tracer Side SQL Query Obfuscator (#2498)
+* Automatically instrument methods decorated with `[Trace]` (`Datadog.Trace.Annotations.TraceAttribute`) (#2606)
+* Add wildcard support to DD_TRACE_METHODS (#2628)
+* Update Aerospike integration to support 5.0.0 (#2639)
+
+### AppSec
+* [AppSec] Api to allow user data to be associated with the local root span (#2546, #2682, #2706)
+* [AppSec] Update waf and ruleset 1.3.0 (#2638)
+* [Appsec] Call waf only once, add path params address (#2676)
+* Activate and expose the WAF's obfuscator (#2696)
+* [AppSec] Move AppSec config keys to their own file (#2700)
+
+### Continuous Profiler
+* [Profiler] Use shared runtime id in the profiler (#2635)
+* [Profiler] Stop building the profiler outside of the repository folder (#2651)
+* [Profiler] Use libddprof-based pipeline by default + cache value (#2659)
+* [Profiler] Enable CodeHotspot feature by default when the profiler is enabled (#2660)
+* [Profiler] Add beta revision in the profiler version (#2664)
+* [Profiler] Fix Code Hotspots tests (#2669)
+* [Profiler] Do not compute a default output path for pprof files (#2671)
+* [Profiler] Make local testing easier (#2680)
+* [Profiler] Add new job: Address sanitizer on Linux (#2687)
+* [Profiler] Do not export empty profiles (#2701)
+* [Profiler] Bump profiler beta version (#2702)
+* [Profiler] Add the profiler deployment script to the bumping process (#2705)
+
+### Serverless
+* [Serverless] Send the lambda invocation context to our extension (#2656)
+
+### Build / Test
+* CLI - Display the version of the profiler and tracer (#2594)
+* Ensure we test a consistent commit for PRs (#2649)
+* Update GraphQL tests to take a memory dump when not shutting down (#2655)
+* Add simplistic labeller (#2662, #2674, #2683)
+* Fix build in gitlab (#2666, #2678)
+* Add retries to more flaky steps (#2679)
+* Fix "MakeGrpcToolsExecutable" when NugetPackageDirectory is not provided (#2689)
+* Make running integration tests on OSx great again (#2708)
+
+### Miscellaneous
+* Disable warnings in vendored code (#2672)
+* Remove remaining references to nlohmann.json NuGet package (#2691)
+* Move `loading dynamic library` mechanism to shared code (#2624)
+
+[Changes since 2.6.0](https://github.com/DataDog/dd-trace-dotnet/compare/v2.6.0...v2.7.0)
+
+
 ## [Release 2.6.0](https://github.com/DataDog/dd-trace-dotnet/releases/tag/v2.6.0)
 
 ## Summary

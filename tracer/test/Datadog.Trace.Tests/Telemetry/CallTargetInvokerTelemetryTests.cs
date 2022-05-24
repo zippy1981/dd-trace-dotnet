@@ -12,6 +12,7 @@ using Datadog.Trace.AppSec;
 using Datadog.Trace.ClrProfiler.AutoInstrumentation.Http.HttpClient.HttpClientHandler;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.Configuration;
+using Datadog.Trace.ContinuousProfiler;
 using Datadog.Trace.DuckTyping;
 using Datadog.Trace.PlatformHelpers;
 using Datadog.Trace.Sampling;
@@ -78,7 +79,16 @@ namespace Datadog.Trace.Tests.Telemetry
             telemetry.ErrorInvocations.Should().BeEmpty();
 
             // Either of these should work, but we can't test both, as we only record the first exception for now
-            var exception = new DuckTypeException("A DuckTypeException occured");
+            Exception exception = null;
+            try
+            {
+                DuckTypeException.Throw("A DuckTypeException occured");
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+
             // var exception = new CallTargetInvokerException(new Exception("A CallTargetInvokerException occurred"));
 
             CallTargetInvoker.LogException<HttpClientHandlerIntegration, HttpClientHandler>(exception);
@@ -114,6 +124,10 @@ namespace Datadog.Trace.Tests.Telemetry
             }
 
             public void RecordSecuritySettings(SecuritySettings settings)
+            {
+            }
+
+            public void RecordProfilerSettings(Profiler profiler)
             {
             }
 

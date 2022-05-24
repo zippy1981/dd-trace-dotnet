@@ -65,7 +65,8 @@ partial class Build : NukeBuild
                 var targetFrameworks = TargetFramework.GetFrameworks(except: new[] { TargetFramework.NETSTANDARD2_0 });
 
                 GenerateIntegrationTestsWindowsMatrix(targetFrameworks);
-                GenerateIntegrationTestsWindowsIISMatrix(targetFrameworks);
+                GenerateIntegrationTestsWindowsIISMatrix(TargetFramework.NET461);
+                GenerateIntegrationTestsWindowsMsiMatrix(TargetFramework.NET461);
             }
 
             void GenerateIntegrationTestsWindowsMatrix(TargetFramework[] targetFrameworks)
@@ -86,7 +87,7 @@ partial class Build : NukeBuild
                 AzurePipelines.Instance.SetVariable("integration_tests_windows_matrix", JsonConvert.SerializeObject(matrix, Formatting.None));
             }
 
-            void GenerateIntegrationTestsWindowsIISMatrix(TargetFramework[] targetFrameworks)
+            void GenerateIntegrationTestsWindowsIISMatrix(params TargetFramework[] targetFrameworks)
             {
                 var targetPlatforms = new[] { "x86", "x64" };
 
@@ -103,6 +104,25 @@ partial class Build : NukeBuild
                 Logger.Info($"Integration test windows IIS matrix");
                 Logger.Info(JsonConvert.SerializeObject(matrix, Formatting.Indented));
                 AzurePipelines.Instance.SetVariable("integration_tests_windows_iis_matrix", JsonConvert.SerializeObject(matrix, Formatting.None));
+            }
+
+            void GenerateIntegrationTestsWindowsMsiMatrix(params TargetFramework[] targetFrameworks)
+            {
+                var targetPlatforms = new[] { "x86", "x64" };
+
+                var matrix = new Dictionary<string, object>();
+                foreach (var framework in targetFrameworks)
+                {
+                    foreach (var targetPlatform in targetPlatforms)
+                    {
+                        var enable32bit = targetPlatform == "x86";
+                        matrix.Add($"{targetPlatform}_{framework}", new { framework = framework, targetPlatform = targetPlatform, enable32bit = enable32bit });
+                    }
+                }
+
+                Logger.Info($"Integration test windows MSI matrix");
+                Logger.Info(JsonConvert.SerializeObject(matrix, Formatting.Indented));
+                AzurePipelines.Instance.SetVariable("integration_tests_windows_msi_matrix", JsonConvert.SerializeObject(matrix, Formatting.None));
             }
 
             void GenerateIntegrationTestsLinuxMatrix()
@@ -214,6 +234,7 @@ partial class Build : NukeBuild
 
                     AddToMatrix(
                         matrix,
+                        "debian",
                         new (string publishFramework, string runtimeTag)[]
                         {
                             (publishFramework: TargetFramework.NET6_0, "6.0-bullseye-slim"),
@@ -233,6 +254,7 @@ partial class Build : NukeBuild
 
                     AddToMatrix(
                         matrix,
+                        "fedora",
                         new (string publishFramework, string runtimeTag)[]
                         {
                             (publishFramework: TargetFramework.NET6_0, "34-6.0"),
@@ -252,6 +274,7 @@ partial class Build : NukeBuild
 
                     AddToMatrix(
                         matrix,
+                        "alpine",
                         new (string publishFramework, string runtimeTag)[]
                         {
                             (publishFramework: TargetFramework.NET6_0, "6.0-alpine3.14"),
@@ -266,6 +289,65 @@ partial class Build : NukeBuild
                         dockerName: "mcr.microsoft.com/dotnet/aspnet"
                     );
 
+                    AddToMatrix(
+                        matrix,
+                        "centos",
+                        new (string publishFramework, string runtimeTag)[]
+                        {
+                            (publishFramework: TargetFramework.NET6_0, "7-6.0"),
+                            (publishFramework: TargetFramework.NET5_0, "7-5.0"),
+                            (publishFramework: TargetFramework.NETCOREAPP3_1, "7-3.1"),
+                            (publishFramework: TargetFramework.NETCOREAPP2_1, "7-2.1"),
+                        },
+                        installCmd: "rpm -Uvh ./datadog-dotnet-apm*-1.x86_64.rpm",
+                        linuxArtifacts: "linux-packages-debian",
+                        dockerName: "andrewlock/dotnet-centos"
+                    );
+
+                    AddToMatrix(
+                        matrix,
+                        "rhel",
+                        new (string publishFramework, string runtimeTag)[]
+                        {
+                            (publishFramework: TargetFramework.NET6_0, "8-6.0"),
+                            (publishFramework: TargetFramework.NET5_0, "8-5.0"),
+                            (publishFramework: TargetFramework.NETCOREAPP3_1, "8-3.1"),
+                        },
+                        installCmd: "rpm -Uvh ./datadog-dotnet-apm*-1.x86_64.rpm",
+                        linuxArtifacts: "linux-packages-debian",
+                        dockerName: "andrewlock/dotnet-rhel"
+                    );
+
+                    AddToMatrix(
+                        matrix,
+                        "centos-stream",
+                        new (string publishFramework, string runtimeTag)[]
+                        {
+                            (publishFramework: TargetFramework.NET6_0, "9-6.0"),
+                            (publishFramework: TargetFramework.NET6_0, "8-6.0"),
+                            (publishFramework: TargetFramework.NET5_0, "8-5.0"),
+                            (publishFramework: TargetFramework.NETCOREAPP3_1, "8-3.1"),
+                        },
+                        installCmd: "rpm -Uvh ./datadog-dotnet-apm*-1.x86_64.rpm",
+                        linuxArtifacts: "linux-packages-debian",
+                        dockerName: "andrewlock/dotnet-centos-stream"
+                    );
+
+                    AddToMatrix(
+                        matrix,
+                        "opensuse",
+                        new (string publishFramework, string runtimeTag)[]
+                        {
+                            (publishFramework: TargetFramework.NET6_0, "15-6.0"),
+                            (publishFramework: TargetFramework.NET5_0, "15-5.0"),
+                            (publishFramework: TargetFramework.NETCOREAPP3_1, "15-3.1"),
+                            (publishFramework: TargetFramework.NETCOREAPP2_1, "15-2.1"),
+                        },
+                        installCmd: "rpm -Uvh ./datadog-dotnet-apm*-1.x86_64.rpm",
+                        linuxArtifacts: "linux-packages-debian",
+                        dockerName: "andrewlock/dotnet-opensuse"
+                    );
+
                     Logger.Info($"Installer smoke tests matrix");
                     Logger.Info(JsonConvert.SerializeObject(matrix, Formatting.Indented));
                     AzurePipelines.Instance.SetVariable("installer_smoke_tests_matrix", JsonConvert.SerializeObject(matrix, Formatting.None));
@@ -277,6 +359,7 @@ partial class Build : NukeBuild
 
                     AddToMatrix(
                         matrix,
+                        "debian",
                         new (string publishFramework, string runtimeTag)[]
                         {
                             (publishFramework: TargetFramework.NET6_0, "6.0-bullseye-slim"),
@@ -296,6 +379,7 @@ partial class Build : NukeBuild
 
                 void AddToMatrix(
                     Dictionary<string, object> matrix,
+                    string shortName,
                     (string publishFramework, string runtimeTag)[] images,
                     string installCmd,
                     string linuxArtifacts,
@@ -304,7 +388,7 @@ partial class Build : NukeBuild
                 {
                     foreach (var image in images)
                     {
-                        var dockerTag = image.runtimeTag.Replace('.', '_');
+                        var dockerTag = $"{shortName}_{image.runtimeTag.Replace('.', '_')}";
                         matrix.Add(
                             dockerTag,
                             new

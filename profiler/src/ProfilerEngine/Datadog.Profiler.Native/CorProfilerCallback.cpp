@@ -19,6 +19,7 @@
 #include "ApplicationStore.h"
 #include "ClrLifetime.h"
 #include "Configuration.h"
+#include "CpuTimeProvider.h"
 #include "EnvironmentVariables.h"
 #include "FrameStore.h"
 #include "IMetricsSender.h"
@@ -32,10 +33,9 @@
 #include "RuntimeIdStore.h"
 #include "SamplesAggregator.h"
 #include "StackSamplerLoopManager.h"
-#include "StackSnapshotsBufferManager.h"
-#include "SymbolsResolver.h"
 #include "ThreadsCpuManager.h"
 #include "WallTimeProvider.h"
+#include "ExceptionsProvider.h"
 
 #include "shared/src/native-src/environment_variables.h"
 #include "shared/src/native-src/loader.h"
@@ -115,12 +115,26 @@ bool CorProfilerCallback::InitializeServices()
 
     _pManagedThreadList = RegisterService<ManagedThreadList>(_pCorProfilerInfo);
 
-    _pSymbolsResolver = RegisterService<SymbolsResolver>(_pCorProfilerInfo, _pThreadsCpuManager);
-
-    _pStackSnapshotsBufferManager = RegisterService<StackSnapshotsBufferManager>(_pThreadsCpuManager, _pSymbolsResolver);
-
     auto* pRuntimeIdStore = RegisterService<RuntimeIdStore>();
-    auto* pWallTimeProvider = RegisterService<WallTimeProvider>(_pConfiguration.get(), _pFrameStore.get(), _pAppDomainStore.get(), pRuntimeIdStore);
+    _pWallTimeProvider = RegisterService<WallTimeProvider>(_pConfiguration.get(), _pThreadsCpuManager, _pFrameStore.get(), _pAppDomainStore.get(), pRuntimeIdStore);
+
+    if (_pConfiguration->IsCpuProfilingEnabled())
+    {
+        _pCpuTimeProvider = RegisterService<CpuTimeProvider>(_pConfiguration.get(), _pThreadsCpuManager, _pFrameStore.get(), _pAppDomainStore.get(), pRuntimeIdStore);
+    }
+
+    if (_pConfiguration->IsExceptionProfilingEnabled())
+    {
+        _pExceptionsProvider = RegisterService<ExceptionsProvider>(
+            _pCorProfilerInfo,
+            _pManagedThreadList,
+            _pFrameStore.get(),
+            _pConfiguration.get(),
+            _pThreadsCpuManager,
+            _pAppDomainStore.get(),
+            pRuntimeIdStore
+            );
+    }
 
     _pStackSamplerLoopManager = RegisterService<StackSamplerLoopManager>(
         _pCorProfilerInfo,
@@ -128,19 +142,26 @@ bool CorProfilerCallback::InitializeServices()
         _metricsSender,
         _pClrLifetime.get(),
         _pThreadsCpuManager,
-        _pStackSnapshotsBufferManager,
         _pManagedThreadList,
-        _pSymbolsResolver,
-        pWallTimeProvider);
+        _pWallTimeProvider,
+        _pCpuTimeProvider);
 
-    // The different elements of the libddprof pipeline are created.
-    // Note: each provider will be added to the aggregator in the Start() function.
-    if (_pConfiguration->IsFFLibddprofEnabled())
+    _pApplicationStore = RegisterService<ApplicationStore>(_pConfiguration.get());
+
+    // The different elements of the libddprof pipeline are created and linked together
+    // i.e. the exporter is passed to the aggregator and each provider is added to the aggregator.
+    _pExporter = std::make_unique<LibddprofExporter>(_pConfiguration.get(), _pApplicationStore);
+    _pSamplesAggregator = RegisterService<SamplesAggregator>(_pConfiguration.get(), _pThreadsCpuManager, _pExporter.get(), _metricsSender.get());
+    _pSamplesAggregator->Register(_pWallTimeProvider);
+
+    if (_pConfiguration->IsCpuProfilingEnabled())
     {
-        _pApplicationStore = std::make_unique<ApplicationStore>(_pConfiguration.get());
-        _pExporter = std::make_unique<LibddprofExporter>(_pConfiguration.get(), _pApplicationStore.get());
-        auto* pSamplesAggregrator = RegisterService<SamplesAggregator>(_pConfiguration.get(), _pExporter.get(), _metricsSender.get());
-        pSamplesAggregrator->Register(pWallTimeProvider);
+        _pSamplesAggregator->Register(_pCpuTimeProvider);
+    }
+
+    if (_pConfiguration->IsExceptionProfilingEnabled())
+    {
+        _pSamplesAggregator->Register(_pExceptionsProvider);
     }
 
     auto started = StartServices();
@@ -189,10 +210,9 @@ bool CorProfilerCallback::DisposeServices()
     _services.clear();
 
     _pThreadsCpuManager = nullptr;
-    _pStackSnapshotsBufferManager = nullptr;
     _pStackSamplerLoopManager = nullptr;
     _pManagedThreadList = nullptr;
-    _pSymbolsResolver = nullptr;
+    _pApplicationStore = nullptr;
 
     return result;
 }
@@ -601,10 +621,13 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::Initialize(IUnknown* corProfilerI
                                                ManagedAssembliesToLoad_AppDomainNonDefault_ProcIIS);
 
     // Configure which profiler callbacks we want to receive by setting the event mask:
-    const DWORD eventMask =
-        shared::Loader::GetSingletonInstance()->GetLoaderProfilerEventMask() |
-        COR_PRF_MONITOR_THREADS |
-        COR_PRF_ENABLE_STACK_SNAPSHOT;
+    DWORD eventMask =
+        shared::Loader::GetSingletonInstance()->GetLoaderProfilerEventMask() | COR_PRF_MONITOR_THREADS | COR_PRF_ENABLE_STACK_SNAPSHOT;
+
+    if (_pConfiguration->IsExceptionProfilingEnabled())
+    {
+        eventMask |= COR_PRF_MONITOR_EXCEPTIONS;
+    }
 
     hr = _pCorProfilerInfo->SetEventMask(eventMask);
     if (FAILED(hr))
@@ -623,6 +646,26 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::Initialize(IUnknown* corProfilerI
 HRESULT STDMETHODCALLTYPE CorProfilerCallback::Shutdown(void)
 {
     Log::Info("CorProfilerCallback::Shutdown()");
+
+    // A final .pprof should be generated before exiting
+    // All providers should be stopped and flushed before the aggregator
+    // sends the last samples to the exporter
+    _pStackSamplerLoopManager->Stop();
+
+    // Calling Stop on providers transforms the last raw samples
+    _pWallTimeProvider->Stop();
+    if (_pCpuTimeProvider != nullptr)
+    {
+        _pCpuTimeProvider->Stop();
+    }
+    if (_pExceptionsProvider != nullptr)
+    {
+        _pExceptionsProvider->Stop();
+    }
+
+    // It is now time to aggregate the remaining samples and export the last .pprof
+    _pSamplesAggregator->Stop();
+
 
     // dump all threads time
     _pThreadsCpuManager->LogCpuTimes();
@@ -687,12 +730,12 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::ModuleLoadFinished(ModuleID modul
         return S_OK;
     }
 
-    if (_pConfiguration->IsFFLibddprofEnabled())
+    if (_pConfiguration->IsExceptionProfilingEnabled())
     {
-        return S_OK;
+        _pExceptionsProvider->OnModuleLoaded(moduleId);
     }
 
-    return shared::Loader::GetSingletonInstance()->InjectLoaderToModuleInitializer(moduleId);
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CorProfilerCallback::ModuleUnloadStarted(ModuleID moduleId)
@@ -747,18 +790,7 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::JITCompilationFinished(FunctionID
 
 HRESULT STDMETHODCALLTYPE CorProfilerCallback::JITCachedFunctionSearchStarted(FunctionID functionId, BOOL* pbUseCachedFunction)
 {
-    if (false == _isInitialized.load())
-    {
-        // If this CorProfilerCallback has not yet initialized, or if it has already shut down, then this callback is a No-Op.
-        return S_OK;
-    }
-
-    if (_pConfiguration->IsFFLibddprofEnabled())
-    {
-        return S_OK;
-    }
-
-    return shared::Loader::GetSingletonInstance()->HandleJitCachedFunctionSearchStarted(functionId, pbUseCachedFunction);
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CorProfilerCallback::JITCachedFunctionSearchFinished(FunctionID functionId, COR_PRF_JIT_CACHE result)
@@ -857,13 +889,17 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::ThreadNameChanged(ThreadID thread
         return S_OK;
     }
 
-    auto pThreadName = (cchName == 0)
-                           ? new shared::WSTRING()
-                           : new shared::WSTRING(name, cchName);
+    auto threadName = (cchName == 0)
+                           ? shared::WSTRING()
+                           : shared::WSTRING(name, cchName);
 
-    Log::Debug("CorProfilerCallback::ThreadNameChanged(threadId=0x", std::hex, threadId, std::dec, ", name=\"", *pThreadName, "\")");
+    Log::Debug("CorProfilerCallback::ThreadNameChanged(threadId=0x", std::hex, threadId, std::dec, ", name=\"", threadName, "\")");
 
-    _pManagedThreadList->SetThreadName(threadId, pThreadName);
+    DWORD osThreadId = 0;
+    _pCorProfilerInfo->GetThreadInfo(threadId, &osThreadId);
+    _pThreadsCpuManager->Map(osThreadId, threadName.c_str());
+    _pManagedThreadList->SetThreadName(threadId, std::move(threadName));
+
     return S_OK;
 }
 
@@ -979,6 +1015,17 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::RootReferences(ULONG cRootRefs, O
 
 HRESULT STDMETHODCALLTYPE CorProfilerCallback::ExceptionThrown(ObjectID thrownObjectId)
 {
+    if (false == _isInitialized.load())
+    {
+        // If this CorProfilerCallback has not yet initialized, or if it has already shut down, then this callback is a No-Op.
+        return S_OK;
+    }
+
+    if (_pConfiguration->IsExceptionProfilingEnabled())
+    {
+        _pExceptionsProvider->OnExceptionThrown(thrownObjectId);
+    }
+
     return S_OK;
 }
 

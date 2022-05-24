@@ -3,7 +3,9 @@ extern alias OfficialDatadogAlias;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using NewRelic.Api.Agent;
 using CustomTraceAttribute = Datadog.Trace.Annotations.TraceAttribute;
+using NewRelicTraceAttribute = NewRelic.Api.Agent.TraceAttribute;
 using OfficialTraceAttribute = OfficialDatadogAlias::Datadog.Trace.Annotations.TraceAttribute;
 
 namespace Samples.TraceAnnotations
@@ -13,6 +15,7 @@ namespace Samples.TraceAnnotations
         [CustomTrace]
         public static async Task RunTestsAsync()
         {
+            // Invoke instrumented methods for reference type
             var testType = new TestType();
             var testTypeName = testType.Name;
             testType.Name = null;
@@ -28,17 +31,18 @@ namespace Samples.TraceAnnotations
             await testType.ReturnValueTaskMethod("Hello world", 42, Tuple.Create(1, 2));
             await testType.ReturnValueTaskTMethod("Hello world", 42, Tuple.Create(1, 2));
             testType.ReturnGenericMethodAttribute<int, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2));
+            testType.ExtensionMethodForTestType();
             testType.Finalize(0);
 
             // Release the reference to testType
-            testType = null;
-
             // Force a garbage collection, try to invoke finalizer on previous testType object
+            testType = null;
             GC.Collect();
 
             // Delay
             await Task.Delay(500);
 
+            // Invoke instrumented methods for generic reference type
             var testTypeGenericString = new TestTypeGeneric<string>();
             var testTypeGenericStringName = testTypeGenericString.Name;
             testTypeGenericString.Name = null;
@@ -54,17 +58,18 @@ namespace Samples.TraceAnnotations
             await testTypeGenericString.ReturnValueTaskMethod("Hello world", 42, Tuple.Create(1, 2));
             await testTypeGenericString.ReturnValueTaskTMethod("Hello world", 42, Tuple.Create(1, 2));
             testTypeGenericString.ReturnGenericMethodAttribute<string, Tuple<int, int>>("Hello World", 42, Tuple.Create(1, 2));
+            testTypeGenericString.ExtensionMethodForTestTypeGeneric();
             testTypeGenericString.Finalize(0);
 
             // Release the reference to testTypeGenericString
-            testTypeGenericString = null;
-
             // Force a garbage collection, try to invoke finalizer on previous testTypeGenericString object
+            testTypeGenericString = null;
             GC.Collect();
 
             // Delay
             await Task.Delay(500);
 
+            // Invoke instrumented methods for value type
             var testTypeStruct = new TestTypeStruct();
             var testTypeStructName = testTypeStruct.Name;
             testTypeStruct.Name = null;
@@ -80,10 +85,12 @@ namespace Samples.TraceAnnotations
             await testTypeStruct.ReturnValueTaskMethod("Hello world", 42, Tuple.Create(1, 2));
             await testTypeStruct.ReturnValueTaskTMethod("Hello world", 42, Tuple.Create(1, 2));
             testTypeStruct.ReturnGenericMethodAttribute<string, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2));
+            testTypeStruct.ExtensionMethodForTestTypeTypeStruct();
 
-            // Do not try to invoke finalizer for struct as it does not have a finalizer
+            // Delay
             await Task.Delay(500);
 
+            // Invoke instrumented methods for static type
             var testTypeStaticName = TestTypeStatic.Name;
             TestTypeStatic.Name = null;
             TestTypeStatic.VoidMethod("Hello World", 42, Tuple.Create(1, 2));
@@ -98,22 +105,30 @@ namespace Samples.TraceAnnotations
             await TestTypeStatic.ReturnValueTaskTMethod("Hello world", 42, Tuple.Create(1, 2));
             TestTypeStatic.ReturnGenericMethodAttribute<string, int, Tuple<int, int>>(42, 99, Tuple.Create(1, 2));
 
+            // Delay
             await Task.Delay(500);
-            
+
+            // Invoke instrumented methods on framework types
             HttpRequestMessage message = new HttpRequestMessage();
             message.Method = HttpMethod.Get;
 
+            // Delay
             await Task.Delay(500);
 
+            // Invoke instrumented methods only from attributes
             await AttributeOnlyStatic.ReturnTaskTMethod("Hello World", 42, Tuple.Create(1, 2));
-
             await WaitUsingOfficialAttribute();
+            await NewRelicTransactionMethodAsync("Hello World");
+            NewRelicTraceMethod(42);
         }
 
         [OfficialTrace(OperationName = "overridden.attribute", ResourceName = "Program_WaitUsingOfficialAttribute")]
-        private static Task WaitUsingOfficialAttribute()
-        {
-            return Task.Delay(500);
-        }
+        private static Task WaitUsingOfficialAttribute() => Task.Delay(500);
+
+        [Transaction]
+        private static Task NewRelicTransactionMethodAsync(string input) => Task.Delay(500);
+
+        [NewRelicTrace]
+        private static void NewRelicTraceMethod(int input) { }
     }
 }

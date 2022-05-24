@@ -167,6 +167,7 @@ add_library("Datadog.AutoInstrumentation.NativeLoader" SHARED
         dllmain.cpp
         dynamic_dispatcher.cpp
         dynamic_instance.cpp
+        runtimeid_store.cpp
         ${DOTNET_TRACER_REPO_ROOT_PATH}/shared/src/native-src/miniutf.cpp
         ${DOTNET_TRACER_REPO_ROOT_PATH}/shared/src/native-lib/coreclr/src/pal/prebuilt/idl/corprof_i.cpp
         ${DOTNET_TRACER_REPO_ROOT_PATH}/shared/src/native-src/string.cpp
@@ -175,6 +176,8 @@ add_library("Datadog.AutoInstrumentation.NativeLoader" SHARED
         ${DOTNET_TRACER_REPO_ROOT_PATH}/shared/src/native-src/dynamic_com_library.cpp
         ${GENERATED_OBJ_FILES}
         )
+
+target_compile_definitions("Datadog.AutoInstrumentation.NativeLoader" PRIVATE "-D_GLIBCXX_USE_CXX11_ABI=0")
 
 add_dependencies("Datadog.AutoInstrumentation.NativeLoader" "fmt")
 
@@ -197,6 +200,5 @@ if(ISLINUX)
             -static-libgcc
             -static-libstdc++
             -ldl
-            -luuid
             )
 endif()

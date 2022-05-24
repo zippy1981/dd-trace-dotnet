@@ -54,8 +54,7 @@ jobs:
       - name: Build Native Profiler Engine and Tests
         run: |
           CXX=clang++ CC=clang cmake -S profiler -B __build
-          cd __build
-          make
+          cmake --build __build --config Release --parallel
 
       - name: Run Managed Unit tests
         shell: bash
@@ -223,8 +222,7 @@ jobs:
       - name: Build Native Profiler Engine
         run: |
           CXX=clang++ CC=clang cmake -S profiler -B __build -DRUN_ASAN=ON
-          cd __build
-          make
+          cmake --build __build --config Release --parallel
 
       - name: Build sample applications
         run: dotnet build -c Release profiler/src/Demos/Datadog.Demos.sln -p:Platform=x64
@@ -244,23 +242,10 @@ jobs:
         timeout-minutes: 4
         run: |
           source profiler/src/ProfilerEngine/DeployResources/DDProf-SetEnv.sh `pwd`/profiler/_build/DDProf-Deploy &&
-          cd profiler/_build/bin/Release-x64/profiler/src/Demos/Computer01/net5.0 &&
+          cd profiler/_build/bin/Release-x64/profiler/src/Demos/Samples.Computer01/net5.0 &&
           # LD_PRELOAD was previously set in the DDProf-SetEnv.sh script, but ASAN does not work with other
           # library in LD_PRELOAD (segfault)
-          ASAN_OPTIONS="detect_leaks=0" LD_PRELOAD="libasan.so.6" dotnet Datadog.Demos.Computer01.dll --scenario 1 --timeout 120
-        env:
-          DD_INTERNAL_PROFILING_LIBDDPROF_ENABLED: "0"
-
-      - name: Run Computer01 for 2min with the new pipeline
-        timeout-minutes: 4
-        run: |
-          source profiler/src/ProfilerEngine/DeployResources/DDProf-SetEnv.sh `pwd`/profiler/_build/DDProf-Deploy &&
-          cd profiler/_build/bin/Release-x64/profiler/src/Demos/Computer01/net5.0 &&
-          # LD_PRELOAD was previously set in the DDProf-SetEnv.sh script, but ASAN does not work with other
-          # library in LD_PRELOAD (segfault)
-          ASAN_OPTIONS="detect_leaks=0" LD_PRELOAD="libasan.so.6" dotnet Datadog.Demos.Computer01.dll --scenario 1 --timeout 120
-        env:
-          DD_INTERNAL_PROFILING_LIBDDPROF_ENABLED: "1"
+          ASAN_OPTIONS="detect_leaks=0" LD_PRELOAD="libasan.so.6" dotnet Samples.Computer01.dll --scenario 1 --timeout 120
 
       - name: 'Publish Test results, Logs and PProf files'
         uses: actions/upload-artifact@v2
@@ -268,6 +253,62 @@ jobs:
         with:
           if-no-files-found: error
           name: Asan_Tests_result_logs_and_pprofs_files.Linux.Release.x64
+          path: |
+            ${{ env.DD_TESTING_OUPUT_DIR }}
+          retention-days: 1
+
+  build_linux_ubsan:
+    name: Build Linux Profiler UBSAN
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Install libubsan
+        run: sudo apt-get install -y libubsan1
+
+      - name: Clone dd-trace-dotnet repository
+        uses: actions/checkout@v2
+
+      - name: Build Managed Loader
+        run: dotnet build -c Release shared/src/managed-lib/ManagedLoader/Datadog.AutoInstrumentation.ManagedLoader.csproj
+
+      - name: Build Managed Profiler Engine
+        run: dotnet build -c Release profiler/src/ProfilerEngine/Datadog.Profiler.Managed/Datadog.Profiler.Managed.csproj
+
+      - name: Build Native Profiler Engine
+        run: |
+          CXX=clang++ CC=clang cmake -S profiler -B __build -DRUN_UBSAN=ON
+          cmake --build __build --config Release
+
+      - name: Build sample applications
+        run: dotnet build -c Release profiler/src/Demos/Datadog.Demos.sln -p:Platform=x64
+
+      - name: Prepare environment to run the application
+        run: |
+          #
+          # set profiler deployment and test output dir folder path for the test
+          #
+          tests_output_dir="$(realpath .)/test_output"
+          echo "DD_TESTING_OUPUT_DIR=$tests_output_dir" >> $GITHUB_ENV
+          echo "DD_PROFILING_LOG_DIR=$tests_output_dir/logs" >> $GITHUB_ENV
+          echo "DD_PROFILING_OUTPUT_DIR=$tests_output_dir/pprofs" >> $GITHUB_ENV
+          echo "DD_TRACE_DEBUG=1" >> $GITHUB_ENV
+
+      - name: Run Computer01 for 2min
+        timeout-minutes: 4
+        if: '${{ always() }}'
+        run: |
+          source profiler/src/ProfilerEngine/DeployResources/DDProf-SetEnv.sh `pwd`/profiler/_build/DDProf-Deploy &&
+          cd profiler/_build/bin/Release-x64/profiler/src/Demos/Samples.Computer01/net5.0 &&
+          UBSAN_OPTIONS=print_stacktrace=1 LD_PRELOAD="libubsan.so.1:$LD_PRELOAD" dotnet Samples.Computer01.dll --scenario 1 --timeout 120
+
+      - name: 'Publish Test results, Logs and PProf files'
+        uses: actions/upload-artifact@v2
+        if: '${{ always() }}'
+        with:
+          if-no-files-found: error
+          name: Ubsan_Tests_result_logs_and_pprofs_files.Linux.Release.x64
           path: |
             ${{ env.DD_TESTING_OUPUT_DIR }}
           retention-days: 1
@@ -318,7 +359,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '6.0.x'
+          dotnet-version: '6.0.100'
 
       - name: Build Monitoring home
         run: .\tracer\build.cmd BuildTracerHome BuildNativeLoader --build-configuration ${{matrix.configuration}}
@@ -548,7 +589,7 @@ jobs:
         with:
           dotnet-version: |
             3.1.x
-            6.0.x
+            6.0.100
 
       - name: Build Monitoring home
         run: .\tracer\build.cmd BuildTracerHome BuildNativeLoader --build-configuration ${{matrix.configuration}} --target-platform ${{matrix.platform}}
@@ -576,18 +617,8 @@ jobs:
       - name: Run Computer01 for 2min
         shell: cmd
         run: >
-          cd profiler\_build\bin\Release-${{ matrix.platform }}\profiler\src\Demos\Computer01\net45 &&
-          Datadog.Demos.Computer01.exe --scenario 1 --timeout 120
-        env:
-          DD_INTERNAL_PROFILING_LIBDDPROF_ENABLED: "0"
-
-      - name: Run Computer01 for 2min with the new pipeline
-        shell: cmd
-        run: >
-          cd profiler\_build\bin\Release-${{ matrix.platform }}\profiler\src\Demos\Computer01\net45 &&
-          Datadog.Demos.Computer01.exe --scenario 1 --timeout 120
-        env:
-          DD_INTERNAL_PROFILING_LIBDDPROF_ENABLED: "1"
+          cd profiler\_build\bin\Release-${{ matrix.platform }}\profiler\src\Demos\Samples.Computer01\net45 &&
+          Samples.Computer01.exe --scenario 1 --timeout 120
 
       - name: 'Publish Test results, Logs and PProf files'
         uses: actions/upload-artifact@v2
@@ -760,3 +791,47 @@ jobs:
           path: |
             ${{ env.CI_ANALYSIS_RESULTS_FOLDER }}
           retention-days: 7
+
+  throughput_linux:
+    name: Throughput tests Linux
+    runs-on: [self-hosted, throughput, profiler]
+    needs: [build_windows, build_linux_release_x64]
+    steps:
+      - name: Clone dd-trace-dotnet repository
+        uses: actions/checkout@v2
+         
+      - name: Download profiler artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: DDProf-Deploy.Linux.Release.x64
+          path: profiler-home-linux
+          
+      - name: Run throughput tests
+        shell: bash
+        run: |
+          cd profiler/build/crank
+          chmod +x ./run.sh
+          ./run.sh "linux"
+
+  throughput_windows:
+    name: Throughput tests Windows
+    runs-on: [self-hosted, throughput, profiler]
+    needs: [build_windows, build_linux_release_x64]
+    steps:
+      - name: Clone dd-trace-dotnet repository
+        uses: actions/checkout@v2
+
+      - name: Download profiler artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: monitoring-home.Windows.Release
+          path: monitoring-home-windows
+                   
+      - name: Run throughput tests
+        shell: bash
+        run: |
+          cd profiler/build/crank
+          chmod +x ./run.sh
+          ./run.sh "windows"
+          
+    

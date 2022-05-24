@@ -42,10 +42,9 @@ namespace Datadog.Trace.TestHelpers
             _output = output;
             TracerHome = GetTracerHomePath();
 
-            // The Tracer is not currently utilizing the Native Loader in production. It is only being used in the Continuous Profiler beta.
-            // Because of that, we don't test it in the default pipeline.
-            bool useNativeLoader = string.Equals("true", Environment.GetEnvironmentVariable("USE_NATIVE_LOADER"), StringComparison.InvariantCultureIgnoreCase);
-            ProfilerPath = useNativeLoader ? GetNativeLoaderPath() : GetTracerNativeDLLPath();
+            // The Native loader is used only on Windows and Linux x64.
+            // We need to keep this check until all platforms/configurations are supported.
+            ProfilerPath = UseNativeLoader ? GetNativeLoaderPath() : GetTracerNativeDLLPath();
 
             var parts = _targetFramework.FrameworkName.Split(',');
             _runtime = parts[0];
@@ -80,6 +79,8 @@ namespace Datadog.Trace.TestHelpers
         public string TracerHome { get; }
 
         public string FullSampleName => $"{_appNamePrepend}{SampleName}";
+
+        public bool UseNativeLoader => string.Equals("true", Environment.GetEnvironmentVariable("USE_NATIVE_LOADER"), StringComparison.InvariantCultureIgnoreCase);
 
         public static bool IsNet5()
         {
@@ -137,9 +138,9 @@ namespace Datadog.Trace.TestHelpers
             {
                 ("win", "X64")     => "Datadog.AutoInstrumentation.NativeLoader.x64.dll",
                 ("win", "X86")     => "Datadog.AutoInstrumentation.NativeLoader.x86.dll",
-                ("linux", "X64")   => "Datadog.AutoInstrumentation.NativeLoader.so",
+                ("linux", "X64")   => "Datadog.Trace.ClrProfiler.Native.so",
                 ("linux", "Arm64") => "Datadog.AutoInstrumentation.NativeLoader.so",
-                ("osx", _)         => throw new PlatformNotSupportedException("The Native Loader is not yet supported on osx"),
+                ("osx", _)         => "Datadog.AutoInstrumentation.NativeLoader.dylib",
                 _ => throw new PlatformNotSupportedException()
             };
 
@@ -271,7 +272,11 @@ namespace Datadog.Trace.TestHelpers
 
             // set consistent env name (can be overwritten by custom environment variable)
             environmentVariables["DD_ENV"] = "integration_tests";
-            environmentVariables[ConfigurationKeys.Telemetry.Enabled] = "false";
+            environmentVariables[ConfigurationKeys.Telemetry.Enabled] = agent.TelemetryEnabled.ToString();
+            if (agent.TelemetryEnabled)
+            {
+                environmentVariables[ConfigurationKeys.Telemetry.AgentlessEnabled] = "0";
+            }
 
             // Don't attach the profiler to these processes
             environmentVariables["DD_PROFILER_EXCLUDE_PROCESSES"] =
@@ -380,6 +385,9 @@ namespace Datadog.Trace.TestHelpers
                 string filePattern = @"C:\Program Files (x86)\Microsoft Visual Studio\{0}\{1}\Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe";
                 List<Tuple<string, string>> lstTuple = new List<Tuple<string, string>>
                 {
+                    Tuple.Create("2022", "Enterprise"),
+                    Tuple.Create("2022", "Professional"),
+                    Tuple.Create("2022", "Community"),
                     Tuple.Create("2019", "Enterprise"),
                     Tuple.Create("2019", "Professional"),
                     Tuple.Create("2019", "Community"),
@@ -502,15 +510,15 @@ namespace Datadog.Trace.TestHelpers
 
         public void EnableUnixDomainSockets()
         {
-#if NETCOREAPP
+#if NETCOREAPP3_1_OR_GREATER
             TransportType = TestTransports.Uds;
 #else
             // Unsupported
-            throw new NotSupportedException("UDS is not supported in non-netcore applications");
+            throw new NotSupportedException("UDS is not supported in non-netcore applications or < .NET Core 3.1 ");
 #endif
         }
 
-        public MockTracerAgent GetMockAgent(bool useStatsD = false, int? fixedPort = null)
+        public MockTracerAgent GetMockAgent(bool useStatsD = false, int? fixedPort = null, bool useTelemetry = false)
         {
             MockTracerAgent agent = null;
 
@@ -518,30 +526,34 @@ namespace Datadog.Trace.TestHelpers
             // Decide between transports
             if (TransportType == TestTransports.Uds)
             {
+#if NETCOREAPP3_1_OR_GREATER
                 var tracesUdsPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 var metricsUdsPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-                agent = new MockTracerAgent(new UnixDomainSocketConfig(tracesUdsPath, metricsUdsPath) { UseDogstatsD = useStatsD });
+                agent = new MockTracerAgent(new UnixDomainSocketConfig(tracesUdsPath, metricsUdsPath) { UseDogstatsD = useStatsD, UseTelemetry = useTelemetry });
+#else
+            throw new NotSupportedException("UDS is not supported in non-netcore applications or < .NET Core 3.1 ");
+#endif
             }
             else if (TransportType == TestTransports.WindowsNamedPipe)
             {
-                agent = new MockTracerAgent(new WindowsPipesConfig($"trace-{Guid.NewGuid()}", $"metrics-{Guid.NewGuid()}") { UseDogstatsD = useStatsD });
+                agent = new MockTracerAgent(new WindowsPipesConfig($"trace-{Guid.NewGuid()}", $"metrics-{Guid.NewGuid()}") { UseDogstatsD = useStatsD, UseTelemetry = useTelemetry });
             }
             else
             {
                 // Default
                 var agentPort = fixedPort ?? TcpPortProvider.GetOpenPort();
-                agent = new MockTracerAgent(agentPort, useStatsd: useStatsD);
+                agent = new MockTracerAgent(agentPort, useStatsd: useStatsD, useTelemetry: useTelemetry);
             }
 #else
             if (TransportType == TestTransports.WindowsNamedPipe)
             {
-                agent = new MockTracerAgent(new WindowsPipesConfig($"trace-{Guid.NewGuid()}", $"metrics-{Guid.NewGuid()}"));
+                agent = new MockTracerAgent(new WindowsPipesConfig($"trace-{Guid.NewGuid()}", $"metrics-{Guid.NewGuid()}") { UseDogstatsD = useStatsD, UseTelemetry = useTelemetry });
             }
             else
             {
                 // Default
                 var agentPort = fixedPort ?? TcpPortProvider.GetOpenPort();
-                agent = new MockTracerAgent(agentPort, useStatsd: useStatsD);
+                agent = new MockTracerAgent(agentPort, useStatsd: useStatsD, useTelemetry: useTelemetry);
             }
 #endif
 

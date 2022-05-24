@@ -17,12 +17,11 @@
     <IntermediateOutputPath>obj\$(Configuration)\$(Platform)\</IntermediateOutputPath>
     <SuppressPdbOutput>True</SuppressPdbOutput>
     <DefineSolutionProperties>false</DefineSolutionProperties>
-    <OutputName>datadog-dotnet-apm-2.7.0-$(Platform)</OutputName> <!-- -The regex recognizes this line -->
-    <OutputName Condition=" '$(BetaMsiSuffix)' != '' ">$(OutputName)-$(BetaMsiSuffix)</OutputName>
+    <OutputName>datadog-dotnet-apm-2.10.0-$(Platform)</OutputName> <!-- -The regex recognizes this line -->
     <MonitoringHomeDirectory Condition="'$(MonitoringHomeDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\bin\monitoring-home</MonitoringHomeDirectory>
     <TracerHomeDirectory Condition="'$(TracerHomeDirectory)' == ''">$(MSBuildThisFileDirectory)..\bin\windows-tracer-home</TracerHomeDirectory>
     <ProfilerHomeDirectory Condition="'$(ProfilerHomeDirectory)' == ''">$(MSBuildThisFileDirectory)..\bin\DDProf-Deploy</ProfilerHomeDirectory>
-    <DefineConstants>InstallerVersion=2.7.0;MonitoringHomeDirectory=$(MonitoringHomeDirectory);TracerHomeDirectory=$(TracerHomeDirectory);LibDdwafDirectory=$(LibDdwafDirectory);ProfilerHomeDirectory=$(ProfilerHomeDirectory)</DefineConstants>
+    <DefineConstants>InstallerVersion=2.10.0;MonitoringHomeDirectory=$(MonitoringHomeDirectory);TracerHomeDirectory=$(TracerHomeDirectory);LibDdwafDirectory=$(LibDdwafDirectory);ProfilerHomeDirectory=$(ProfilerHomeDirectory)</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DefineConstants>$(DefineConstants);Debug</DefineConstants>
@@ -41,12 +40,6 @@
     <Compile Include="shared\EnvironmentVariables.wxs" />
     <Compile Include="ContinuousProfiler\EnvironmentVariables.wxs" />
     <Compile Include="ContinuousProfiler\Files.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.Net45.GAC.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.Net45.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.Net461.GAC.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.Net461.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.NetStandard20.wxs" />
-    <Compile Include="ContinuousProfiler\Files.Managed.Netcoreapp31.wxs" />
     <Compile Include="Tracer\EnvironmentVariables.wxs" />
     <Compile Include="Tracer\Files.wxs" />
     <Compile Include="Tracer\Files.Managed.Net461.GAC.wxs" />

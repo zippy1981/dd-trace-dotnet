@@ -2,28 +2,45 @@
 # Project definition
 # ******************************************************
 
-project("Datadog.AutoInstrumentation.Profiler.Native.Linux" VERSION 2.7.0)
+project("Datadog.AutoInstrumentation.Profiler.Native.Linux" VERSION 2.10.0)
 
 option(RUN_ASAN "Build with Clang Undefined-Behavior Sanitizer" OFF)
+option(RUN_UBSAN "Build with Clang Undefined-Behavior Sanitizer" OFF)
+
+message(STATUS "Run Clang Address Sanitizer: " ${RUN_ASAN})
+message(STATUS "Run Clang Undefined-Behavior Sanitizer: " ${RUN_UBSAN})
 
 # ******************************************************
 # Compiler options
 # ******************************************************
 
+if(ISLINUX)
+    SET (CMAKE_C_COMPILER   /usr/bin/clang)
+    SET (CMAKE_CXX_COMPILER /usr/bin/clang++)
+endif()
+
 # Sets compiler options
-add_compile_options(-std=c++17 -fPIC -fms-extensions -stdlib=libstdc++)
+add_compile_options(-std=c++17 -fPIC -fms-extensions)
 add_compile_options(-DPAL_STDCPP_COMPAT -DPLATFORM_UNIX -DUNICODE)
 add_compile_options(-Wno-invalid-noreturn -Wno-macro-redefined)
-add_compile_options(-DLINUX -Wno-pragmas)
 
 if (RUN_ASAN)
     add_compile_options(-g -fsanitize=address -fno-omit-frame-pointer)
+endif()
+
+if (RUN_UBSAN)
+    add_compile_options(-fsanitize=undefined -g -fno-omit-frame-pointer -fno-sanitize-recover=all)
+endif()
+
+if(ISLINUX)
+    add_compile_options(-stdlib=libstdc++ -DLINUX -Wno-pragmas)
 endif()
 
 if (BIT64)
     add_compile_options(-DBIT64)
     add_compile_options(-DHOST_64BIT)
 endif()
+
 if (ISAMD64)
     add_compile_options(-DAMD64)
 elseif (ISX86)
@@ -33,6 +50,7 @@ elseif (ISARM64)
 elseif (ISARM)
     add_compile_options(-DARM)
 endif()
+
 
 # ******************************************************
 # Environment detection
@@ -46,7 +64,7 @@ SET(PROFILER_SHARED_LIB_NAME ${PROFILER_BASENAME}.${ARCH_POSTFIX})
 SET(DEPLOY_DIR ${OUTPUT_BUILD_DIR}/DDProf-Deploy)
 
 # Set Managed Loader folder
-SET(MANAGED_LOADER_DIRECTORY ${OUTPUT_BUILD_DIR}/bin/Release-AnyCPU/shared/src/managed-lib/ManagedLoader/netcoreapp2.0/)
+SET(MANAGED_LOADER_DIRECTORY ${OUTPUT_BUILD_DIR}/bin/Release-AnyCPU/shared/src/managed-lib/ManagedLoader/netcoreapp2.0)
 
 
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${DEPLOY_DIR})
@@ -135,6 +153,19 @@ target_include_directories(${PROFILER_STATIC_LIB_NAME}
 )
 
 # Define linker libraries
+
+if (RUN_UBSAN)
+    target_link_libraries(${PROFILER_STATIC_LIB_NAME} -fsanitize=undefined)
+endif()
+
+if (RUN_ASAN)
+    target_link_libraries(${PROFILER_STATIC_LIB_NAME} -fsanitize=address)
+endif()
+
+if (NOT RUN_ASAN AND NOT RUN_UBSAN)
+    target_link_libraries(${PROFILER_STATIC_LIB_NAME} -Wl,--no-undefined)
+endif()
+
 target_link_libraries(${PROFILER_STATIC_LIB_NAME}
     fmt-lib
     libunwind-x86_64-lib
@@ -146,16 +177,9 @@ target_link_libraries(${PROFILER_STATIC_LIB_NAME}
     -pthread
     -llzma
     -ldl
-    -luuid
 )
 
-if (RUN_ASAN)
-    target_link_libraries(${PROFILER_STATIC_LIB_NAME} -fsanitize=address)
-else()
-    target_link_libraries(${PROFILER_STATIC_LIB_NAME} -Wl,--no-undefined)
-endif()
-
-add_dependencies(${PROFILER_STATIC_LIB_NAME} fmt-lib libunwind-x86_64-lib libunwind-lib libddprof-lib)
+add_dependencies(${PROFILER_STATIC_LIB_NAME} fmt libddprof libunwind)
 
 # ******************************************************
 # Define shared target
@@ -168,4 +192,6 @@ add_library(${PROFILER_SHARED_LIB_NAME} SHARED
 set_target_properties(${PROFILER_SHARED_LIB_NAME} PROPERTIES PREFIX "")
 
 # Define linker libraries
-target_link_libraries(${PROFILER_SHARED_LIB_NAME} ${PROFILER_STATIC_LIB_NAME})
+target_link_libraries(${PROFILER_SHARED_LIB_NAME}
+    -Wl,--whole-archive $<TARGET_FILE:${PROFILER_STATIC_LIB_NAME}> -Wl,--no-whole-archive
+    ${PROFILER_STATIC_LIB_NAME})

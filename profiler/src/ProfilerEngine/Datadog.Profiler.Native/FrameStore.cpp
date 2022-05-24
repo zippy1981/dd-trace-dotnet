@@ -39,26 +39,51 @@ std::tuple<bool, std::string, std::string> FrameStore::GetFrame(uintptr_t instru
 std::pair<std::string, std::string> FrameStore::GetNativeFrame(uintptr_t instructionPointer)
 {
     static const std::string UnknownNativeFrame("|lm:Unknown-Native-Module |ns:NativeCode |ct:Unknown-Native-Module |fn:Function");
+    static const std::string UnknowNativeModule = "Unknown-Native-Module";
+
     auto moduleName = OpSysTools::GetModuleName(reinterpret_cast<void*>(instructionPointer));
     if (moduleName.empty())
     {
-        return {"Unknown-Native-Module", UnknownNativeFrame};
+        return {UnknowNativeModule, UnknownNativeFrame};
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(_nativeLock);
+
+        auto it = _framePerNativeModule.find(moduleName);
+        if (it != _framePerNativeModule.cend())
+        {
+            return {it->first, it->second};
+        }
     }
 
     // moduleName contains the full path: keep only the filename
-    moduleName = fs::path(moduleName).filename().string();
+    auto moduleFilename = fs::path(moduleName).filename().string();
     std::stringstream builder;
-    builder << "|lm:" << moduleName << " |ns:NativeCode |ct:" << moduleName << " |fn:Function";
-    return {moduleName, builder.str()};
+    builder << "|lm:" << moduleFilename << " |ns:NativeCode |ct:" << moduleFilename << " |fn:Function";
+
+    {
+        std::lock_guard<std::mutex> lock(_nativeLock);
+        // emplace returns a pair<iterator, bool>. It returns false if the element was already there
+        // we use the iterator (first element of the pair) to get a reference to the key and the value
+        auto it = _framePerNativeModule.emplace(std::move(moduleName), builder.str()).first;
+        return {it->first, it->second};
+    }
 }
+
+
 
 std::pair<std::string, std::string> FrameStore::GetManagedFrame(FunctionID functionId)
 {
-    // Look into the cache first
-    auto element = _methods.find(functionId);
-    if (element != _methods.end())
     {
-        return element->second;
+        std::lock_guard<std::mutex> lock(_methodsLock);
+
+        // Look into the cache first
+        auto element = _methods.find(functionId);
+        if (element != _methods.end())
+        {
+            return element->second;
+        }
     }
 
     // Get the method generic parameters if any + metadata token + class ID + module ID
@@ -94,6 +119,8 @@ std::pair<std::string, std::string> FrameStore::GetManagedFrame(FunctionID funct
     bool typeInCache = false;
     if (classId != 0) // classId could be 0 in case of generic type with a generic parameter that is a reference type
     {
+        std::lock_guard<std::mutex> lock(_typesLock);
+
         auto typeEntry = _types.find(classId);
         if (typeEntry != _types.end())
         {
@@ -113,6 +140,8 @@ std::pair<std::string, std::string> FrameStore::GetManagedFrame(FunctionID funct
 
         if (classId != 0)
         {
+            std::lock_guard<std::mutex> lock(_typesLock);
+
             _types[classId] = typeDesc;
         }
         // TODO: would it be interesting to have a (moduleId + mdTokenDef) -> TypeDesc cache for the non cached generic types?
@@ -130,8 +159,12 @@ std::pair<std::string, std::string> FrameStore::GetManagedFrame(FunctionID funct
 
     std::string managedFrame = builder.str();
 
-    // store it into the function cache
-    _methods[functionId] = {typeDesc.Assembly, managedFrame};
+    {
+        std::lock_guard<std::mutex> lock(_methodsLock);
+
+        // store it into the function cache
+        _methods[functionId] = {typeDesc.Assembly, managedFrame};
+    }
 
     return {typeDesc.Assembly, managedFrame};
 }

@@ -5,8 +5,9 @@ parameters:
 
 jobs:
   - job: set_pending
+    timeoutInMinutes: 60 #default value
     pool:
-      vmImage: ubuntu-18.04
+      name: azure-linux-task-scale-set
     steps:
     - checkout: none
     - template: update-github-status.yml
@@ -16,8 +17,9 @@ jobs:
         description: 'Run in progress'
 
   - job: set_succeeded
+    timeoutInMinutes: 60 #default value
     pool:
-      vmImage: ubuntu-18.04
+      name: azure-linux-task-scale-set
     dependsOn:
     - set_pending
     - ${{ each job in parameters.jobs }}:
@@ -32,8 +34,9 @@ jobs:
         description: 'Run succeeded'
 
   - job: set_failed
+    timeoutInMinutes: 60 #default value
     pool:
-      vmImage: ubuntu-18.04
+      name: azure-linux-task-scale-set
     dependsOn:
       - set_pending
       - ${{ each job in parameters.jobs }}:

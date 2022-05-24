@@ -3,6 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+using System;
 using Datadog.Trace.Agent.StreamFactories;
 using Datadog.Trace.Agent.Transports;
 using Datadog.Trace.Configuration;
@@ -23,11 +24,17 @@ namespace Datadog.Trace.Agent
             {
                 case TracesTransportType.WindowsNamedPipe:
                     Log.Information<string, string, int>("Using {FactoryType} for trace transport, with pipe name {PipeName} and timeout {Timeout}ms.", nameof(NamedPipeClientStreamFactory), settings.TracesPipeName, settings.TracesPipeTimeoutMs);
-                    return new HttpStreamRequestFactory(new NamedPipeClientStreamFactory(settings.TracesPipeName, settings.TracesPipeTimeoutMs), DatadogHttpClient.CreateTraceAgentClient());
+                    // use http://localhost as base endpoint
+                    return new HttpStreamRequestFactory(new NamedPipeClientStreamFactory(settings.TracesPipeName, settings.TracesPipeTimeoutMs), DatadogHttpClient.CreateTraceAgentClient(), new Uri("http://localhost"));
                 case TracesTransportType.UnixDomainSocket:
-#if NETCOREAPP3_1_OR_GREATER
+#if NET5_0_OR_GREATER
+                    Log.Information("Using {FactoryType} for trace transport, with UDS path {Path}.", nameof(SocketHandlerRequestFactory), settings.TracesUnixDomainSocketPath);
+                    // use http://localhost as base endpoint
+                    return new SocketHandlerRequestFactory(new UnixDomainSocketStreamFactory(settings.TracesUnixDomainSocketPath), AgentHttpHeaderNames.DefaultHeaders, new Uri("http://localhost"));
+#elif NETCOREAPP3_1_OR_GREATER
                     Log.Information<string, string, int>("Using {FactoryType} for trace transport, with Unix Domain Sockets path {Path} and timeout {Timeout}ms.", nameof(UnixDomainSocketStreamFactory), settings.TracesUnixDomainSocketPath, settings.TracesPipeTimeoutMs);
-                    return new HttpStreamRequestFactory(new UnixDomainSocketStreamFactory(settings.TracesUnixDomainSocketPath), DatadogHttpClient.CreateTraceAgentClient());
+                    // use http://localhost as base endpoint
+                    return new HttpStreamRequestFactory(new UnixDomainSocketStreamFactory(settings.TracesUnixDomainSocketPath), DatadogHttpClient.CreateTraceAgentClient(), new Uri("http://localhost"));
 #else
                     Log.Error("Using Unix Domain Sockets for trace transport is only supported on .NET Core 3.1 and greater. Falling back to default transport.");
                     goto case TracesTransportType.Default;
@@ -36,10 +43,10 @@ namespace Datadog.Trace.Agent
                 default:
 #if NETCOREAPP
                     Log.Information("Using {FactoryType} for trace transport.", nameof(HttpClientRequestFactory));
-                    return new HttpClientRequestFactory(AgentHttpHeaderNames.DefaultHeaders);
+                    return new HttpClientRequestFactory(settings.AgentUri, AgentHttpHeaderNames.DefaultHeaders);
 #else
                     Log.Information("Using {FactoryType} for trace transport.", nameof(ApiWebRequestFactory));
-                    return new ApiWebRequestFactory(AgentHttpHeaderNames.DefaultHeaders);
+                    return new ApiWebRequestFactory(settings.AgentUri, AgentHttpHeaderNames.DefaultHeaders);
 #endif
             }
         }

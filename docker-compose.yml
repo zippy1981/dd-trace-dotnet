@@ -499,7 +499,7 @@ services:
       - explorationTestName=${explorationTestName:-eshoponweb}
       - baseImage=${baseImage:-default}
       - DD_CLR_ENABLE_NGEN=${DD_CLR_ENABLE_NGEN:-1}
-      
+
   StartDependencies:
     image: andrewlock/wait-for-dependencies
     depends_on:
@@ -531,7 +531,7 @@ services:
       - serverless-integration-trace-context-mock
     environment:
       - TIMEOUT_LENGTH=120
-    command: aerospike:3000 servicestackredis:6379 stackexchangeredis:6379 elasticsearch5:9200 elasticsearch6:9200 elasticsearch7:9200 sqlserver:1433 mongo:27017 postgres:5432 mysql:3306 mysql57:3306 rabbitmq:5672 kafka-broker:9092 kafka-zookeeper:2181 aws_sqs:9324 couchbase:11210 serverless-lambda-no-param-sync:8080 serverless-lambda-one-param-sync:8080 serverless-lambda-two-params-sync:8080 serverless-lambda-no-param-async:8080 serverless-lambda-one-param-async:8080 serverless-lambda-two-params-async:8080 serverless-integration-trace-context-mock:9003
+    command: aerospike:3000 servicestackredis:6379 stackexchangeredis:6379 elasticsearch5:9200 elasticsearch6:9200 elasticsearch7:9200 sqlserver:1433 mongo:27017 postgres:5432 mysql:3306 mysql57:3306 rabbitmq:5672 kafka-broker:9092 kafka-zookeeper:2181 aws_sqs:9324 couchbase:11210 serverless-lambda-no-param-sync:8080 serverless-lambda-one-param-sync:8080 serverless-lambda-two-params-sync:8080 serverless-lambda-no-param-async:8080 serverless-lambda-one-param-async:8080 serverless-lambda-two-params-async:8080 serverless-integration-trace-context-mock:9003 serverless-lambda-no-param-void:8080 serverless-lambda-one-param-void:8080 serverless-lambda-two-params-void:8080
 
   IntegrationTests.ARM64:
     build:
@@ -592,3 +592,41 @@ services:
     environment:
       - TIMEOUT_LENGTH=120
     command: servicestackredis_arm64:6379 stackexchangeredis_arm64:6379 elasticsearch7_arm64:9200 sqledge_arm64:1433 mongo_arm64:27017 postgres_arm64:5432 mysql_arm64:3306 rabbitmq_arm64:5672 aws_sqs_arm64:9324
+
+  start-test-agent:
+    image: andrewlock/wait-for-dependencies
+    depends_on:
+    - test-agent
+    environment:
+    - TIMEOUT_LENGTH=120
+    command: test-agent:8126
+
+  test-agent:
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:latest
+    volumes:
+    - ./tracer/build/smoke_test_snapshots:/snapshots
+    - ./tracer/build_data/snapshots:/debug_snapshots
+    ports:
+    - "8126:8126"
+    environment:
+    - SNAPSHOT_CI=1
+
+  smoke-tests:
+    build:
+      context: ./tracer/ # have to use this as the context, as Dockercompose requires dockerfile to be inside context dir
+      dockerfile: build/_build/docker/smoke.dockerfile
+      # args:
+        # Note that the following build arguments must be provided
+        # - DOTNETSDK_VERSION=
+        # - RUNTIME_IMAGE=
+        # - PUBLISH_FRAMEWORK=
+        # - INSTALL_CMD=
+    image: dd-trace-dotnet/${dockerTag:-not-set}-tester
+    volumes:
+    - ./:/project
+    - ./tracer/build_data/logs:/var/log/datadog/dotnet
+    environment:
+    - dockerTag=${dockerTag:-unset}
+    - DD_TRACE_AGENT_URL=http://test-agent:8126
+    depends_on:
+    - test-agent

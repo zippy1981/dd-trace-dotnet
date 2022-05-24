@@ -51,7 +51,11 @@ namespace Datadog.Trace.TestHelpers
             Output.WriteLine($"TargetFramework: {EnvironmentHelper.GetTargetFramework()}");
             Output.WriteLine($".NET Core: {EnvironmentHelper.IsCoreClr()}");
             Output.WriteLine($"Tracer Native DLL: {EnvironmentHelper.GetTracerNativeDLLPath()}");
-            Output.WriteLine($"Native Loader DLL: {EnvironmentHelper.GetNativeLoaderPath()}");
+
+            if (EnvironmentHelper.UseNativeLoader)
+            {
+                Output.WriteLine($"Native Loader DLL: {EnvironmentHelper.GetNativeLoaderPath()}");
+            }
         }
 
         protected EnvironmentHelper EnvironmentHelper { get; }
@@ -136,13 +140,13 @@ namespace Datadog.Trace.TestHelpers
                 processToProfile: executable);
         }
 
-        public async Task TakeMemoryDump(Process process)
+        public async Task<bool> TakeMemoryDump(Process process)
         {
             // We don't know if procdump is available, so download it fresh
             if (!EnvironmentTools.IsWindows())
             {
                 Output.WriteLine("Not running on windows, skipping memory dump");
-                return;
+                return false;
             }
 
             try
@@ -200,10 +204,12 @@ namespace Datadog.Trace.TestHelpers
                 }
 
                 Output.WriteLine($"Memory dump captured using '{procDump} {args}'");
+                return true;
             }
             catch (Exception ex)
             {
                 Output.WriteLine("Error taking memory dump: " + ex);
+                return false;
             }
         }
 
@@ -213,8 +219,20 @@ namespace Datadog.Trace.TestHelpers
 
             using var helper = new ProcessHelper(process);
 
-            process.WaitForExit();
-            helper.Drain();
+            // this is _way_ too long, but we want to be v. safe
+            // the goal is just to make sure we kill the test before
+            // the whole CI run times out
+            var timeoutMs = (int)TimeSpan.FromMinutes(10).TotalMilliseconds;
+            var ranToCompletion = process.WaitForExit(timeoutMs) && helper.Drain(timeoutMs / 2);
+
+            if (!ranToCompletion && !process.HasExited)
+            {
+                var tookMemoryDump = TakeMemoryDump(process);
+                process.Kill();
+                // should we throw a skip exception on Linux as we don't have a memory dump?
+                throw new Exception($"The sample did not exit in {timeoutMs}ms. Memory dump taken: {tookMemoryDump}. Killing process.");
+            }
+
             var exitCode = process.ExitCode;
 
             Output.WriteLine($"ProcessId: " + process.Id);
@@ -433,6 +451,19 @@ namespace Datadog.Trace.TestHelpers
             SetEnvironmentVariable(ConfigurationKeys.DirectLogSubmission.Url, $"http://127.0.0.1:{intakePort}");
             SetEnvironmentVariable(ConfigurationKeys.DirectLogSubmission.EnabledIntegrations, integrationName);
             SetEnvironmentVariable(ConfigurationKeys.ApiKey, "DUMMY_KEY_REQUIRED_FOR_DIRECT_SUBMISSION");
+        }
+
+        protected void EnableTelemetry(bool enabled = true, int? standaloneAgentPort = null)
+        {
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_ENABLED", enabled.ToString());
+            SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED", standaloneAgentPort.HasValue.ToString());
+
+            if (standaloneAgentPort.HasValue)
+            {
+                SetEnvironmentVariable("DD_INSTRUMENTATION_TELEMETRY_URL", $"http://localhost:{standaloneAgentPort}");
+                // API key is required for agentless
+                SetEnvironmentVariable("DD_API_KEY", "INVALID_KEY_FOR_TESTS");
+            }
         }
 
         protected async Task<IImmutableList<MockSpan>> GetWebServerSpans(

@@ -20,16 +20,16 @@ std::uint32_t ManagedThreadInfo::GenerateProfilerThreadInfoId(void)
 }
 
 ManagedThreadInfo::ManagedThreadInfo(ThreadID clrThreadId) :
-    ManagedThreadInfo(clrThreadId, 0, static_cast<HANDLE>(0), const_cast<shared::WSTRING*>(&ResolvedSymbolsCache::UnknownThreadName))
+    ManagedThreadInfo(clrThreadId, 0, static_cast<HANDLE>(0), shared::WSTRING())
 {
 }
 
-ManagedThreadInfo::ManagedThreadInfo(ThreadID clrThreadId, DWORD osThreadId, HANDLE osThreadHandle, shared::WSTRING* pThreadName) :
+ManagedThreadInfo::ManagedThreadInfo(ThreadID clrThreadId, DWORD osThreadId, HANDLE osThreadHandle, shared::WSTRING pThreadName) :
     _profilerThreadInfoId{GenerateProfilerThreadInfoId()},
     _clrThreadId(clrThreadId),
     _osThreadId(osThreadId),
     _osThreadHandle(osThreadHandle),
-    _pThreadName(pThreadName),
+    _pThreadName(std::move(pThreadName)),
     _lastSampleHighPrecisionTimestampNanoseconds{0},
     _lastKnownSampleUnixTimeUtc{0},
     _highPrecisionNanosecsAtLastUnixTimeUpdate{0},
@@ -40,16 +40,7 @@ ManagedThreadInfo::ManagedThreadInfo(ThreadID clrThreadId, DWORD osThreadId, HAN
     _deadlockDetectionPeriod{0},
     _stackWalkLock(1),
     _isThreadDestroyed{false},
-    _traceContextTrackingInfo{}
+    _traceContextTrackingInfo{},
+    _cpuConsumptionMilliseconds{0}
 {
-}
-
-ManagedThreadInfo::~ManagedThreadInfo()
-{
-    shared::WSTRING* pThreadName = _pThreadName;
-    if (pThreadName != nullptr && pThreadName != &ResolvedSymbolsCache::UnknownThreadName)
-    {
-        _pThreadName = nullptr;
-        delete pThreadName;
-    }
 }

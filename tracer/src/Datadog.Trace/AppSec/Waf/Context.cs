@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Datadog.Trace.AppSec.Waf.NativeBindings;
 using Datadog.Trace.Logging;
+using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Serilog.Events;
 
 namespace Datadog.Trace.AppSec.Waf
@@ -36,6 +37,12 @@ namespace Datadog.Trace.AppSec.Waf
 
         public IResult Run(ulong timeoutMicroSeconds)
         {
+            if (disposed)
+            {
+                ThrowHelper.ThrowException("Can't run WAF when disposed");
+            }
+
+            _stopwatch.Restart();
             var pwArgs = encoder.Encode(_addresses, argCache, applySafetyLimits: true);
 
             if (Log.IsEnabled(LogEventLevel.Debug))
@@ -49,8 +56,7 @@ namespace Datadog.Trace.AppSec.Waf
             var code = wafNative.Run(contextHandle, rawArgs, ref retNative, timeoutMicroSeconds);
             _stopwatch.Stop();
             _totalRuntimeOverRuns += retNative.TotalRuntime / 1000;
-            var result = new Result(retNative, code, wafNative, _totalRuntimeOverRuns, (ulong)_stopwatch.Elapsed.TotalMilliseconds * 1000);
-
+            var result = new Result(retNative, code, wafNative, _totalRuntimeOverRuns, (ulong)(_stopwatch.Elapsed.TotalMilliseconds * 1000));
             if (Log.IsEnabled(LogEventLevel.Debug))
             {
                 Log.Debug(
@@ -62,11 +68,14 @@ namespace Datadog.Trace.AppSec.Waf
             return result;
         }
 
-        public void AggregateAddresses(IDictionary<string, object> args)
+        public void AggregateAddresses(IDictionary<string, object> args, bool eraseExistingAddress)
         {
             foreach (var item in args)
             {
-                _addresses[item.Key] = item.Value;
+                if (eraseExistingAddress || !_addresses.ContainsKey(item.Key))
+                {
+                    _addresses[item.Key] = item.Value;
+                }
             }
         }
 

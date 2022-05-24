@@ -19,16 +19,11 @@ namespace Datadog.Profiler.IntegrationTests.Helpers
         private readonly string _appName;
         private readonly string _testId;
 
-        public EnvironmentHelper(string appName, string framework, bool enableNewPipeline, bool enableTracer)
+        public EnvironmentHelper(string appName, string framework, bool enableTracer)
         {
             _framework = framework;
             _appName = appName;
-            _testId = (enableNewPipeline ? "_NewPipepline" : string.Empty) + Guid.NewGuid().ToString("n").Substring(0, 8);
-
-            if (enableNewPipeline)
-            {
-                EnableNewPipeline();
-            }
+            _testId = Guid.NewGuid().ToString("n").Substring(0, 8);
 
             if (enableTracer)
             {
@@ -97,11 +92,6 @@ namespace Datadog.Profiler.IntegrationTests.Helpers
 #endif
         }
 
-        internal void EnableNewPipeline()
-        {
-            CustomEnvironmentVariables[EnvironmentVariables.LibDdPprofPipepline] = "1";
-        }
-
         internal void EnableTracer()
         {
             AddTracerEnvironmentVariables();
@@ -112,12 +102,7 @@ namespace Datadog.Profiler.IntegrationTests.Helpers
             CustomEnvironmentVariables[key] = value;
         }
 
-        internal bool IsRunningWithNewPipeline()
-        {
-            return CustomEnvironmentVariables.TryGetValue(EnvironmentVariables.LibDdPprofPipepline, out var value) && string.Equals("1", value);
-        }
-
-        internal void PopulateEnvironmentVarialbes(StringDictionary environmentVariables, int agentPort, int profilingExportIntervalInSeconds, string serviceName)
+        internal void PopulateEnvironmentVariables(StringDictionary environmentVariables, int agentPort, int profilingExportIntervalInSeconds, string serviceName)
         {
             var profilerPath = GetClrProfilerPath();
             if (!File.Exists(profilerPath))

@@ -20,6 +20,7 @@ using Datadog.Trace.PlatformHelpers;
 using Datadog.Trace.Propagators;
 using Datadog.Trace.Tagging;
 using Datadog.Trace.Util;
+using Datadog.Trace.Util.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
@@ -715,6 +716,13 @@ namespace Datadog.Trace.DiagnosticListeners
                 var request = httpContext.Request.DuckCast<HttpRequestStruct>();
                 RouteValueDictionary routeValues = request.RouteValues;
 
+                var security = CurrentSecurity;
+                var shouldSecure = security.Settings.Enabled;
+                if (shouldSecure)
+                {
+                    security.InstrumentationGateway.RaisePathParamsAvailable(httpContext, span, routeValues);
+                }
+
                 // No need to ToLowerInvariant() these strings, as we lower case
                 // the whole route later
                 object raw;
@@ -819,6 +827,28 @@ namespace Datadog.Trace.DiagnosticListeners
 
             if (scope is not null && ReferenceEquals(scope.Span.OperationName, MvcOperationName))
             {
+                try
+                {
+                    // Extract data from the Activity
+                    var activity = Activity.ActivityListener.GetCurrentActivity();
+                    if (activity is not null)
+                    {
+                        foreach (var activityTag in activity.Tags)
+                        {
+                            scope.Span.SetTag(activityTag.Key, activityTag.Value);
+                        }
+
+                        foreach (var activityBag in activity.Baggage)
+                        {
+                            scope.Span.SetTag(activityBag.Key, activityBag.Value);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error extracting activity data.");
+                }
+
                 scope.Dispose();
             }
         }
@@ -883,6 +913,13 @@ namespace Datadog.Trace.DiagnosticListeners
                     statusCode = badRequestException.StatusCode;
                 }
 
+                var security = CurrentSecurity;
+                if (security.Settings.Enabled)
+                {
+                    var httpContext = unhandledStruct.HttpContext;
+                    security.InstrumentationGateway.RaiseEndRequest(httpContext, httpContext.Request, span);
+                }
+
                 // Generic unhandled exceptions are converted to 500 errors by Kestrel
                 span.SetHttpStatusCode(statusCode: statusCode, isServer: true, tracer.Settings);
             }
@@ -905,6 +942,8 @@ namespace Datadog.Trace.DiagnosticListeners
         [DuckCopy]
         internal struct UnhandledExceptionStruct
         {
+            [Duck(BindingFlags = DuckAttribute.DefaultFlags | BindingFlags.IgnoreCase)]
+            public HttpContext HttpContext;
             [Duck(BindingFlags = DuckAttribute.DefaultFlags | BindingFlags.IgnoreCase)]
             public Exception Exception;
         }

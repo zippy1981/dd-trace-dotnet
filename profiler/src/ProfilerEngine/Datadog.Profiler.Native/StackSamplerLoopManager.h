@@ -16,6 +16,9 @@
 #include "IMetricsSender.h"
 #include "Log.h"
 #include "OpSysTools.h"
+#include "ICollector.h"
+#include "RawCpuSample.h"
+#include "RawWallTimeSample.h"
 #include "StackSamplerLoop.h"
 #include "IStackSamplerLoopManager.h"
 
@@ -81,10 +84,9 @@ public:
         std::shared_ptr<IMetricsSender> metricsSender,
         IClrLifetime const* clrLifetime,
         IThreadsCpuManager* pThreadsCpuManager,
-        IStackSnapshotsBufferManager* pStackSnapshotsBufferManager,
         IManagedThreadList* pManagedThreadList,
-        ISymbolsResolver* pSymbolsResolver,
-        IWallTimeCollector* pWallTimeCollector
+        ICollector<RawWallTimeSample>* pWallTimeCollector,
+        ICollector<RawCpuSample>* pCpuTimeCollector
         );
 
     ~StackSamplerLoopManager() override;
@@ -202,12 +204,11 @@ private:
     ICorProfilerInfo4* _pCorProfilerInfo;
     IConfiguration* _pConfiguration = nullptr;
     IThreadsCpuManager* _pThreadsCpuManager = nullptr;
-    IStackSnapshotsBufferManager* _pStackSnapshotsBufferManager = nullptr;
     IManagedThreadList* _pManagedThreadList = nullptr;
-    ISymbolsResolver* _pSymbolsResolver = nullptr;
-    IWallTimeCollector* _pWallTimeCollector = nullptr;
+    ICollector<RawWallTimeSample>* _pWallTimeCollector = nullptr;
+    ICollector<RawCpuSample>* _pCpuTimeCollector = nullptr;
 
-    StackFramesCollectorBase* _pStackFramesCollector;
+    std::unique_ptr<StackFramesCollectorBase> _pStackFramesCollector;
     StackSamplerLoop* _pStackSamplerLoop;
     std::uint8_t _deadlockInterventionInProgress;
 
@@ -239,4 +240,5 @@ private:
     std::unique_ptr<Statistics> _currentStatistics;
 
     IClrLifetime const* _pClrLifetime;
+    bool _isStopped = false;
 };

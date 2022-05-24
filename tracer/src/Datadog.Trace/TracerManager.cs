@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Datadog.Trace.Agent;
 using Datadog.Trace.AppSec;
 using Datadog.Trace.Configuration;
+using Datadog.Trace.ContinuousProfiler;
 using Datadog.Trace.DogStatsd;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Logging.DirectSubmission;
@@ -229,10 +230,12 @@ namespace Datadog.Trace
             }
 
             string agentError = null;
+            var instanceSettings = instance.Settings;
 
             // In AAS, the trace agent is deployed alongside the tracer and managed by the tracer
             // Disable this check as it may hit the trace agent before it is ready to receive requests and give false negatives
-            if (!AzureAppServices.Metadata.IsRelevant)
+            // Also disable if tracing is not enabled (as likely to be in an environment where agent is not available)
+            if (instanceSettings.TraceEnabled && !AzureAppServices.Metadata.IsRelevant)
             {
                 try
                 {
@@ -251,7 +254,6 @@ namespace Datadog.Trace
 
             try
             {
-                var instanceSettings = instance.Settings;
                 var stringWriter = new StringWriter();
 
                 using (var writer = new JsonTextWriter(stringWriter))
@@ -291,6 +293,9 @@ namespace Datadog.Trace
 
                     writer.WritePropertyName("agent_url");
                     writer.WriteValue(instanceSettings.Exporter.AgentUri);
+
+                    writer.WritePropertyName("agent_transport");
+                    writer.WriteValue(instanceSettings.Exporter.TracesTransport.ToString());
 
                     writer.WritePropertyName("debug");
                     writer.WriteValue(GlobalSettings.Source.DebugEnabled);
@@ -392,8 +397,27 @@ namespace Datadog.Trace
                     writer.WritePropertyName("direct_logs_submission_error");
                     writer.WriteValue(string.Join(", ", instanceSettings.LogSubmissionSettings.ValidationErrors));
 
+                    writer.WritePropertyName("exporter_settings_warning");
+                    writer.WriteStartArray();
+
+                    foreach (var warning in instanceSettings.Exporter.ValidationWarnings)
+                    {
+                        writer.WriteValue(warning);
+                    }
+
+                    writer.WriteEndArray();
+
                     writer.WritePropertyName("dd_trace_methods");
                     writer.WriteValue(instanceSettings.TraceMethods);
+
+                    writer.WritePropertyName("activity_listener_enabled");
+                    writer.WriteValue(instanceSettings.IsActivityListenerEnabled);
+
+                    writer.WritePropertyName("profiler_enabled");
+                    writer.WriteValue(Profiler.Instance.Status.IsProfilerReady);
+
+                    writer.WritePropertyName("code_hotspots_enabled");
+                    writer.WriteValue(Profiler.Instance.ContextTracker.IsEnabled);
 
                     writer.WriteEndObject();
                     // ReSharper restore MethodHasAsyncOverload

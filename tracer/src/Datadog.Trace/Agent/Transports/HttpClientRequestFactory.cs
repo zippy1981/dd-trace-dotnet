@@ -8,19 +8,21 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using Datadog.Trace.Ci;
+using Datadog.Trace.Util;
 
 namespace Datadog.Trace.Agent.Transports
 {
     internal class HttpClientRequestFactory : IApiRequestFactory
     {
         private readonly HttpClient _client;
-        private readonly HttpClientHandler _handler;
+        private readonly HttpMessageHandler _handler;
+        private readonly Uri _baseEndpoint;
 
-        public HttpClientRequestFactory(KeyValuePair<string, string>[] defaultHeaders, HttpClientHandler handler = null, TimeSpan? timeout = null)
+        public HttpClientRequestFactory(Uri baseEndpoint, KeyValuePair<string, string>[] defaultHeaders, HttpMessageHandler handler = null, TimeSpan? timeout = null)
         {
             _handler = handler ?? new HttpClientHandler();
             _client = new HttpClient(_handler);
+            _baseEndpoint = baseEndpoint;
             if (timeout.HasValue)
             {
                 _client.Timeout = timeout.Value;
@@ -32,7 +34,9 @@ namespace Datadog.Trace.Agent.Transports
             }
         }
 
-        public string Info(Uri endpoint)
+        public Uri GetEndpoint(string relativePath) => UriHelpers.Combine(_baseEndpoint, relativePath);
+
+        public virtual string Info(Uri endpoint)
         {
             return endpoint.ToString();
         }
@@ -44,10 +48,13 @@ namespace Datadog.Trace.Agent.Transports
 
         public void SetProxy(WebProxy proxy, NetworkCredential credential)
         {
-            _handler.Proxy = proxy;
-            if (credential is not null)
+            if (_handler is HttpClientHandler handler)
             {
-                _handler.Credentials = credential;
+                handler.Proxy = proxy;
+                if (credential is not null)
+                {
+                    handler.Credentials = credential;
+                }
             }
         }
     }
