@@ -13,11 +13,13 @@ namespace Datadog.Trace.Tagging;
 
 internal class TraceTagCollection
 {
+    public const int DefaultMaximumPropagationHeaderLength = 128;
+
     private readonly object _listLock = new();
     private List<TraceTag>? _tags;
     private string? _cachedPropagationHeader;
 
-    public TraceTagCollection(int maxHeaderLength = 128, List<TraceTag>? tags = null)
+    public TraceTagCollection(int maxHeaderLength = DefaultMaximumPropagationHeaderLength, List<TraceTag>? tags = null)
     {
         MaximumPropagationHeaderLength = maxHeaderLength;
         _tags = tags;

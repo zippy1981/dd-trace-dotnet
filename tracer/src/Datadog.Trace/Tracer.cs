@@ -354,9 +354,9 @@ namespace Datadog.Trace
                 traceContext = parentSpanContext.TraceContext;
                 if (traceContext == null)
                 {
-                    var traceTagKvps = TagPropagation.ParseHeader(parentSpanContext.PropagatedTags, traceContext.Tags.MaximumPropagationHeaderLength);
+                    var traceTagKvps = TagPropagation.ParseHeader(parentSpanContext.PropagatedTags, TraceTagCollection.DefaultMaximumPropagationHeaderLength);
                     var traceTags = traceTagKvps.Select(x => new TraceTag(x.Key, x.Value, TagSerializationMode.RootSpan)).ToList();
-                    var traceTagCollection = new TraceTagCollection(traceContext.Tags.MaximumPropagationHeaderLength, traceTags);
+                    var traceTagCollection = new TraceTagCollection(TraceTagCollection.DefaultMaximumPropagationHeaderLength, traceTags);
                     traceContext = new TraceContext(this, traceTagCollection);
                     traceContext.SetSamplingPriority(parentSpanContext.SamplingPriority ?? DistributedTracer.Instance.GetSamplingPriority());
                 }
