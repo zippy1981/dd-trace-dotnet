@@ -20,6 +20,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
     {
         internal const string IntegrationName = nameof(Configuration.IntegrationId.NUnit);
         internal const IntegrationId IntegrationId = Configuration.IntegrationId.NUnit;
+        internal const string SkipReasonKey = "_SKIPREASON";
         internal static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(NUnitIntegration));
 
         internal static bool IsEnabled => CIVisibility.IsRunning && Tracer.Instance.Settings.IsIntegrationEnabled(IntegrationId);
@@ -103,10 +104,10 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.NUnit
             if (testMethodProperties != null)
             {
                 Dictionary<string, List<string>> traits = new Dictionary<string, List<string>>();
-                skipReason = (string)testMethodProperties.Get("_SKIPREASON");
+                skipReason = (string)testMethodProperties.Get(SkipReasonKey);
                 foreach (var key in testMethodProperties.Keys)
                 {
-                    if (key == "_SKIPREASON" || key == "_JOINTYPE")
+                    if (key == SkipReasonKey || key == "_JOINTYPE")
                     {
                         continue;
                     }
