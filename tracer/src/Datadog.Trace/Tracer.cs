@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Datadog.Trace.Agent;
@@ -353,8 +354,10 @@ namespace Datadog.Trace
                 traceContext = parentSpanContext.TraceContext;
                 if (traceContext == null)
                 {
-                    var traceTags = TraceTagCollection.ParseHeader(parentSpanContext.PropagatedTags);
-                    traceContext = new TraceContext(this, traceTags);
+                    var traceTagKvps = TagPropagation.ParseHeader(parentSpanContext.PropagatedTags, traceContext.Tags.MaximumPropagationHeaderLength);
+                    var traceTags = traceTagKvps.Select(x => new TraceTag(x.Key, x.Value, TagSerializationMode.RootSpan)).ToList();
+                    var traceTagCollection = new TraceTagCollection(traceContext.Tags.MaximumPropagationHeaderLength, traceTags);
+                    traceContext = new TraceContext(this, traceTagCollection);
                     traceContext.SetSamplingPriority(parentSpanContext.SamplingPriority ?? DistributedTracer.Instance.GetSamplingPriority());
                 }
             }

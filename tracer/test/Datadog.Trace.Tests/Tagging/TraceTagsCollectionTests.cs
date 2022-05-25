@@ -1,10 +1,11 @@
-﻿// <copyright file="TraceTagsCollectionTests.cs" company="Datadog">
+// <copyright file="TraceTagsCollectionTests.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Datadog.Trace.Tagging;
 using FluentAssertions;
 using Xunit;
@@ -114,7 +115,7 @@ public class TraceTagsCollectionTests
     {
         var tags = new TraceTagCollection();
 
-        tags.Invoking(t => t.SetTag(null!, "value"))
+        tags.Invoking(t => t.SetTag(null!, "value", TagSerializationMode.RootSpan))
             .Should()
             .Throw<ArgumentNullException>();
     }
@@ -135,7 +136,7 @@ public class TraceTagsCollectionTests
 
         foreach (var pair in pairs)
         {
-            traceTags.SetTag(pair.Key, pair.Value);
+            traceTags.SetTag(pair.Key, pair.Value, TagSerializationMode.RootSpan);
         }
 
         var headerValue = traceTags.ToPropagationHeader();
@@ -152,17 +153,17 @@ public class TraceTagsCollectionTests
         var traceTags = new TraceTagCollection();
 
         // single tag with "_dd.p.a={...}", which has 8 chars plus the value's length
-        traceTags.SetTag("_dd.p.a", new string('b', totalHeaderLength - 8));
+        traceTags.SetTag("_dd.p.a", new string('b', totalHeaderLength - 8), TagSerializationMode.RootSpan);
 
         var headerValue = traceTags.ToPropagationHeader();
 
-        if (totalHeaderLength < TraceTagCollection.MinimumPropagationHeaderLength)
+        if (totalHeaderLength < TagPropagation.MinimumPropagationHeaderLength)
         {
             // too short
             headerValue.Should().BeNullOrEmpty();
             traceTags.GetTag(TraceTagNames.Propagation.PropagationHeadersError).Should().BeNull();
         }
-        else if (totalHeaderLength > TraceTagCollection.MaximumPropagationHeaderLength)
+        else if (totalHeaderLength > traceTags.MaximumPropagationHeaderLength)
         {
             // too long
             headerValue.Should().BeNullOrEmpty();
@@ -180,8 +181,9 @@ public class TraceTagsCollectionTests
     [MemberData(nameof(ParseData))]
     public void ParseFromPropagationHeader(string header, KeyValuePair<string, string>[] expectedPairs)
     {
-        var tags = TraceTagCollection.ParseHeader(header);
-        tags.ToEnumerable().Should().BeEquivalentTo(expectedPairs);
+        var traceTags = new TraceTagCollection();
+        var tags = TagPropagation.ParseHeader(header, traceTags.MaximumPropagationHeaderLength);
+        tags.Should().BeEquivalentTo(expectedPairs);
     }
 
     [Fact]
@@ -201,7 +203,7 @@ public class TraceTagsCollectionTests
         var tags = new TraceTagCollection();
 
         // distributed tag is set...
-        tags.SetTag("_dd.p.key1", "value1");
+        tags.SetTag("_dd.p.key1", "value1", TagSerializationMode.RootSpan);
         var value1 = tags.GetTag("_dd.p.key1");
         value1.Should().Be("value1");
         tags.Count.Should().Be(1);
@@ -211,7 +213,7 @@ public class TraceTagsCollectionTests
         header.Should().Be("_dd.p.key1=value1");
 
         // non-distributed tag is set...
-        tags.SetTag("key2", "value2");
+        tags.SetTag("key2", "value2", TagSerializationMode.RootSpan);
         var value2 = tags.GetTag("key2");
         value2.Should().Be("value2");
         tags.Count.Should().Be(2);
@@ -225,10 +227,10 @@ public class TraceTagsCollectionTests
     public void SetTag_MultipleTimes()
     {
         var tags = new TraceTagCollection();
-        tags.SetTag("_dd.p.key1", "value1");
+        tags.SetTag("_dd.p.key1", "value1", TagSerializationMode.RootSpan);
         tags.Count.Should().Be(1);
 
-        tags.SetTag("_dd.p.key1", "value1");
+        tags.SetTag("_dd.p.key1", "value1", TagSerializationMode.RootSpan);
         tags.Count.Should().Be(1);
 
         var value1 = tags.GetTag("_dd.p.key1");
@@ -241,25 +243,30 @@ public class TraceTagsCollectionTests
     [Fact]
     public void HeaderIsCached()
     {
+        var emptyTraceTagCollection = new TraceTagCollection();
+
         var header = "_dd.p.key1=value1";
 
         // should cache original header
-        var tags = TraceTagCollection.ParseHeader(header);
+        var traceTagKvps = TagPropagation.ParseHeader(header, emptyTraceTagCollection.MaximumPropagationHeaderLength);
+        var traceTags = traceTagKvps.Select(x => new TraceTag(x.Key, x.Value, TagSerializationMode.RootSpan)).ToList();
+        var tags = new TraceTagCollection(tags: traceTags);
+
         var cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().BeSameAs(header);
 
         // set tag to same value, should not invalidate the cached header
-        tags.SetTag("_dd.p.key1", "value1");
+        tags.SetTag("_dd.p.key1", "value1", TagSerializationMode.RootSpan);
         cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().BeSameAs(header);
 
         // add valid non-distributed trace tag, should not invalidate the cached header
-        tags.SetTag("key2", "value2");
+        tags.SetTag("key2", "value2", TagSerializationMode.RootSpan);
         cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().BeSameAs(header);
 
         // add valid distributed trace tag, invalidates the cached header
-        tags.SetTag("_dd.p.key3", "value3");
+        tags.SetTag("_dd.p.key3", "value3", TagSerializationMode.RootSpan);
         cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().NotBe(header);
     }
@@ -267,11 +274,15 @@ public class TraceTagsCollectionTests
     [Fact]
     public void HeaderIsNotCached()
     {
+        var emptyTraceTagCollection = new TraceTagCollection();
+
         // missing prefix, tag is ignored
         var header = "key1=value1";
 
         // should not cache original header
-        var tags = TraceTagCollection.ParseHeader(header);
+        var traceTagKvps = TagPropagation.ParseHeader(header, emptyTraceTagCollection.MaximumPropagationHeaderLength);
+        var traceTags = traceTagKvps.Select(x => new TraceTag(x.Key, x.Value, TagSerializationMode.RootSpan)).ToList();
+        var tags = new TraceTagCollection(tags: traceTags);
         var cachedHeader = tags.ToPropagationHeader();
         cachedHeader.Should().NotBeSameAs(header);
     }

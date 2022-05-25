@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Datadog.Trace.Tagging;
 
@@ -124,9 +125,10 @@ internal class TraceTagCollection
         return _cachedPropagationHeader;
     }
 
-    public List<TraceTag>.Enumerator GetEnumerator()
+    public IEnumerator<TraceTag> GetEnumerator()
     {
-        return _tags.GetEnumerator();
+        var x = _tags ?? Enumerable.Empty<TraceTag>();
+        return x.GetEnumerator();
     }
 
     /// <summary>
@@ -135,6 +137,6 @@ internal class TraceTagCollection
     /// </summary>
     public IEnumerable<TraceTag> ToEnumerable()
     {
-        return _tags;
+        return _tags ?? Enumerable.Empty<TraceTag>();
     }
 }
