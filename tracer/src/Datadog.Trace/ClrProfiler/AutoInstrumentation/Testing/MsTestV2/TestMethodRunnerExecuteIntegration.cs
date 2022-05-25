@@ -5,6 +5,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Reflection.Emit;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.DuckTyping;
@@ -45,7 +46,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                 return new CallTargetReturn<TReturn>(returnValue);
             }
 
-            if (returnValue is Array returnValueArray && returnValueArray.Length == 1)
+            if (instance.TestMethodInfo.MethodInfo is not DynamicMethod && returnValue is Array { Length: 1 } returnValueArray)
             {
                 object unitTestResultObject = returnValueArray.GetValue(0);
 

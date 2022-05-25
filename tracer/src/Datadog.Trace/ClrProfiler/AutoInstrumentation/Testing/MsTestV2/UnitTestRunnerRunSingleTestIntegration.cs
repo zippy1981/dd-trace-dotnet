@@ -5,6 +5,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Reflection.Emit;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.DuckTyping;
@@ -52,7 +53,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
 
                 if (unitTestResultObject != null &&
                     unitTestResultObject.TryDuckCast<UnitTestResultStruct>(out var unitTestResult) &&
-                    objTestMethodInfo.TryDuckCast<ITestMethod>(out var testMethodInfo))
+                    objTestMethodInfo.TryDuckCast<ITestMethod>(out var testMethodInfo) &&
+                    testMethodInfo.MethodInfo is not DynamicMethod)
                 {
                     var outcome = unitTestResult.Outcome;
                     if (outcome == UnitTestResultOutcome.Inconclusive || outcome == UnitTestResultOutcome.NotRunnable || outcome == UnitTestResultOutcome.Ignored)

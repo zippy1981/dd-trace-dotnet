@@ -5,6 +5,8 @@
 
 using System;
 using System.ComponentModel;
+using System.Reflection;
+using System.Reflection.Emit;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.DuckTyping;
@@ -43,6 +45,27 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                 return CallTargetState.GetDefault();
             }
 
+            // ***
+            // TODO: This is the way to skip tests on MSTest
+            // ***
+            // if (testMethod.Instance.TryDuckCast<ITestMethodInfo>(out var testMethodInfo))
+            // {
+            //     var originalMethodInfo = testMethodInfo.TestMethod;
+            //     var typesArray = new Type[originalMethodInfo.GetParameters().Length];
+            //     for (var i = 0; i < typesArray.Length; i++)
+            //     {
+            //         typesArray[i] = typeof(object);
+            //     }
+            //
+            //     var replaceMethodInfo = new DynamicMethod(originalMethodInfo.Name, typeof(void), typesArray, originalMethodInfo.Module, true);
+            //     var dynMethodIl = replaceMethodInfo.GetILGenerator();
+            //     dynMethodIl.Emit(OpCodes.Ret);
+            //
+            //     var itrScope = MsTestIntegration.OnMethodBegin(testMethod, testMethod.Type);
+            //     testMethodInfo.TestMethod = replaceMethodInfo;
+            //     return new CallTargetState(itrScope, originalMethodInfo);
+            // }
+
             var scope = MsTestIntegration.OnMethodBegin(testMethod, testMethod.Type);
             return new CallTargetState(scope);
         }
@@ -64,17 +87,25 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                 Scope scope = state.Scope;
                 if (scope != null)
                 {
-                    Array returnValueArray = returnValue as Array;
-                    if (returnValueArray.Length == 1)
+                    bool useZeroTimeout = false;
+                    if (returnValue is Array { Length: 1 } returnValueArray && returnValueArray.GetValue(0) is { } testResultObject)
                     {
-                        object testResultObject = returnValueArray.GetValue(0);
+                        string errorMessage = null;
+                        string errorStackTrace = null;
 
-                        if (testResultObject != null &&
-                            testResultObject.TryDuckCast<TestResultStruct>(out var testResult))
+                        // ***
+                        // TODO: This is the way to skip tests on MSTest
+                        // ***
+                        // if (state.State is MethodInfo originalMethodInfo && testResultObject.TryDuckCast<ITestResult>(out var tResult))
+                        // {
+                        //     // This will appear as a Skipped in the dotnet test CLI
+                        //     tResult.Outcome = UnitTestOutcome.Inconclusive;
+                        //     useZeroTimeout = true;
+                        //     errorMessage = "Skipped by ITR";
+                        // }
+
+                        if (testResultObject.TryDuckCast<TestResultStruct>(out var testResult))
                         {
-                            string errorMessage = null;
-                            string errorStackTrace = null;
-
                             if (testResult.TestFailureException != null)
                             {
                                 Exception testException = testResult.TestFailureException.InnerException ?? testResult.TestFailureException;
@@ -99,9 +130,13 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                                     scope.Span.SetTag(Tags.ErrorStack, errorStackTrace);
                                     break;
                                 case UnitTestOutcome.Inconclusive:
+                                    scope.Span.SetTag(TestTags.Status, TestTags.StatusSkip);
+                                    scope.Span.SetTag(TestTags.SkipReason, errorMessage);
+                                    break;
                                 case UnitTestOutcome.NotRunnable:
                                     scope.Span.SetTag(TestTags.Status, TestTags.StatusSkip);
                                     scope.Span.SetTag(TestTags.SkipReason, errorMessage);
+                                    useZeroTimeout = true;
                                     break;
                                 case UnitTestOutcome.Passed:
                                     scope.Span.SetTag(TestTags.Status, TestTags.StatusPass);
@@ -120,6 +155,11 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.MsTestV2
                     if (coverageSession is not null)
                     {
                         scope.Span.SetTag("test.coverage", Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(coverageSession));
+                    }
+
+                    if (useZeroTimeout)
+                    {
+                        scope.Span.Finish(TimeSpan.Zero);
                     }
 
                     scope.Dispose();
