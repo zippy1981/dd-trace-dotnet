@@ -1,0 +1,8 @@
+{
+  "solution": {
+    "path": "Datadog.Trace.sln",
+    "projects": [
+      "tracer\\build\\_build\\_build.csproj"
+      ]
+  }
+}

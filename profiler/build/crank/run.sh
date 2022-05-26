@@ -6,26 +6,26 @@ export
 
 sha="$(git rev-parse HEAD)"
 echo "sha=$sha"
-echo "GITHUB_SHA=$GITHUB_SHA"
-echo "SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI=$GITHUB_REPOSITORY"
+echo "SYSTEM_PULLREQUEST_SOURCECOMMITID=$SYSTEM_PULLREQUEST_SOURCECOMMITID"
+echo "BUILD_SOURCEVERSION=$BUILD_SOURCEVERSION"
+echo "SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI=$SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI"
 echo "BUILD_REPOSITORY_URI=$BUILD_REPOSITORY_URI"
 
-repo="$GITHUB_REPOSITORY"
-commit_sha="$GITHUB_SHA"
-branchOrCommit="$GITHUB_HEAD_REF"
+repo="$SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI"
+commit_sha="$SYSTEM_PULLREQUEST_SOURCECOMMITID"
 
 if [ -z "$repo" ]; then
     repo="$BUILD_REPOSITORY_URI"
 fi
 
-if [ -z "$GITHUB_HEAD_REF" ]; then
-    branchOrCommit="#$GITHUB_SHA"
+if [ -z "$commit_sha" ]; then
+    commit_sha="$BUILD_SOURCEVERSION"
 fi
 
 echo "Using repo=$repo commit=$commit_sha"
 
-repository="--application.source.repository https://github.com/$repo"
-commit="--application.source.branchOrCommit $branchOrCommit"
+repository="--application.source.repository $repo"
+commit="--application.source.branchOrCommit #$commit_sha"
 
 if [ "$1" = "windows" ]; then
     echo "Running windows throughput tests"

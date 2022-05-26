@@ -31,15 +31,16 @@ partial class Build : NukeBuild
 
             void GenerateConditionVariables()
             {
-                GenerateConditionVariableBasedOnGitChange("isTracerChanged", new[] { "tracer/src/Datadog.Trace/ClrProfiler/AutoInstrumentation", "tracer/src/Datadog.Trace.ClrProfiler.Native" }, new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" });
-                GenerateConditionVariableBasedOnGitChange("isDebuggerChanged", new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" }, new string[] { });
-                GenerateConditionVariableBasedOnGitChange("isProfilerChanged", new[] { "profiler/src" }, new string[] { });
+                var isNativeLoaderChanged = GenerateConditionVariableBasedOnGitChange("isNativeLoaderChanged", new[] { "tracer/src/Datadog.AutoInstrumentation.NativeLoader" }, new string[] { });
+                GenerateConditionVariableBasedOnGitChange("isTracerChanged", new[] { "tracer/src/Datadog.Trace/ClrProfiler/AutoInstrumentation", "tracer/src/Datadog.Trace.ClrProfiler.Native" }, new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" }, isNativeLoaderChanged);
+                GenerateConditionVariableBasedOnGitChange("isDebuggerChanged", new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" }, new string[] { }, isNativeLoaderChanged);
+                GenerateConditionVariableBasedOnGitChange("isProfilerChanged", new[] { "profiler/src" }, new string[] { }, isNativeLoaderChanged);
 
-                void GenerateConditionVariableBasedOnGitChange(string variableName, string[] filters, string[] exclusionFilters)
+                bool GenerateConditionVariableBasedOnGitChange(string variableName, string[] filters, string[] exclusionFilters, bool force = false)
                 {
                     bool isChanged;
                     var forceExplorationTestsWithVariableName = $"force_exploration_tests_with_{variableName}";
-                    if (bool.Parse(Environment.GetEnvironmentVariable(forceExplorationTestsWithVariableName) ?? "false"))
+                    if (force || bool.Parse(Environment.GetEnvironmentVariable(forceExplorationTestsWithVariableName) ?? "false"))
                     {
                         Logger.Info($"{forceExplorationTestsWithVariableName} was set - forcing exploration tests");
                         isChanged = true;
@@ -57,6 +58,8 @@ partial class Build : NukeBuild
                     var variableValue = isChanged.ToString();
                     EnvironmentInfo.SetVariable(variableName, variableValue);
                     AzurePipelines.Instance.SetVariable(variableName, variableValue);
+
+                    return isChanged;
                 }
             }
 
