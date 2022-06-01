@@ -131,7 +131,7 @@ internal static class TagPropagation
                 {
                     // if combined tags get too long for propagation headers,
                     // set tag "_dd.propagation_error:max_size"...
-                    tags.Add(new TraceTag(TraceTagNames.Propagation.PropagationHeadersError, "max_size", TagSerializationMode.RootSpan));
+                    tags.Add(new TraceTag(TraceTagNames.PropagationError, "max_size", TagSerializationMode.RootSpan));
 
                     // ... and don't set the header
                     return string.Empty;
