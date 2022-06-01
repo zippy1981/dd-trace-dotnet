@@ -29,7 +29,7 @@ internal class TraceTagCollection
 
     public int MaximumPropagationHeaderLength { get; }
 
-    public void SetTag(string name, string? value, TagSerializationMode serializationMode)
+    public void SetTag(string name, string? value, TagSerializationMode serializationMode = TagSerializationMode.RootSpan)
     {
         SetTag(new TraceTag(name, value, serializationMode));
     }
