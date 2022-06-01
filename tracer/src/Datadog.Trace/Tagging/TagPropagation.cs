@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Datadog.Trace.Util;
 
 namespace Datadog.Trace.Tagging;
@@ -35,21 +36,28 @@ internal static class TagPropagation
     /// Propagated tags require the an "_dd.p.*" prefix, so any other tags are ignored.
     /// </summary>
     /// <param name="propagationHeader">The header value to parse.</param>
-    /// <param name="maxHeaderLength">The maximum configured length of the propagation header ("x-datadog-tags").</param>
+    /// <param name="maxHeaderLength">The maximum configured length of the propagation header.</param>
+    /// <param name="tagCollection">When this methods returns, contains the tag collection parsed from the header.</param>
     /// <returns>
     /// A list of valid tags parsed from the specified header value,
     /// or null if <paramref name="propagationHeader"/> is <c>null</c> or empty.
     /// </returns>
-    public static List<TraceTag>? ParseHeader(string? propagationHeader, int maxHeaderLength)
+    public static bool TryParseHeader(
+        string? propagationHeader,
+        int maxHeaderLength,
+        [NotNullWhen(returnValue: true)] out TraceTagCollection? tagCollection)
     {
         if (string.IsNullOrEmpty(propagationHeader))
         {
-            return null;
+            tagCollection = null;
+            return false;
         }
 
         if (propagationHeader!.Length > maxHeaderLength)
         {
             // TODO
+            tagCollection = null;
+            return false;
         }
 
         var headerTags = propagationHeader.Split(TagPairSeparators, StringSplitOptions.RemoveEmptyEntries);
@@ -82,7 +90,8 @@ internal static class TagPropagation
             }
         }
 
-        return traceTags;
+        tagCollection = new TraceTagCollection(traceTags, maxHeaderLength);
+        return true;
     }
 
     /// <summary>
