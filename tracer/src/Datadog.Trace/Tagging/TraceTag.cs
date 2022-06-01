@@ -17,12 +17,12 @@ internal readonly struct TraceTag
 
     public readonly TagSerializationMode SerializationMode;
 
-    public bool IsPropagated => Key.StartsWith(TagPropagation.PropagatedTagPrefix, StringComparison.Ordinal);
-
     public TraceTag(string name, string? value, TagSerializationMode serializationMode)
     {
         Key = name;
         Value = value;
         SerializationMode = serializationMode;
     }
+
+    public bool IsPropagated => Key.StartsWith(TagPropagation.PropagatedTagPrefix, StringComparison.Ordinal);
 }
