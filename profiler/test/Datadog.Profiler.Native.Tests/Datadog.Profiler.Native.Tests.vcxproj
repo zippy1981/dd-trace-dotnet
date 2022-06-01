@@ -56,7 +56,7 @@
     <ClCompile Include="RuntimeIdTest.cpp" />
     <ClCompile Include="SamplesProviderTest.cpp" />
     <ClCompile Include="SamplesAggregatorTest.cpp" />
-    <ClCompile Include="StackSnapshotResultReusableBufferTest.cpp" />
+    <ClCompile Include="StackSnapshotResultBufferTest.cpp" />
     <ClCompile Include="TagsHelperTest.cpp" />
     <ClCompile Include="ProviderTest.cpp" />
     <ClCompile Include="ThreadsCpuManagerHelper.cpp" />
