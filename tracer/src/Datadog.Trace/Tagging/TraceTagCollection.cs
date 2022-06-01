@@ -13,13 +13,13 @@ namespace Datadog.Trace.Tagging;
 internal class TraceTagCollection
 {
     private readonly object _listLock = new();
-    private List<TraceTag>? _tags;
+    private readonly List<TraceTag> _tags;
     private string? _cachedPropagationHeader;
 
-    public TraceTagCollection(int maxHeaderLength = 128, List<TraceTag>? tags = null)
+    public TraceTagCollection(List<TraceTag>? tags = null, int maxHeaderLength = 128)
     {
+        _tags = tags ?? new List<TraceTag>(2);
         MaximumPropagationHeaderLength = maxHeaderLength;
-        _tags = tags;
     }
 
     /// <summary>
@@ -38,8 +38,6 @@ internal class TraceTagCollection
     {
         lock (_listLock)
         {
-            _tags ??= new List<TraceTag>(1);
-
             if (_tags.Count > 0)
             {
                 bool tagsModified = false;
@@ -86,18 +84,16 @@ internal class TraceTagCollection
 
     public TraceTag? GetTag(string name)
     {
-        if (_tags == null)
+        if (_tags.Count > 0)
         {
-            return null;
-        }
-
-        lock (_listLock)
-        {
-            for (int i = 0; i < _tags.Count; i++)
+            lock (_listLock)
             {
-                if (string.Equals(_tags[i].Key, name, StringComparison.Ordinal))
+                for (int i = 0; i < _tags.Count; i++)
                 {
-                    return _tags[i];
+                    if (string.Equals(_tags[i].Key, name, StringComparison.Ordinal))
+                    {
+                        return _tags[i];
+                    }
                 }
             }
         }
