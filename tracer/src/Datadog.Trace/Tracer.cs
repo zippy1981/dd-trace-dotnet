@@ -353,8 +353,8 @@ namespace Datadog.Trace
                 traceContext = parentSpanContext.TraceContext;
                 if (traceContext == null)
                 {
-                    var traceTags = TraceTagCollection.ParseHeader(parentSpanContext.PropagatedTags);
-                    traceContext = new TraceContext(this, traceTags);
+                    var traceTags = TagPropagation.ParseHeader(parentSpanContext.PropagatedTags, 128 /* TODO */);
+                    traceContext = new TraceContext(this, new TraceTagCollection(traceTags, 128 /* TODO */));
                     traceContext.SetSamplingPriority(parentSpanContext.SamplingPriority ?? DistributedTracer.Instance.GetSamplingPriority());
                 }
             }

@@ -40,42 +40,49 @@ internal static class TagPropagation
     /// A list of valid tags parsed from the specified header value,
     /// or null if <paramref name="propagationHeader"/> is <c>null</c> or empty.
     /// </returns>
-    public static List<KeyValuePair<string, string>>? ParseHeader(string? propagationHeader, int maxHeaderLength)
+    public static List<TraceTag>? ParseHeader(string? propagationHeader, int maxHeaderLength)
     {
         if (string.IsNullOrEmpty(propagationHeader))
         {
             return null;
         }
 
-        var tags = propagationHeader!.Split(TagPairSeparators, StringSplitOptions.RemoveEmptyEntries);
-        var tagList = new List<KeyValuePair<string, string>>(tags.Length);
+        if (propagationHeader!.Length > maxHeaderLength)
+        {
+            // TODO
+        }
 
-        foreach (var tag in tags)
+        var headerTags = propagationHeader.Split(TagPairSeparators, StringSplitOptions.RemoveEmptyEntries);
+        var traceTags = new List<TraceTag>(headerTags.Length);
+
+        foreach (var headerTag in headerTags)
         {
             // the shortest tag has the "_dd.p." prefix, a 1-character key, and 1-character value (e.g. "_dd.p.a=b")
-            if (tag.Length >= MinimumPropagationHeaderLength &&
-                tag.StartsWith(PropagatedTagPrefix, StringComparison.Ordinal))
+            if (headerTag.Length >= MinimumPropagationHeaderLength &&
+                headerTag.StartsWith(PropagatedTagPrefix, StringComparison.Ordinal))
             {
                 // NOTE: the first equals sign is the separator between key/value, but the tag value can contain
                 // additional equals signs, so make sure we only split on the _first_ one. For example,
                 // the "_dd.p.upstream_services" tag will have base64-encoded strings which use '=' for padding.
-                var separatorIndex = tag.IndexOf(KeyValueSeparator);
+                var separatorIndex = headerTag.IndexOf(KeyValueSeparator);
 
                 // "_dd.p.a=b"
                 //         ⬆   separator must be at index 7 or higher and before the end of string
                 //  012345678
                 if (separatorIndex > PropagatedTagPrefixLength &&
-                    separatorIndex < tag.Length - 1)
+                    separatorIndex < headerTag.Length - 1)
                 {
-                    // TODO: implement something like StringSegment to avoid allocating new strings?
-                    var key = tag.Substring(0, separatorIndex);
-                    var value = tag.Substring(separatorIndex + 1);
-                    tagList.Add(new KeyValuePair<string, string>(key, value));
+                    // TODO: implement something like StringSegment to avoid allocating new (sub)strings?
+                    var name = headerTag.Substring(0, separatorIndex);
+                    var value = headerTag.Substring(separatorIndex + 1);
+
+                    var traceTag = new TraceTag(name, value, TagSerializationMode.RootSpan);
+                    traceTags.Add(traceTag);
                 }
             }
         }
 
-        return tagList;
+        return traceTags;
     }
 
     /// <summary>
