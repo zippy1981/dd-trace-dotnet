@@ -16,7 +16,7 @@ internal class TraceTagCollection
     private readonly List<TraceTag> _tags;
     private string? _cachedPropagationHeader;
 
-    public TraceTagCollection(List<TraceTag>? tags = null, int maxHeaderLength = 128)
+    public TraceTagCollection(List<TraceTag>? tags = null, int maxHeaderLength = 512)
     {
         _tags = tags ?? new List<TraceTag>(2);
         MaximumPropagationHeaderLength = maxHeaderLength;
@@ -25,11 +25,10 @@ internal class TraceTagCollection
     /// <summary>
     /// Gets the number of elements contained in the <see cref="TraceTagCollection"/>.
     /// </summary>
-    public int Count => _tags?.Count ?? 0;
+    public int Count => _tags.Count;
 
     public int MaximumPropagationHeaderLength { get; }
 
-    public void SetTag(string name, string? value, TagSerializationMode serializationMode = TagSerializationMode.RootSpan)
     public void SetTag(string name, string? value, TraceTagSerializationMode serializationMode)
     {
         SetTag(new TraceTag(name, value, serializationMode));
@@ -114,7 +113,7 @@ internal class TraceTagCollection
         {
             lock (_listLock)
             {
-                _cachedPropagationHeader = TagPropagation.ToHeader(_tags, MaximumPropagationHeaderLength);
+                _cachedPropagationHeader = TagPropagation.ToHeader(this, MaximumPropagationHeaderLength);
             }
         }
 

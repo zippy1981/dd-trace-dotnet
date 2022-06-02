@@ -1,4 +1,4 @@
-﻿// <copyright file="TagPropagation.cs" company="Datadog">
+// <copyright file="TagPropagation.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
@@ -135,7 +135,7 @@ internal static class TagPropagation
             {
                 // if combined tags get too long for propagation headers,
                 // set tag "_dd.propagation_error:max_size"...
-                tags.Add(new TraceTag(TraceTagNames.PropagationError, "max_size", TagSerializationMode.RootSpan));
+                tags.SetTag(TraceTagNames.PropagationError, "max_size", TraceTagSerializationMode.RootSpan);
 
                 // ... and don't set the header
                 return string.Empty;
