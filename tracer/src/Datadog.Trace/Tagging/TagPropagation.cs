@@ -100,42 +100,45 @@ internal static class TagPropagation
     /// The returned string is cached and reused if no relevant tags are changed between calls.
     /// </summary>
     /// <returns>A string that can be used for horizontal propagation using the "x-datadog-tags" header.</returns>
-    public static string ToHeader(List<TraceTag>? tags, int maxHeaderLength)
+    public static string ToHeader(TraceTagCollection tags, int maxHeaderLength)
     {
-        if (tags == null || tags.Count == 0)
+        if (tags.Count == 0)
         {
             return string.Empty;
         }
 
+        // validate all tags first
+        foreach (var tag in tags)
+        {
+            // TODO
+        }
+
         var sb = StringBuilderCache.Acquire(StringBuilderCache.MaxBuilderSize);
 
-        lock (tags)
+        foreach (var tag in tags)
         {
-            foreach (var tag in tags)
+            if (!string.IsNullOrEmpty(tag.Key) &&
+                !string.IsNullOrEmpty(tag.Value) &&
+                tag.Key.StartsWith(PropagatedTagPrefix, StringComparison.Ordinal))
             {
-                if (!string.IsNullOrEmpty(tag.Key) &&
-                    !string.IsNullOrEmpty(tag.Value) &&
-                    tag.Key.StartsWith(PropagatedTagPrefix, StringComparison.Ordinal))
+                if (sb.Length > 0)
                 {
-                    if (sb.Length > 0)
-                    {
-                        sb.Append(TagPairSeparator);
-                    }
-
-                    sb.Append(tag.Key)
-                      .Append(KeyValueSeparator)
-                      .Append(tag.Value);
+                    sb.Append(TagPairSeparator);
                 }
 
-                if (sb.Length > maxHeaderLength)
-                {
-                    // if combined tags get too long for propagation headers,
-                    // set tag "_dd.propagation_error:max_size"...
-                    tags.Add(new TraceTag(TraceTagNames.PropagationError, "max_size", TagSerializationMode.RootSpan));
+                sb.Append(tag.Key)
+                  .Append(KeyValueSeparator)
+                  .Append(tag.Value);
+            }
 
-                    // ... and don't set the header
-                    return string.Empty;
-                }
+            if (sb.Length > maxHeaderLength)
+            {
+                // if combined tags get too long for propagation headers,
+                // set tag "_dd.propagation_error:max_size"...
+                tags.Add(new TraceTag(TraceTagNames.PropagationError, "max_size", TagSerializationMode.RootSpan));
+
+                // ... and don't set the header
+                return string.Empty;
             }
         }
 
