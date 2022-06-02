@@ -84,7 +84,7 @@ internal static class TagPropagation
                     var name = headerTag.Substring(0, separatorIndex);
                     var value = headerTag.Substring(separatorIndex + 1);
 
-                    var traceTag = new TraceTag(name, value, TagSerializationMode.RootSpan);
+                    var traceTag = new TraceTag(name, value, TraceTagSerializationMode.RootSpan);
                     traceTags.Add(traceTag);
                 }
             }

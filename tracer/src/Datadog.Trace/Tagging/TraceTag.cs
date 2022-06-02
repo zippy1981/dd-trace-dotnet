@@ -1,4 +1,4 @@
-﻿// <copyright file="TraceTag.cs" company="Datadog">
+// <copyright file="TraceTag.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
@@ -15,9 +15,9 @@ internal readonly struct TraceTag
 
     public readonly string? Value;
 
-    public readonly TagSerializationMode SerializationMode;
+    public readonly TraceTagSerializationMode SerializationMode;
 
-    public TraceTag(string name, string? value, TagSerializationMode serializationMode)
+    public TraceTag(string name, string? value, TraceTagSerializationMode serializationMode)
     {
         Key = name;
         Value = value;
