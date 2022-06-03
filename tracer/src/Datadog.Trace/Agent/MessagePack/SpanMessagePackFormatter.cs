@@ -29,7 +29,7 @@ namespace Datadog.Trace.Agent.MessagePack
         private readonly byte[] _parentIdBytes = StringEncoding.UTF8.GetBytes("parent_id");
         private readonly byte[] _errorBytes = StringEncoding.UTF8.GetBytes("error");
 
-        // name of string tag dictionary
+        // name of string attribute dictionary
         private readonly byte[] _metaBytes = StringEncoding.UTF8.GetBytes("meta");
 
         private readonly byte[] _languageNameBytes = StringEncoding.UTF8.GetBytes(Trace.Tags.Language);
@@ -38,7 +38,7 @@ namespace Datadog.Trace.Agent.MessagePack
         private readonly byte[] _runtimeIdValueBytes = StringEncoding.UTF8.GetBytes(Tracer.RuntimeId);
         private readonly byte[] _originNameBytes = StringEncoding.UTF8.GetBytes(Trace.Tags.Origin);
 
-        // name of numeric tag dictionary
+        // name of numeric attribute dictionary
         private readonly byte[] _metricsBytes = StringEncoding.UTF8.GetBytes("metrics");
 
         private readonly byte[] _processIdNameBytes = StringEncoding.UTF8.GetBytes(Trace.Metrics.ProcessId);
@@ -66,7 +66,7 @@ namespace Datadog.Trace.Agent.MessagePack
                 len++;
             }
 
-            len += 2; // Tags and metrics
+            len += 2; // string attributes (meta) and numeric attributes (metrics)
 
             int originalOffset = offset;
 
@@ -114,28 +114,19 @@ namespace Datadog.Trace.Agent.MessagePack
                 tagProcessors = tracer.TracerManager?.TagProcessors;
             }
 
-            offset += SerializeTags(ref bytes, offset, value, value.Tags, tagProcessors);
+            offset += WriteStringAttributes(ref bytes, offset, value, value.Tags, tagProcessors);
+            offset += WriteNumericAttributes(ref bytes, offset, value, value.Tags, tagProcessors);
 
             return offset - originalOffset;
         }
 
-        private int SerializeTags(ref byte[] bytes, int offset, Span span, ITags tags, ITagProcessor[] tagProcessors)
+        // STRING ATTRIBUTES (META)
+
+        private int WriteStringAttributes(ref byte[] bytes, int offset, Span span, ITags tags, ITagProcessor[] tagProcessors)
         {
             int originalOffset = offset;
 
-            offset += WriteTags(ref bytes, offset, span, tags, tagProcessors);
-            offset += WriteMetrics(ref bytes, offset, span, tags, tagProcessors);
-
-            return offset - originalOffset;
-        }
-
-        // TAGS
-
-        private int WriteTags(ref byte[] bytes, int offset, Span span, ITags tags, ITagProcessor[] tagProcessors)
-        {
-            int originalOffset = offset;
-
-            // Start of "meta" dictionary. Do not add any string tags before this line.
+            // Start of "meta" dictionary. Do not add any string attributes before this line.
             offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _metaBytes);
 
             int count = 0;
@@ -144,7 +135,7 @@ namespace Datadog.Trace.Agent.MessagePack
             var countOffset = offset;
             offset += MessagePackBinary.WriteMapHeaderForceMap32Block(ref bytes, offset, 0);
 
-            // add "language=dotnet" tag to all spans, except those that
+            // add "language=dotnet" attributes to all spans, except those that
             // represents a downstream service or external dependency
             if (tags is not InstrumentationTags { SpanKind: SpanKinds.Client or SpanKinds.Producer })
             {
@@ -153,8 +144,8 @@ namespace Datadog.Trace.Agent.MessagePack
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _languageValueBytes);
             }
 
-            // Write span tags
-            var tagWriter = new TagWriter(this, tagProcessors, bytes, offset);
+            // Write span=level string attributes
+            var tagWriter = new AttributeWriter(this, tagProcessors, bytes, offset);
             tags.EnumerateTags(ref tagWriter);
             bytes = tagWriter.Bytes;
             offset = tagWriter.Offset;
@@ -162,32 +153,22 @@ namespace Datadog.Trace.Agent.MessagePack
 
             if (span.IsRootSpan)
             {
-                // write trace-level string tags
-                var traceTags = span.Context.TraceContext?.Tags;
                 if (traceTags != null)
                 {
-                    lock (traceTags)
-                    {
-                        count += traceTags.Count;
 
-                        // don't cast to IEnumerable so we can use the struct enumerator from List<T>
-                        foreach (var tag in traceTags)
-                        {
-                            WriteTag(ref bytes, ref offset, tag.Key, tag.Value, tagProcessors);
-                        }
                     }
                 }
             }
 
             if (span.IsTopLevel && (!Ci.CIVisibility.IsRunning || !Ci.CIVisibility.Settings.Agentless))
             {
-                // add "runtime-id" tag to service-entry (aka top-level) spans
+                // add "runtime-id" attributes to service-entry (aka top-level) spans
                 count++;
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _runtimeIdNameBytes);
                 offset += MessagePackBinary.WriteStringBytes(ref bytes, offset, _runtimeIdValueBytes);
             }
 
-            // add "_dd.origin" tag to all spans
+            // add "_dd.origin" attributes to all spans
             string origin = span.Context.Origin;
             if (!string.IsNullOrEmpty(origin))
             {
@@ -198,7 +179,7 @@ namespace Datadog.Trace.Agent.MessagePack
 
             if (count > 0)
             {
-                // Back-patch the count. End of "meta" dictionary. Do not add any string tags after this line.
+                // Back-patch the count. End of "meta" dictionary. Do not add any string attributes after this line.
                 MessagePackBinary.WriteMapHeaderForceMap32Block(ref bytes, countOffset, (uint)count);
             }
 
@@ -206,7 +187,7 @@ namespace Datadog.Trace.Agent.MessagePack
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteTag(ref byte[] bytes, ref int offset, string key, string value, ITagProcessor[] tagProcessors)
+        private void WriteStringAttribute(ref byte[] bytes, ref int offset, string key, string value, ITagProcessor[] tagProcessors)
         {
             if (tagProcessors is not null)
             {
@@ -221,7 +202,7 @@ namespace Datadog.Trace.Agent.MessagePack
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteTag(ref byte[] bytes, ref int offset, byte[] keyBytes, string value, ITagProcessor[] tagProcessors)
+        private void WriteStringAttribute(ref byte[] bytes, ref int offset, byte[] keyBytes, string value, ITagProcessor[] tagProcessors)
         {
             if (tagProcessors is not null)
             {
@@ -236,9 +217,9 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteString(ref bytes, offset, value);
         }
 
-        // METRICS
+        // NUMERIC ATTRIBUTES (METRICS)
 
-        private int WriteMetrics(ref byte[] bytes, int offset, Span span, ITags tags, ITagProcessor[] tagProcessors)
+        private int WriteNumericAttributes(ref byte[] bytes, int offset, Span span, ITags tags, ITagProcessor[] tagProcessors)
         {
             int originalOffset = offset;
 
@@ -252,7 +233,7 @@ namespace Datadog.Trace.Agent.MessagePack
             offset += MessagePackBinary.WriteMapHeaderForceMap32Block(ref bytes, offset, 0);
 
             // Write span metrics
-            var tagWriter = new TagWriter(this, tagProcessors, bytes, offset);
+            var tagWriter = new AttributeWriter(this, tagProcessors, bytes, offset);
             tags.EnumerateMetrics(ref tagWriter);
             bytes = tagWriter.Bytes;
             offset = tagWriter.Offset;
@@ -272,7 +253,7 @@ namespace Datadog.Trace.Agent.MessagePack
             if (span.IsTopLevel && (!Ci.CIVisibility.IsRunning || !Ci.CIVisibility.Settings.Agentless))
             {
                 count++;
-                WriteMetric(ref bytes, ref offset, Trace.Metrics.TopLevelSpan, 1.0, tagProcessors);
+                WriteNumericAttribute(ref bytes, ref offset, Trace.Metrics.TopLevelSpan, 1.0, tagProcessors);
             }
 
             if (count > 0)
@@ -285,7 +266,7 @@ namespace Datadog.Trace.Agent.MessagePack
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteMetric(ref byte[] bytes, ref int offset, string key, double value, ITagProcessor[] tagProcessors)
+        private void WriteNumericAttribute(ref byte[] bytes, ref int offset, string key, double value, ITagProcessor[] tagProcessors)
         {
             if (tagProcessors is not null)
             {
@@ -300,7 +281,7 @@ namespace Datadog.Trace.Agent.MessagePack
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteMetric(ref byte[] bytes, ref int offset, byte[] keyBytes, double value, ITagProcessor[] tagProcessors)
+        private void WriteNumericAttribute(ref byte[] bytes, ref int offset, byte[] keyBytes, double value, ITagProcessor[] tagProcessors)
         {
             if (tagProcessors is not null)
             {
@@ -320,7 +301,7 @@ namespace Datadog.Trace.Agent.MessagePack
             throw new NotImplementedException();
         }
 
-        internal struct TagWriter : IItemProcessor<string>, IItemProcessor<double>
+        private struct AttributeWriter : IItemProcessor<string>, IItemProcessor<double>
         {
             private readonly SpanMessagePackFormatter _formatter;
             private readonly ITagProcessor[] _tagProcessors;
@@ -329,7 +310,7 @@ namespace Datadog.Trace.Agent.MessagePack
             public int Offset;
             public int Count;
 
-            internal TagWriter(SpanMessagePackFormatter formatter, ITagProcessor[] tagProcessors, byte[] bytes, int offset)
+            internal AttributeWriter(SpanMessagePackFormatter formatter, ITagProcessor[] tagProcessors, byte[] bytes, int offset)
             {
                 _formatter = formatter;
                 _tagProcessors = tagProcessors;
@@ -342,11 +323,11 @@ namespace Datadog.Trace.Agent.MessagePack
             {
                 if (item.KeyUtf8 is null)
                 {
-                    _formatter.WriteTag(ref Bytes, ref Offset, item.Key, item.Value, _tagProcessors);
+                    _formatter.WriteStringAttribute(ref Bytes, ref Offset, item.Key, item.Value, _tagProcessors);
                 }
                 else
                 {
-                    _formatter.WriteTag(ref Bytes, ref Offset, item.KeyUtf8, item.Value, _tagProcessors);
+                    _formatter.WriteStringAttribute(ref Bytes, ref Offset, item.KeyUtf8, item.Value, _tagProcessors);
                 }
 
                 Count++;
@@ -356,11 +337,11 @@ namespace Datadog.Trace.Agent.MessagePack
             {
                 if (item.KeyUtf8 is null)
                 {
-                    _formatter.WriteMetric(ref Bytes, ref Offset, item.Key, item.Value, _tagProcessors);
+                    _formatter.WriteNumericAttribute(ref Bytes, ref Offset, item.Key, item.Value, _tagProcessors);
                 }
                 else
                 {
-                    _formatter.WriteMetric(ref Bytes, ref Offset, item.KeyUtf8, item.Value, _tagProcessors);
+                    _formatter.WriteNumericAttribute(ref Bytes, ref Offset, item.KeyUtf8, item.Value, _tagProcessors);
                 }
 
                 Count++;
