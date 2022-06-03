@@ -359,7 +359,7 @@ namespace Datadog.Trace
             }
             else
             {
-                traceContext = new TraceContext(this);
+                traceContext = new TraceContext(this, tags: null);
                 traceContext.SetSamplingPriority(DistributedTracer.Instance.GetSamplingPriority());
 
                 if (traceId == null)

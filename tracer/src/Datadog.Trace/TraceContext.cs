@@ -3,6 +3,8 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
+#nullable enable
+
 using System;
 using System.Diagnostics;
 using Datadog.Trace.ClrProfiler;
@@ -24,19 +26,23 @@ namespace Datadog.Trace
         private int _openSpans;
         private int? _samplingPriority;
 
-        public TraceContext(IDatadogTracer tracer, TraceTagCollection tags = null)
+        public TraceContext(IDatadogTracer tracer, TraceTagCollection? tags = null)
         {
             Tracer = tracer;
             Tags = tags;
         }
 
-        public Span RootSpan { get; private set; }
+        public Span? RootSpan { get; private set; }
 
         public DateTimeOffset UtcNow => _utcStart.Add(Elapsed);
 
         public IDatadogTracer Tracer { get; }
 
-        public TraceTagCollection Tags { get; }
+        /// <summary>
+        /// Gets the collection of trace-level tags. How each tag is serialized depends
+        /// on the tag and the format used to send traces.
+        /// </summary>
+        public TraceTagCollection? Tags { get; }
 
         /// <summary>
         /// Gets the trace's sampling priority.
@@ -175,7 +181,7 @@ namespace Datadog.Trace
 
             var samplingPriority = _samplingPriority;
 
-            if (samplingPriority == null)
+            if (samplingPriority == null || spans.Array == null)
             {
                 return;
             }
