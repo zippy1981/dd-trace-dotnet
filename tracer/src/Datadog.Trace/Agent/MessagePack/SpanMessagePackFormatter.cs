@@ -151,11 +151,20 @@ namespace Datadog.Trace.Agent.MessagePack
             offset = tagWriter.Offset;
             count += tagWriter.Count;
 
-            if (span.IsRootSpan)
-            {
-                if (traceTags != null)
-                {
+            // write trace-level string attributes
+            var traceTags = span.Context.TraceContext?.Tags;
 
+            if (traceTags != null)
+            {
+                foreach (var traceTag in traceTags)
+                {
+                    // TODO: implement TraceTagSerializationMode.FirstSpanPerChunk
+
+                    if (traceTag.SerializationMode == TraceTagSerializationMode.AllSpans ||
+                        (traceTag.SerializationMode == TraceTagSerializationMode.RootSpan && span.IsRootSpan) ||
+                        (traceTag.SerializationMode == TraceTagSerializationMode.TopLevelSpans && span.IsTopLevel))
+                    {
+                        WriteStringAttribute(ref bytes, ref offset, traceTag.Key, traceTag.Value, tagProcessors);
                     }
                 }
             }
