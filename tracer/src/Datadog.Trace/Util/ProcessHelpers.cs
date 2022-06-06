@@ -6,6 +6,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Datadog.Trace.Util
 {
@@ -24,10 +26,8 @@ namespace Datadog.Trace.Util
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static string GetCurrentProcessName()
         {
-            using (var currentProcess = Process.GetCurrentProcess())
-            {
-                return currentProcess.ProcessName;
-            }
+            using var currentProcess = Process.GetCurrentProcess();
+            return currentProcess.ProcessName;
         }
 
         /// <summary>
@@ -45,12 +45,10 @@ namespace Datadog.Trace.Util
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void GetCurrentProcessInformation(out string processName, out string machineName, out int processId)
         {
-            using (var currentProcess = Process.GetCurrentProcess())
-            {
-                processName = currentProcess.ProcessName;
-                machineName = currentProcess.MachineName;
-                processId = currentProcess.Id;
-            }
+            using var currentProcess = Process.GetCurrentProcess();
+            processName = currentProcess.ProcessName;
+            machineName = currentProcess.MachineName;
+            processId = currentProcess.Id;
         }
 
         /// <summary>
@@ -70,11 +68,99 @@ namespace Datadog.Trace.Util
         public static void GetCurrentProcessRuntimeMetrics(out TimeSpan userProcessorTime, out TimeSpan systemCpuTime, out int threadCount, out long privateMemorySize)
         {
             using var process = Process.GetCurrentProcess();
-
             userProcessorTime = process.UserProcessorTime;
             systemCpuTime = process.PrivilegedProcessorTime;
             threadCount = process.Threads.Count;
             privateMemorySize = process.PrivateMemorySize64;
+        }
+
+        /// <summary>
+        /// Run a command and get the standard output content as a string
+        /// </summary>
+        /// <param name="command">Command to run</param>
+        /// <param name="input">Standard input content</param>
+        /// <returns>Task with the content of the standard output</returns>
+        public static async Task<string> RunCommandAsync(Command command, string input = null)
+        {
+            var processStartInfo = GetProcessStartInfo(command);
+            if (input is not null)
+            {
+                processStartInfo.RedirectStandardInput = true;
+            }
+
+            using var processInfo = Process.Start(processStartInfo);
+            if (processInfo is null)
+            {
+                return null;
+            }
+
+            if (input is not null)
+            {
+                await processInfo.StandardInput.WriteAsync(input).ConfigureAwait(false);
+                await processInfo.StandardInput.FlushAsync().ConfigureAwait(false);
+                processInfo.StandardInput.Close();
+            }
+
+            processInfo.WaitForExit();
+            return await processInfo.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+        }
+
+        private static ProcessStartInfo GetProcessStartInfo(Command command)
+        {
+            ProcessStartInfo processStartInfo = null;
+#if NETFRAMEWORK
+            if (Environment.OSVersion.Platform != PlatformID.Unix && Environment.OSVersion.Platform != PlatformID.MacOSX)
+#else
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+#endif
+            {
+                if (command.UseShell)
+                {
+                    processStartInfo = new ProcessStartInfo("cmd.exe", $"/C {command.Cmd} {command.Arguments}");
+                }
+                else
+                {
+                    processStartInfo = new ProcessStartInfo(command.Cmd, command.Arguments);
+                }
+            }
+            else
+            {
+                if (command.UseShell)
+                {
+                    processStartInfo = new ProcessStartInfo("sh", $"-c \"{command.Cmd} {command.Arguments}\"");
+                }
+                else
+                {
+                    processStartInfo = new ProcessStartInfo(command.Cmd, command.Arguments);
+                }
+            }
+
+            processStartInfo.CreateNoWindow = true;
+            processStartInfo.UseShellExecute = false;
+            processStartInfo.RedirectStandardOutput = true;
+
+            if (command.WorkingDirectory is not null)
+            {
+                processStartInfo.WorkingDirectory = command.WorkingDirectory;
+            }
+
+            return processStartInfo;
+        }
+
+        public readonly struct Command
+        {
+            public readonly string Cmd;
+            public readonly string Arguments;
+            public readonly string WorkingDirectory;
+            public readonly bool UseShell;
+
+            public Command(string cmd, string arguments = null, string workingDirectory = null, bool useShell = false)
+            {
+                Cmd = cmd;
+                Arguments = arguments;
+                WorkingDirectory = workingDirectory;
+                UseShell = useShell;
+            }
         }
     }
 }
