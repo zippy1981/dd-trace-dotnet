@@ -26,8 +26,8 @@ internal partial class ITRClient
 
         using (var requestStream = await client.GetRequestStreamAsync().ConfigureAwait(false))
         {
-            var streamWriter = new StreamWriter(requestStream);
-            await streamWriter.WriteAsync(inputJson).ConfigureAwait(false);
+            var jsonBytes = Encoding.UTF8.GetBytes(inputJson);
+            await requestStream.WriteAsync(jsonBytes, 0, jsonBytes.Length).ConfigureAwait(false);
         }
 
         HttpWebResponse httpWebResponse;
@@ -62,18 +62,20 @@ internal partial class ITRClient
 
         using (var requestStream = await client.GetRequestStreamAsync().ConfigureAwait(false))
         {
-            var streamWriter = new StreamWriter(requestStream);
             var boundaryBytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
             // First Content
             await requestStream.WriteAsync(boundaryBytes, 0, boundaryBytes.Length).ConfigureAwait(false);
-            await streamWriter.WriteAsync($"Content-Disposition: form-data; name=\"{jsonName}\"\r\nContent-Type: application/json\r\n\r\n{jsonContent}").ConfigureAwait(false);
-            await streamWriter.FlushAsync().ConfigureAwait(false);
+            var jsonContentBytes = Encoding.UTF8.GetBytes(
+                $"Content-Disposition: form-data; name=\"{jsonName}\"\r\nContent-Type: application/json\r\n\r\n{jsonContent}");
+            await requestStream.WriteAsync(jsonContentBytes, 0, jsonContentBytes.Length).ConfigureAwait(false);
 
             // Second content
             await requestStream.WriteAsync(boundaryBytes, 0, boundaryBytes.Length).ConfigureAwait(false);
-            await streamWriter.WriteAsync($"Content-Disposition: form-data; name=\"{streamName}\"\r\nContent-Type: application/octet-stream\r\n\r\n").ConfigureAwait(false);
-            await streamWriter.FlushAsync().ConfigureAwait(false);
+            var streamContentBytes =
+                Encoding.UTF8.GetBytes(
+                    $"Content-Disposition: form-data; name=\"{streamName}\"\r\nContent-Type: application/octet-stream\r\n\r\n");
+            await requestStream.WriteAsync(streamContentBytes, 0, streamContentBytes.Length).ConfigureAwait(false);
 
             await streamContent.CopyToAsync(requestStream).ConfigureAwait(false);
 
