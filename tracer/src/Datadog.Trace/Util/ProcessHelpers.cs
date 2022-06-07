@@ -101,8 +101,15 @@ namespace Datadog.Trace.Util
                 processInfo.StandardInput.Close();
             }
 
-            processInfo.WaitForExit();
-            return await processInfo.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            string output = null;
+            while (!processInfo.HasExited)
+            {
+                output += await processInfo.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                await Task.Delay(1).ConfigureAwait(false);
+            }
+
+            output += await processInfo.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            return output;
         }
 
         private static ProcessStartInfo GetProcessStartInfo(Command command)
