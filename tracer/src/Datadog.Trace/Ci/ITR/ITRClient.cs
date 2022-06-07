@@ -149,8 +149,7 @@ internal partial class ITRClient
 
         async Task<long> InternalSendObjectsPackFileAsync(string packFile, bool finalTry)
         {
-            using var fileStream = File.Open(packFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var response = await SendMultipartJsonWithStreamAsync(_packFileUrl, "pushedSha", jsonPushedSha, "packfile", fileStream).ConfigureAwait(false);
+            var response = await SendMultipartJsonWithFileAsync(_packFileUrl, "pushedSha", jsonPushedSha, "packfile", packFile).ConfigureAwait(false);
             if (response.StatusCode is < 200 or >= 300)
             {
                 if (finalTry)
@@ -168,7 +167,7 @@ internal partial class ITRClient
                 throw new WebException($"Status: {response.StatusCode}, Content: {response.Content}");
             }
 
-            return fileStream.Length;
+            return new FileInfo(packFile).Length;
         }
     }
 

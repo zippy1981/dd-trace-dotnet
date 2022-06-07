@@ -52,7 +52,7 @@ internal partial class ITRClient
         return new RawResponse((int)httpWebResponse.StatusCode, responseContent);
     }
 
-    private async Task<RawResponse> SendMultipartJsonWithStreamAsync(Uri url, string jsonName, string jsonContent, string streamName, Stream streamContent)
+    private async Task<RawResponse> SendMultipartJsonWithFileAsync(Uri url, string jsonName, string jsonContent, string fileName, string filePath)
     {
         var boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
 
@@ -74,10 +74,11 @@ internal partial class ITRClient
             await requestStream.WriteAsync(boundaryBytes, 0, boundaryBytes.Length).ConfigureAwait(false);
             var streamContentBytes =
                 Encoding.UTF8.GetBytes(
-                    $"Content-Disposition: form-data; name=\"{streamName}\"\r\nContent-Type: application/octet-stream\r\n\r\n");
+                    $"Content-Disposition: form-data; name=\"{fileName}\"\r\nContent-Type: application/octet-stream\r\n\r\n");
             await requestStream.WriteAsync(streamContentBytes, 0, streamContentBytes.Length).ConfigureAwait(false);
 
-            await streamContent.CopyToAsync(requestStream).ConfigureAwait(false);
+            using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await fileStream.CopyToAsync(requestStream).ConfigureAwait(false);
 
             var trailer = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
             await requestStream.WriteAsync(trailer, 0, trailer.Length).ConfigureAwait(false);

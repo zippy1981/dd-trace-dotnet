@@ -30,7 +30,7 @@ internal partial class ITRClient
         return new RawResponse((int)response.StatusCode, responseContent);
     }
 
-    private async Task<RawResponse> SendMultipartJsonWithStreamAsync(Uri url, string jsonName, string jsonContent, string streamName, Stream streamContent)
+    private async Task<RawResponse> SendMultipartJsonWithFileAsync(Uri url, string jsonName, string jsonContent, string fileName, string filePath)
     {
         using var formDataContent = new MultipartFormDataContent();
 
@@ -38,9 +38,10 @@ internal partial class ITRClient
         formDataContent.Add(new StringContent(jsonContent, Encoding.UTF8, "application/json"), jsonName);
 
         // Second Content
-        var packContent = new StreamContent(streamContent);
+        using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var packContent = new StreamContent(fileStream);
         packContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-        formDataContent.Add(packContent, streamName);
+        formDataContent.Add(packContent, fileName);
 
         // Send payload
         var response = await _client.PostAsync(_packFileUrl, formDataContent).ConfigureAwait(false);
