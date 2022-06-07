@@ -6,24 +6,21 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
-using System.Text;
 using System.Threading.Tasks;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Util;
 using Datadog.Trace.Vendors.Newtonsoft.Json;
-using StreamContent = System.Net.Http.StreamContent;
 
 namespace Datadog.Trace.Ci.ITR;
 
 /// <summary>
 /// Intelligent Test Runner Client
 /// </summary>
-internal class ITRClient
+internal partial class ITRClient
 {
     private const string BaseUrl = "https://git-api-ci-app-backend.us1.staging.dog";
     private const int MaxRetries = 3;
@@ -34,7 +31,6 @@ internal class ITRClient
     private readonly GlobalSettings _globalSettings;
     private readonly string _repository;
     private readonly string _workingDirectory;
-    private readonly HttpClient _client;
     private readonly Uri _searchCommitsUrl;
     private readonly Uri _packFileUrl;
 
@@ -43,7 +39,6 @@ internal class ITRClient
         _globalSettings = GlobalSettings.FromDefaultSources();
         _repository = repository;
         _workingDirectory = workingDirectory;
-        _client = new HttpClient();
 
         _searchCommitsUrl = new UriBuilder(BaseUrl)
         {
@@ -54,6 +49,8 @@ internal class ITRClient
         {
             Path = $"/repository/{repository}/packfile"
         }.Uri;
+
+        InitializeClient();
     }
 
     public async Task<long> UploadRepositoryChangesAsync()
@@ -88,31 +85,30 @@ internal class ITRClient
         }
 
         var jsonPushedSha = JsonConvert.SerializeObject(new DataArrayEnvelope<CommitRequest>(commitRequests));
-        return await WithRetries(
-                   async (state, finalTry) =>
-        {
-            var content = new StringContent(state, Encoding.UTF8, "application/json");
-            var response = await _client.PostAsync(_searchCommitsUrl, content).ConfigureAwait(false);
-            var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-            if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
+        return await WithRetries(InternalSearchCommitAsync, jsonPushedSha, MaxRetries).ConfigureAwait(false);
+
+        async Task<string[]> InternalSearchCommitAsync(string state, bool finalTry)
+        {
+            var response = await SendJsonDataAsync(_searchCommitsUrl, state).ConfigureAwait(false);
+            if (response.StatusCode is < 200 or >= 300)
             {
                 if (finalTry)
                 {
                     try
                     {
-                        Log.Error<int, string>("Failed to submit events with status code {StatusCode} and message: {ResponseContent}", (int)response.StatusCode, responseContent);
+                        Log.Error<int, string>("Failed to submit events with status code {StatusCode} and message: {ResponseContent}", response.StatusCode, response.Content);
                     }
                     catch (Exception ex)
                     {
-                        Log.Error<int>(ex, "Unable to read response for failed request with status code {StatusCode}", (int)response.StatusCode);
+                        Log.Error<int>(ex, "Unable to read response for failed request with status code {StatusCode}", response.StatusCode);
                     }
                 }
 
-                throw new HttpRequestException($"Status: {(int)response.StatusCode}, Content: {responseContent}");
+                throw new WebException($"Status: {response.StatusCode}, Content: {response.Content}");
             }
 
-            var deserializedResult = JsonConvert.DeserializeObject<DataArrayEnvelope<CommitResponse>>(responseContent);
+            var deserializedResult = JsonConvert.DeserializeObject<DataArrayEnvelope<CommitResponse>>(response.Content);
             if (deserializedResult.Data is null)
             {
                 return null;
@@ -125,9 +121,7 @@ internal class ITRClient
             }
 
             return stringArray;
-        },
-                   jsonPushedSha,
-                   MaxRetries).ConfigureAwait(false);
+        }
     }
 
     public async Task<long> SendObjectsPackFileAsync(string commitSha, string[] commitsExceptions)
@@ -138,45 +132,7 @@ internal class ITRClient
         foreach (var packFile in packFiles)
         {
             // Send PackFile content
-            totalUploadSize += await WithRetries<long, object>(
-                                   async (state, finalTry) =>
-            {
-                using var formDataContent = new MultipartFormDataContent();
-
-                // First Content
-                formDataContent.Add(new StringContent(jsonPushedSha, Encoding.UTF8, "application/json"), "pushedSha");
-
-                // Second Content
-                using var fileStream = File.Open(packFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var packContent = new StreamContent(fileStream);
-                packContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                formDataContent.Add(packContent, "packfile");
-
-                // Send payload
-                var response = await _client.PostAsync(_packFileUrl, formDataContent).ConfigureAwait(false);
-                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                if ((int)response.StatusCode < 200 || (int)response.StatusCode >= 300)
-                {
-                    if (finalTry)
-                    {
-                        try
-                        {
-                            Log.Error<int, string>("Failed to submit events with status code {StatusCode} and message: {ResponseContent}", (int)response.StatusCode, responseContent);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error<int>(ex, "Unable to read response for failed request with status code {StatusCode}", (int)response.StatusCode);
-                        }
-                    }
-
-                    throw new HttpRequestException($"Status: {(int)response.StatusCode}, Content: {responseContent}");
-                }
-
-                return fileStream.Length;
-            },
-                                   (object)null,
-                                   MaxRetries).ConfigureAwait(false);
+            totalUploadSize += await WithRetries(InternalSendObjectsPackFileAsync, packFile, MaxRetries).ConfigureAwait(false);
 
             // Delete temporal pack file
             try
@@ -190,6 +146,30 @@ internal class ITRClient
         }
 
         return totalUploadSize;
+
+        async Task<long> InternalSendObjectsPackFileAsync(string packFile, bool finalTry)
+        {
+            using var fileStream = File.Open(packFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var response = await SendMultipartJsonWithStreamAsync(_packFileUrl, "pushedSha", jsonPushedSha, "packfile", fileStream).ConfigureAwait(false);
+            if (response.StatusCode is < 200 or >= 300)
+            {
+                if (finalTry)
+                {
+                    try
+                    {
+                        Log.Error<int, string>("Failed to submit events with status code {StatusCode} and message: {ResponseContent}", response.StatusCode, response.Content);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error<int>(ex, "Unable to read response for failed request with status code {StatusCode}", response.StatusCode);
+                    }
+                }
+
+                throw new WebException($"Status: {response.StatusCode}, Content: {response.Content}");
+            }
+
+            return fileStream.Length;
+        }
     }
 
     private async Task<string[]> GetObjectsPackFileFromWorkingDirectoryAsync(string[] commitsExceptions)
@@ -278,6 +258,18 @@ internal class ITRClient
 
             Log.Debug("Successfully sent intelligent test runner data");
             return response;
+        }
+    }
+
+    private readonly struct RawResponse
+    {
+        public readonly int StatusCode;
+        public readonly string Content;
+
+        public RawResponse(int statusCode, string content)
+        {
+            StatusCode = statusCode;
+            Content = content;
         }
     }
 
