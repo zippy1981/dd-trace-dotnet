@@ -24,7 +24,7 @@ internal partial class ITRClient
 {
     private const string BaseUrl = "https://git-api-ci-app-backend.us1.staging.dog";
     private const int MaxRetries = 3;
-    private const int MaxPackFileSizeInMb = 4;
+    private const int MaxPackFileSizeInMb = 3;
 
     private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ITRClient));
 
