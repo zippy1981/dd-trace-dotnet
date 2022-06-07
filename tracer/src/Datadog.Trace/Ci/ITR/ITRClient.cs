@@ -4,6 +4,7 @@
 // </copyright>
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -181,8 +182,27 @@ internal partial class ITRClient
 
         var getPacksArguments = $"pack-objects --compression=9 --max-pack-size={MaxPackFileSizeInMb}m  {temporalPath}";
         var packObjectsResult = await ProcessHelpers.RunCommandAsync(new ProcessHelpers.Command("git", getPacksArguments, _workingDirectory), getObjects).ConfigureAwait(false);
+        var packObjectsSha = packObjectsResult.Split(new[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-        return Directory.GetFiles(Path.GetDirectoryName(temporalPath) ?? string.Empty, $"{Path.GetFileName(temporalPath)}*.pack");
+        // We try to return an array with the path in the same order as has been returned by the git command.
+        var tempFolder = Path.GetDirectoryName(temporalPath) ?? string.Empty;
+        var tempFile = Path.GetFileName(temporalPath);
+        var lstFiles = new List<string>(packObjectsSha.Length);
+        foreach (var pObjSha in packObjectsSha)
+        {
+            var file = Path.Combine(tempFolder, tempFile + "-" + pObjSha + ".pack");
+            if (File.Exists(file))
+            {
+                lstFiles.Add(file);
+            }
+            else
+            {
+                // If we cannot find the file, we just return the Directory.GetFiles content with the pattern we are expecting
+                return Directory.GetFiles(tempFolder, $"{tempFile}*.pack");
+            }
+        }
+
+        return lstFiles.ToArray();
     }
 
     private async Task<T> WithRetries<T, TState>(Func<TState, bool, Task<T>> sendDelegate, TState state, int numOfRetries)
