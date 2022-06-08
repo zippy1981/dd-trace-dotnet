@@ -2753,7 +2753,7 @@ stages:
   dependsOn: [package_linux, generate_variables, build_windows_tracer, master_commit_id]
   variables:
     masterCommitId: $[ stageDependencies.master_commit_id.fetch.outputs['set_sha.master']]
-  pool: Throughput_profiler
+  pool: Throughput-profiler
   jobs:
   - template: steps/update-github-status-jobs.yml
     parameters:
