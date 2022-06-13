@@ -30,16 +30,16 @@ internal partial class ITRClient
     private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ITRClient));
 
     private readonly GlobalSettings _globalSettings;
-    private readonly string _repository;
     private readonly string _workingDirectory;
     private readonly Uri _searchCommitsUrl;
     private readonly Uri _packFileUrl;
+    private readonly Task<string> _getRepositoryUrlTask;
 
-    public ITRClient(string repository, string workingDirectory)
+    public ITRClient(string workingDirectory)
     {
         _globalSettings = GlobalSettings.FromDefaultSources();
-        _repository = repository;
         _workingDirectory = workingDirectory;
+        _getRepositoryUrlTask = GetRepositoryUrlAsync();
 
         _searchCommitsUrl = new UriBuilder(BaseUrl)
         {
@@ -85,7 +85,8 @@ internal partial class ITRClient
             commitRequests[i] = new CommitRequest(localCommits[i]);
         }
 
-        var jsonPushedSha = JsonConvert.SerializeObject(new DataArrayEnvelopeWithMeta<CommitRequest>(commitRequests, _repository));
+        var repository = await _getRepositoryUrlTask.ConfigureAwait(false);
+        var jsonPushedSha = JsonConvert.SerializeObject(new DataArrayEnvelopeWithMeta<CommitRequest>(commitRequests, repository));
 
         return await WithRetries(InternalSearchCommitAsync, jsonPushedSha, MaxRetries).ConfigureAwait(false);
 
@@ -127,7 +128,8 @@ internal partial class ITRClient
 
     public async Task<long> SendObjectsPackFileAsync(string commitSha, string[] commitsExceptions)
     {
-        var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelopeWithMeta<CommitRequest>(new CommitRequest(commitSha), _repository));
+        var repository = await _getRepositoryUrlTask.ConfigureAwait(false);
+        var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelopeWithMeta<CommitRequest>(new CommitRequest(commitSha), repository));
         var packFiles = await GetObjectsPackFileFromWorkingDirectoryAsync(commitsExceptions).ConfigureAwait(false);
         if (packFiles is null)
         {
@@ -290,6 +292,12 @@ internal partial class ITRClient
         }
     }
 
+    private async Task<string> GetRepositoryUrlAsync()
+    {
+        var gitOutput = await ProcessHelpers.RunCommandAsync(new ProcessHelpers.Command("git", "config --get remote.origin.url", _workingDirectory)).ConfigureAwait(false);
+        return gitOutput.Replace("\n", string.Empty);
+    }
+
     private readonly struct RawResponse
     {
         public readonly int StatusCode;
@@ -299,17 +307,6 @@ internal partial class ITRClient
         {
             StatusCode = statusCode;
             Content = content;
-        }
-    }
-
-    private readonly struct DataEnvelope<T>
-    {
-        [JsonProperty("data")]
-        public readonly T Data;
-
-        public DataEnvelope(T data)
-        {
-            Data = data;
         }
     }
 
