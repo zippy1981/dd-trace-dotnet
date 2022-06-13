@@ -43,12 +43,12 @@ internal partial class ITRClient
 
         _searchCommitsUrl = new UriBuilder(BaseUrl)
         {
-            Path = $"/repository/{repository}/search_commits"
+            Path = $"/repository/search_commits"
         }.Uri;
 
         _packFileUrl = new UriBuilder(BaseUrl)
         {
-            Path = $"/repository/{repository}/packfile"
+            Path = $"/repository/packfile"
         }.Uri;
 
         InitializeClient();
@@ -85,7 +85,7 @@ internal partial class ITRClient
             commitRequests[i] = new CommitRequest(localCommits[i]);
         }
 
-        var jsonPushedSha = JsonConvert.SerializeObject(new DataArrayEnvelope<CommitRequest>(commitRequests));
+        var jsonPushedSha = JsonConvert.SerializeObject(new DataArrayEnvelopeWithMeta<CommitRequest>(commitRequests, _repository));
 
         return await WithRetries(InternalSearchCommitAsync, jsonPushedSha, MaxRetries).ConfigureAwait(false);
 
@@ -127,8 +127,13 @@ internal partial class ITRClient
 
     public async Task<long> SendObjectsPackFileAsync(string commitSha, string[] commitsExceptions)
     {
-        var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelope<CommitRequest>(new CommitRequest(commitSha)));
+        var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelopeWithMeta<CommitRequest>(new CommitRequest(commitSha), _repository));
         var packFiles = await GetObjectsPackFileFromWorkingDirectoryAsync(commitsExceptions).ConfigureAwait(false);
+        if (packFiles is null)
+        {
+            return 0;
+        }
+
         long totalUploadSize = 0;
         foreach (var packFile in packFiles)
         {
@@ -179,6 +184,11 @@ internal partial class ITRClient
 
         var getObjectsArguments = "log --format=format:%H%n%T --since=\"1 month ago\" HEAD " + string.Join(" ", commitsExceptions.Select(c => "^" + c));
         var getObjects = await ProcessHelpers.RunCommandAsync(new ProcessHelpers.Command("git", getObjectsArguments, _workingDirectory)).ConfigureAwait(false);
+        if (string.IsNullOrEmpty(getObjects))
+        {
+            // If not objects has been returned we skip the pack + upload.
+            return null;
+        }
 
         var getPacksArguments = $"pack-objects --compression=9 --max-pack-size={MaxPackFileSizeInMb}m  {temporalPath}";
         var packObjectsResult = await ProcessHelpers.RunCommandAsync(new ProcessHelpers.Command("git", getPacksArguments, _workingDirectory), getObjects).ConfigureAwait(false);
@@ -311,6 +321,47 @@ internal partial class ITRClient
         public DataArrayEnvelope(T[] data)
         {
             Data = data;
+        }
+    }
+
+    private readonly struct DataEnvelopeWithMeta<T>
+    {
+        [JsonProperty("data")]
+        public readonly T Data;
+
+        [JsonProperty("meta")]
+        public readonly Metadata Meta;
+
+        public DataEnvelopeWithMeta(T data, string repositoryUrl)
+        {
+            Data = data;
+            Meta = new Metadata(repositoryUrl);
+        }
+    }
+
+    private readonly struct DataArrayEnvelopeWithMeta<T>
+    {
+        [JsonProperty("data")]
+        public readonly T[] Data;
+
+        [JsonProperty("meta")]
+        public readonly Metadata Meta;
+
+        public DataArrayEnvelopeWithMeta(T[] data, string repositoryUrl)
+        {
+            Data = data;
+            Meta = new Metadata(repositoryUrl);
+        }
+    }
+
+    private readonly struct Metadata
+    {
+        [JsonProperty("repository_url")]
+        public readonly string RepositoryUrl;
+
+        public Metadata(string repositoryUrl)
+        {
+            RepositoryUrl = repositoryUrl;
         }
     }
 
