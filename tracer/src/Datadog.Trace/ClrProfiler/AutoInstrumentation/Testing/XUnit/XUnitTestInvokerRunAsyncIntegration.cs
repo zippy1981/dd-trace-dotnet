@@ -5,6 +5,7 @@
 
 using System;
 using System.ComponentModel;
+using Datadog.Trace.Ci;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.DuckTyping;
@@ -52,7 +53,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
                 TestMethodArguments = invokerInstance.TestMethodArguments
             };
 
-            return new CallTargetState(XUnitIntegration.CreateScope(ref runnerInstance, instance.GetType()));
+            return new CallTargetState(null, XUnitIntegration.CreateScope(ref runnerInstance, instance.GetType()));
         }
 
         /// <summary>
@@ -66,11 +67,11 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>A response value, in an async scenario will be T of Task of T</returns>
         internal static decimal OnAsyncMethodEnd<TTarget>(TTarget instance, decimal returnValue, Exception exception, in CallTargetState state)
         {
-            Scope scope = state.Scope;
-            if (scope != null)
+            Test test = (Test)state.State;
+            if (test != null)
             {
                 TestInvokerStruct invokerInstance = instance.DuckCast<TestInvokerStruct>();
-                XUnitIntegration.FinishScope(scope, invokerInstance.Aggregator);
+                XUnitIntegration.FinishScope(test, invokerInstance.Aggregator);
             }
 
             return returnValue;

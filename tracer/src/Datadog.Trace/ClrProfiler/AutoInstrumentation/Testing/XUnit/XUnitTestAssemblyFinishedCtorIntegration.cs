@@ -4,6 +4,7 @@
 // </copyright>
 
 using System.ComponentModel;
+using Datadog.Trace.Ci;
 using Datadog.Trace.ClrProfiler.CallTarget;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
@@ -44,7 +45,8 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>Calltarget state value</returns>
         internal static CallTargetState OnMethodBegin<TTarget, TArg1, TArg2, TArg3, TArg4, TArg5, TArg6>(TTarget instance, TArg1 testCases, TArg2 testAssembly, TArg3 executionTime, TArg4 testsRun, TArg5 testsFailed, TArg6 testsSkipped)
         {
-            Common.FlushSpans(XUnitIntegration.IntegrationId);
+            Common.Log.Warning("##### TestAssemblyFinished.ctor CALL!!!!");
+            TestSuite.Current?.Close();
             return CallTargetState.GetDefault();
         }
     }

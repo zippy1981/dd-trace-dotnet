@@ -9,8 +9,6 @@ using System.Reflection;
 using Datadog.Trace.Ci;
 using Datadog.Trace.Ci.Tags;
 using Datadog.Trace.Configuration;
-using Datadog.Trace.ExtensionMethods;
-using Datadog.Trace.PDBs;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
@@ -21,38 +19,24 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 
         internal static bool IsEnabled => CIVisibility.IsRunning && Tracer.Instance.Settings.IsIntegrationEnabled(IntegrationId);
 
-        internal static Scope CreateScope(ref TestRunnerStruct runnerInstance, Type targetType)
+        internal static Test CreateScope(ref TestRunnerStruct runnerInstance, Type targetType)
         {
-            string testBundle = runnerInstance.TestClass.Assembly?.GetName().Name;
-            string testSuite = runnerInstance.TestClass.ToString();
-            string testName = runnerInstance.TestMethod.Name;
+            string testSuiteString = runnerInstance.TestClass.ToString();
 
-            string testFramework = "xUnit";
+            var testSession = CIVisibility.TestSession;
+            TestSuite testSuite;
+            lock (testSession)
+            {
+                testSuite = testSession.GetSuite(testSuiteString);
+                if (testSuite is null)
+                {
+                    string testBundleString = runnerInstance.TestClass.Assembly?.GetName().Name;
+                    testSuite = testSession.CreateSuite(testSuiteString, bundle: testBundleString, framework: "xUnit", frameworkVersion: targetType.Assembly?.GetName().Version.ToString());
+                }
+            }
 
-            Scope scope = Tracer.Instance.StartActiveInternal("xunit.test");
-            Span span = scope.Span;
-
-            span.Type = SpanTypes.Test;
-            span.SetTraceSamplingPriority(SamplingPriorityValues.AutoKeep);
-            span.ResourceName = $"{testSuite}.{testName}";
-            span.SetTag(Tags.Origin, TestTags.CIAppTestOriginName);
-            span.SetTag(TestTags.Bundle, testBundle);
-            span.SetTag(TestTags.Suite, testSuite);
-            span.SetTag(TestTags.Name, testName);
-            span.SetTag(TestTags.Framework, testFramework);
-            span.SetTag(TestTags.FrameworkVersion, targetType.Assembly?.GetName().Version.ToString());
-            span.SetTag(TestTags.Type, TestTags.TypeTest);
-
-            var framework = FrameworkDescription.Instance;
-            CIEnvironmentValues.Instance.DecorateSpan(span);
-
-            span.SetTag(CommonTags.LibraryVersion, TracerConstants.AssemblyVersion);
-            span.SetTag(CommonTags.RuntimeName, framework.Name);
-            span.SetTag(CommonTags.RuntimeVersion, framework.ProductVersion);
-            span.SetTag(CommonTags.RuntimeArchitecture, framework.ProcessArchitecture);
-            span.SetTag(CommonTags.OSArchitecture, framework.OSArchitecture);
-            span.SetTag(CommonTags.OSPlatform, framework.OSPlatform);
-            span.SetTag(CommonTags.OSVersion, Environment.OSVersion.VersionString);
+            string testNameString = runnerInstance.TestMethod.Name;
+            var test = testSuite.CreateTest(testNameString);
 
             // Get test parameters
             object[] testMethodArguments = runnerInstance.TestMethodArguments;
@@ -76,72 +60,48 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
                     }
                 }
 
-                span.SetTag(TestTags.Parameters, testParameters.ToJSON());
+                test.SetParameters(testParameters);
             }
 
             // Get traits
-            Dictionary<string, List<string>> traits = runnerInstance.TestCase.Traits;
-            if (traits.Count > 0)
-            {
-                span.SetTag(TestTags.Traits, Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(traits));
-            }
+            test.SetTraits(runnerInstance.TestCase.Traits);
 
             // Test code and code owners
-            Common.DecorateSpanWithSourceAndCodeOwners(span, runnerInstance.TestMethod);
+            test.SetTestMethodInfo(runnerInstance.TestMethod);
 
+            // Telemetry
             Tracer.Instance.TracerManager.Telemetry.IntegrationGeneratedSpan(IntegrationId);
-            Ci.Coverage.CoverageReporter.Handler.StartSession();
 
             // Skip tests
             if (runnerInstance.SkipReason != null)
             {
-                span.SetTag(TestTags.Status, TestTags.StatusSkip);
-                span.SetTag(TestTags.SkipReason, runnerInstance.SkipReason);
-
-                var coverageSession = Ci.Coverage.CoverageReporter.Handler.EndSession();
-                if (coverageSession is not null)
-                {
-                    scope.Span.SetTag("test.coverage", Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(coverageSession));
-                }
-
-                span.Finish(TimeSpan.Zero);
-                scope.Dispose();
+                test.Close(Test.Status.Skip, skipReason: runnerInstance.SkipReason, duration: TimeSpan.Zero);
                 return null;
             }
 
-            span.ResetStartTime();
-            return scope;
+            ((Span)test.TestScope.Span).ResetStartTime();
+            return test;
         }
 
-        internal static void FinishScope(Scope scope, IExceptionAggregator exceptionAggregator)
+        internal static void FinishScope(Test test, IExceptionAggregator exceptionAggregator)
         {
-            var coverageSession = Ci.Coverage.CoverageReporter.Handler.EndSession();
-            if (coverageSession is not null)
-            {
-                scope.Span.SetTag("test.coverage", Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(coverageSession));
-            }
-
             Exception exception = exceptionAggregator.ToException();
-
             if (exception != null)
             {
                 if (exception.GetType().Name == "SkipException")
                 {
-                    scope.Span.SetTag(TestTags.Status, TestTags.StatusSkip);
-                    scope.Span.SetTag(TestTags.SkipReason, exception.Message);
+                    test.Close(Test.Status.Skip, skipReason: exception.Message);
                 }
                 else
                 {
-                    scope.Span.SetException(exception);
-                    scope.Span.SetTag(TestTags.Status, TestTags.StatusFail);
+                    test.SetErrorInfo(exception);
+                    test.Close(Test.Status.Fail);
                 }
             }
             else
             {
-                scope.Span.SetTag(TestTags.Status, TestTags.StatusPass);
+                test.Close(Test.Status.Pass);
             }
-
-            scope.Dispose();
         }
     }
 }

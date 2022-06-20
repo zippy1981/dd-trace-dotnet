@@ -6,6 +6,7 @@
 using System;
 using System.ComponentModel;
 using System.Text;
+using Datadog.Trace.Ci;
 using Datadog.Trace.ClrProfiler.CallTarget;
 using Datadog.Trace.Logging.DirectSubmission;
 using Datadog.Trace.Logging.DirectSubmission.Formatting;
@@ -50,7 +51,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
                 return CallTargetState.GetDefault();
             }
 
-            var span = tracer.ActiveScope?.Span as Span;
+            var span = Test.Current?.TestScope.Span as Span;
             tracer.TracerManager.DirectLogSubmission.Sink.EnqueueLog(new XUnitLogEvent(output, span));
             return CallTargetState.GetDefault();
         }

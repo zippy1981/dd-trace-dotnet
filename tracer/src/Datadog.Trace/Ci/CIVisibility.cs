@@ -41,6 +41,8 @@ namespace Datadog.Trace.Ci
             }
         }
 
+        public static TestSession TestSession { get; private set; }
+
         public static void Initialize()
         {
             if (Interlocked.Exchange(ref _firstInitialization, 0) != 1)
@@ -66,6 +68,11 @@ namespace Datadog.Trace.Ci
             // Initialize Tracer
             Log.Information("Initialize Test Tracer instance");
             TracerManager.ReplaceGlobalManager(tracerSettings.Build(), new CITracerManagerFactory(_settings));
+
+            // Initialize test session
+            var testSession = TestSession.Create();
+            LifetimeManager.Instance.AddShutdownTask(() => testSession.Close());
+            TestSession = testSession;
         }
 
         internal static void FlushSpans()
