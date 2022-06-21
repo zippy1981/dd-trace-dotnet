@@ -1,4 +1,4 @@
-// <copyright file="TestClassRunnerStruct.cs" company="Datadog">
+// <copyright file="AssemblyInfoStruct.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
@@ -8,14 +8,19 @@ using Datadog.Trace.DuckTyping;
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
     /// <summary>
-    /// TestClassRunner`1 structure
+    /// Xunit.Abstractions.IAssemblyInfo proxy structure
     /// </summary>
     [DuckCopy]
-    internal struct TestClassRunnerStruct
+    internal struct AssemblyInfoStruct
     {
         /// <summary>
-        /// Test class
+        /// Gets the on-disk location of the assembly under test.
         /// </summary>
-        public TestClassStruct TestClass;
+        public string AssemblyPath;
+
+        /// <summary>
+        /// Gets the assembly name.
+        /// </summary>
+        public string Name;
     }
 }

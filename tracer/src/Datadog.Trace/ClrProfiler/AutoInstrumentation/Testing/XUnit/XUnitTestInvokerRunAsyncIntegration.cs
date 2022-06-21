@@ -67,8 +67,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>A response value, in an async scenario will be T of Task of T</returns>
         internal static decimal OnAsyncMethodEnd<TTarget>(TTarget instance, decimal returnValue, Exception exception, in CallTargetState state)
         {
-            Test test = (Test)state.State;
-            if (test != null)
+            if (state.State is Test test)
             {
                 TestInvokerStruct invokerInstance = instance.DuckCast<TestInvokerStruct>();
                 XUnitIntegration.FinishScope(test, invokerInstance.Aggregator);

@@ -14,29 +14,19 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
     internal static class XUnitIntegration
     {
-        internal const string IntegrationName = nameof(Configuration.IntegrationId.XUnit);
+        internal const string IntegrationName = nameof(IntegrationId.XUnit);
         internal const IntegrationId IntegrationId = Configuration.IntegrationId.XUnit;
 
         internal static bool IsEnabled => CIVisibility.IsRunning && Tracer.Instance.Settings.IsIntegrationEnabled(IntegrationId);
 
         internal static Test CreateScope(ref TestRunnerStruct runnerInstance, Type targetType)
         {
-            string testSuiteString = runnerInstance.TestClass.ToString();
-
-            // Get the test suite instance or create a new if is not found
+            // Get the test suite instance
             var testSuite = TestSuite.Current;
-            if (testSuite is null || testSuite.Name != testSuiteString)
+            if (testSuite is null)
             {
-                var testSession = CIVisibility.TestSession;
-                lock (testSession)
-                {
-                    testSuite = testSession.GetSuite(testSuiteString);
-                    if (testSuite is null)
-                    {
-                        string testBundleString = runnerInstance.TestClass.Assembly?.GetName().Name;
-                        testSuite = testSession.CreateSuite(testSuiteString, bundle: testBundleString, framework: "xUnit", frameworkVersion: targetType.Assembly?.GetName().Version.ToString());
-                    }
-                }
+                Common.Log.Warning("Test suite cannot be found.");
+                return null;
             }
 
             var test = testSuite.CreateTest(runnerInstance.TestMethod.Name);
@@ -76,9 +66,9 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
             Tracer.Instance.TracerManager.Telemetry.IntegrationGeneratedSpan(IntegrationId);
 
             // Skip tests
-            if (runnerInstance.SkipReason != null)
+            if (runnerInstance.SkipReason is { } skipReason)
             {
-                test.Close(Test.Status.Skip, skipReason: runnerInstance.SkipReason, duration: TimeSpan.Zero);
+                test.Close(Test.Status.Skip, skipReason: skipReason, duration: TimeSpan.Zero);
                 return null;
             }
 
@@ -88,8 +78,7 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 
         internal static void FinishScope(Test test, IExceptionAggregator exceptionAggregator)
         {
-            Exception exception = exceptionAggregator.ToException();
-            if (exception != null)
+            if (exceptionAggregator.ToException() is { } exception)
             {
                 if (exception.GetType().Name == "SkipException")
                 {

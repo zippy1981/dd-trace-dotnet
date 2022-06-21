@@ -19,23 +19,19 @@ namespace Datadog.Trace.Ci
     /// </summary>
     public sealed class TestSuite
     {
-        internal static readonly IDatadogLogger Log = Ci.CIVisibility.Log;
-
+        private static readonly IDatadogLogger Log = CIVisibility.Log;
         private static readonly AsyncLocal<TestSuite?> CurrentSuite = new();
         private readonly long _timestamp;
         private Dictionary<string, string>? _tags;
         private Dictionary<string, double>? _metrics;
 
-        private TestSuite(TestSession session, string name, string? bundle = null, string? framework = null, string? frameworkVersion = null, DateTimeOffset? startDate = null)
+        private TestSuite(TestSession session, string name, DateTimeOffset? startDate = null)
         {
             Name = name;
-            Bundle = bundle;
-            Framework = framework;
-            FrameworkVersion = frameworkVersion;
             Session = session;
             _timestamp = Stopwatch.GetTimestamp();
             StartDate = startDate ?? DateTimeOffset.UtcNow;
-            Log.Warning("##### New Test Suite Created: {name}.", Name);
+            Log.Warning("##### New Test Suite Created: {name}", Name);
         }
 
         /// <summary>
@@ -46,27 +42,12 @@ namespace Datadog.Trace.Ci
         /// <summary>
         /// Gets the test suite name
         /// </summary>
-        public string Name { get; private set; }
-
-        /// <summary>
-        /// Gets the test bundle
-        /// </summary>
-        public string? Bundle { get; private set; }
-
-        /// <summary>
-        /// Gets the test framework
-        /// </summary>
-        public string? Framework { get; private set; }
-
-        /// <summary>
-        /// Gets the test framework version
-        /// </summary>
-        public string? FrameworkVersion { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         /// Gets the test suite start date
         /// </summary>
-        public DateTimeOffset StartDate { get; private set; }
+        public DateTimeOffset StartDate { get; }
 
         /// <summary>
         /// Gets the test suite end date
@@ -76,7 +57,7 @@ namespace Datadog.Trace.Ci
         /// <summary>
         /// Gets the test session for this suite
         /// </summary>
-        public TestSession Session { get; private set; }
+        public TestSession Session { get; }
 
         /// <summary>
         /// Gets the Suite Tags
@@ -93,14 +74,11 @@ namespace Datadog.Trace.Ci
         /// </summary>
         /// <param name="session">Test session instance</param>
         /// <param name="name">Test suite name</param>
-        /// <param name="bundle">Test suite bundle name</param>
-        /// <param name="framework">Testing framework name</param>
-        /// <param name="frameworkVersion">Testing framework version</param>
         /// <param name="startDate">Test suite start date</param>
         /// <returns>New test suite instance</returns>
-        internal static TestSuite Create(TestSession session, string name, string? bundle = null, string? framework = null, string? frameworkVersion = null, DateTimeOffset? startDate = null)
+        internal static TestSuite Create(TestSession session, string name, DateTimeOffset? startDate = null)
         {
-            var testSuite = new TestSuite(session, name, bundle, framework, frameworkVersion, startDate);
+            var testSuite = new TestSuite(session, name, startDate);
             CurrentSuite.Value = testSuite;
             return testSuite;
         }
@@ -168,7 +146,7 @@ namespace Datadog.Trace.Ci
             EndDate = StartDate.Add(duration ?? StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp));
             CurrentSuite.Value = null;
             Session.RemoveSuite(Name);
-            Log.Warning("##### Test Suite Closed: {name}.", Name);
+            Log.Warning("##### Test Suite Closed: {name}", Name);
         }
 
         /// <summary>

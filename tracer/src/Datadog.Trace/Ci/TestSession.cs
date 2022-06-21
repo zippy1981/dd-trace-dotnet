@@ -22,16 +22,18 @@ namespace Datadog.Trace.Ci
     /// </summary>
     public sealed class TestSession
     {
-        internal static readonly IDatadogLogger Log = Ci.CIVisibility.Log;
-
+        private static readonly IDatadogLogger Log = CIVisibility.Log;
         private static readonly AsyncLocal<TestSession?> CurrentSession = new();
         private readonly long _timestamp;
         private readonly Dictionary<string, TestSuite> _suites;
         private readonly Dictionary<string, string> _tags;
         private Dictionary<string, double>? _metrics;
 
-        private TestSession(DateTimeOffset? startDate = null)
+        private TestSession(string? bundle = null, string? framework = null, string? frameworkVersion = null, DateTimeOffset? startDate = null)
         {
+            Bundle = bundle;
+            Framework = framework;
+            FrameworkVersion = frameworkVersion;
             _suites = new Dictionary<string, TestSuite>();
             var environment = CIEnvironmentValues.Instance;
             var frameworkDescription = FrameworkDescription.Instance;
@@ -77,7 +79,7 @@ namespace Datadog.Trace.Ci
 
             _timestamp = Stopwatch.GetTimestamp();
             StartDate = startDate ?? DateTimeOffset.UtcNow;
-            Log.Warning("##### New Test Session Created.");
+            Log.Warning("##### Test Session Created: {bundle}", bundle);
         }
 
         /// <summary>
@@ -88,12 +90,27 @@ namespace Datadog.Trace.Ci
         /// <summary>
         /// Gets the test session start date
         /// </summary>
-        public DateTimeOffset StartDate { get; private set; }
+        public DateTimeOffset StartDate { get; }
 
         /// <summary>
         /// Gets the test session end date
         /// </summary>
         public DateTimeOffset? EndDate { get; private set; }
+
+        /// <summary>
+        /// Gets the test bundle
+        /// </summary>
+        public string? Bundle { get; }
+
+        /// <summary>
+        /// Gets the test framework
+        /// </summary>
+        public string? Framework { get; }
+
+        /// <summary>
+        /// Gets the test framework version
+        /// </summary>
+        public string? FrameworkVersion { get; }
 
         /// <summary>
         /// Gets the Session Tags
@@ -108,11 +125,14 @@ namespace Datadog.Trace.Ci
         /// <summary>
         /// Create a new Test Session
         /// </summary>
+        /// <param name="bundle">Test suite bundle name</param>
+        /// <param name="framework">Testing framework name</param>
+        /// <param name="frameworkVersion">Testing framework version</param>
         /// <param name="startDate">Test session start date</param>
         /// <returns>New test session instance</returns>
-        public static TestSession Create(DateTimeOffset? startDate = null)
+        public static TestSession Create(string? bundle = null, string? framework = null, string? frameworkVersion = null, DateTimeOffset? startDate = null)
         {
-            var testSession = new TestSession(startDate);
+            var testSession = new TestSession(bundle, framework, frameworkVersion, startDate);
             CurrentSession.Value = testSession;
             return testSession;
         }
@@ -184,7 +204,7 @@ namespace Datadog.Trace.Ci
                 }
             }
 
-            Log.Warning("##### Test Session Closed.");
+            Log.Warning("##### Test Session Closed: {bundle}", Bundle);
             CIVisibility.FlushSpans();
         }
 
@@ -192,14 +212,11 @@ namespace Datadog.Trace.Ci
         /// Create a new test suite for this session
         /// </summary>
         /// <param name="name">Name of the test suite</param>
-        /// <param name="bundle">Name of the bundle of the test suite</param>
-        /// <param name="framework">Name of the testing framework</param>
-        /// <param name="frameworkVersion">Version of the testing framework</param>
         /// <param name="startDate">Test suite start date</param>
         /// <returns>Test suite instance</returns>
-        public TestSuite CreateSuite(string name, string? bundle = null, string? framework = null, string? frameworkVersion = null, DateTimeOffset? startDate = null)
+        public TestSuite CreateSuite(string name, DateTimeOffset? startDate = null)
         {
-            var suite = TestSuite.Create(this, name, bundle, framework, frameworkVersion, startDate);
+            var suite = TestSuite.Create(this, name, startDate);
             lock (_suites)
             {
                 _suites[name] = suite;

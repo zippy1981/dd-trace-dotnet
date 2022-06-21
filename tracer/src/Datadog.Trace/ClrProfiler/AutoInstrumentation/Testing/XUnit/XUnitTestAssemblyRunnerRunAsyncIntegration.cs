@@ -1,12 +1,14 @@
-// <copyright file="XUnitTestAssemblyRunnerRunTestCollectionAsyncIntegration.cs" company="Datadog">
+// <copyright file="XUnitTestAssemblyRunnerRunAsyncIntegration.cs" company="Datadog">
 // Unless explicitly stated otherwise all files in this repository are licensed under the Apache 2 License.
 // This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2017 Datadog, Inc.
 // </copyright>
 
 using System;
 using System.ComponentModel;
+using System.Reflection;
 using Datadog.Trace.Ci;
 using Datadog.Trace.ClrProfiler.CallTarget;
+using Datadog.Trace.DuckTyping;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
 {
@@ -16,16 +18,50 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
     [InstrumentMethod(
         AssemblyNames = new[] { "xunit.execution.dotnet", "xunit.execution.desktop" },
         TypeName = "Xunit.Sdk.TestAssemblyRunner`1",
-        MethodName = "RunTestCollectionAsync",
+        MethodName = "RunAsync",
         ReturnTypeName = "System.Threading.Tasks.Task`1<Xunit.Sdk.RunSummary>",
-        ParameterTypeNames = new[] { "Xunit.Sdk.IMessageBus", "_", "_", "_" },
+        ParameterTypeNames = new string[0],
         MinimumVersion = "2.2.0",
         MaximumVersion = "2.*.*",
         IntegrationName = XUnitIntegration.IntegrationName)]
     [Browsable(false)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static class XUnitTestAssemblyRunnerRunTestCollectionAsyncIntegration
+    public static class XUnitTestAssemblyRunnerRunAsyncIntegration
     {
+        /// <summary>
+        /// OnMethodBegin callback
+        /// </summary>
+        /// <typeparam name="TTarget">Type of the target</typeparam>
+        /// <param name="instance">Instance value, aka `this` of the instrumented method.</param>
+        /// <returns>Calltarget state value</returns>
+        internal static CallTargetState OnMethodBegin<TTarget>(TTarget instance)
+        {
+            if (!XUnitIntegration.IsEnabled)
+            {
+                return CallTargetState.GetDefault();
+            }
+
+            var assemblyRunnerInstance = instance.DuckCast<TestAssemblyRunnerStruct>();
+            var testBundleString = new AssemblyName(assemblyRunnerInstance.TestAssembly.Assembly.Name).Name;
+
+            // Extract the version of the framework from the TestClassRunner base class
+            var frameworkType = instance?.GetType();
+            while (frameworkType?.IsAbstract == false)
+            {
+                if (frameworkType.BaseType is not null)
+                {
+                    frameworkType = frameworkType.BaseType;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            var testSession = TestSession.Create(testBundleString, "xUnit", frameworkType?.Assembly?.GetName().Version.ToString());
+            return new CallTargetState(null, testSession);
+        }
+
         /// <summary>
         /// OnAsyncMethodEnd callback
         /// </summary>
@@ -38,7 +74,11 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>A response value, in an async scenario will be T of Task of T</returns>
         internal static TReturn OnAsyncMethodEnd<TTarget, TReturn>(TTarget instance, TReturn returnValue, Exception exception, in CallTargetState state)
         {
-            Common.FlushSpans(XUnitIntegration.IntegrationId);
+            if (state.State is TestSession testSession)
+            {
+                testSession.Close();
+            }
+
             return returnValue;
         }
     }

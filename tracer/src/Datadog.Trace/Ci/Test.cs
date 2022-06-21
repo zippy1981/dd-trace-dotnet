@@ -21,22 +21,21 @@ namespace Datadog.Trace.Ci
     /// </summary>
     public sealed class Test
     {
-        internal static readonly IDatadogLogger Log = CIVisibility.Log;
-
         private static readonly AsyncLocal<Test?> CurrentTest = new();
         private readonly Scope _scope;
 
         private Test(TestSuite suite, string name, DateTimeOffset? startDate = null)
         {
             Suite = suite;
+            var session = suite.Session;
 
-            if (string.IsNullOrEmpty(suite.Framework))
+            if (string.IsNullOrEmpty(session.Framework))
             {
                 _scope = Tracer.Instance.StartActiveInternal("test", startTime: startDate);
             }
             else
             {
-                _scope = Tracer.Instance.StartActiveInternal($"{suite.Framework!.ToLowerInvariant()}.test", startTime: startDate);
+                _scope = Tracer.Instance.StartActiveInternal($"{session.Framework!.ToLowerInvariant()}.test", startTime: startDate);
             }
 
             var span = _scope.Span;
@@ -44,21 +43,21 @@ namespace Datadog.Trace.Ci
             span.SetTraceSamplingPriority(SamplingPriority.AutoKeep);
             span.ResourceName = $"{suite.Name}.{name}";
             span.SetTag(Trace.Tags.Origin, TestTags.CIAppTestOriginName);
-            if (suite.Bundle is not null)
+            if (session.Bundle is not null)
             {
-                span.SetTag(TestTags.Bundle, suite.Bundle);
+                span.SetTag(TestTags.Bundle, session.Bundle);
             }
 
             span.SetTag(TestTags.Suite, suite.Name);
             span.SetTag(TestTags.Name, name);
-            if (suite.Framework is not null)
+            if (session.Framework is not null)
             {
-                span.SetTag(TestTags.Framework, suite.Framework);
+                span.SetTag(TestTags.Framework, session.Framework);
             }
 
-            if (suite.FrameworkVersion is not null)
+            if (session.FrameworkVersion is not null)
             {
-                span.SetTag(TestTags.FrameworkVersion, suite.FrameworkVersion);
+                span.SetTag(TestTags.FrameworkVersion, session.FrameworkVersion);
             }
 
             span.SetTag(TestTags.Type, TestTags.TypeTest);

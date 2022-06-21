@@ -5,10 +5,8 @@
 
 using System;
 using System.ComponentModel;
-using System.Reflection;
 using Datadog.Trace.Ci;
 using Datadog.Trace.ClrProfiler.CallTarget;
-using Datadog.Trace.Configuration;
 using Datadog.Trace.DuckTyping;
 
 namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
@@ -29,8 +27,6 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static class XUnitTestClassRunnerRunAsyncIntegration
     {
-        private const string IntegrationName = nameof(IntegrationId.XUnit);
-
         /// <summary>
         /// OnMethodBegin callback
         /// </summary>
@@ -45,25 +41,14 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
             }
 
             var classRunnerInstance = instance.DuckCast<TestClassRunnerStruct>();
-            var testSession = CIVisibility.TestSession;
-            var testSuiteString = classRunnerInstance.TestClass.Class.Name;
-            var testBundleString = new AssemblyName(classRunnerInstance.TestClass.Class.Assembly.Name).Name;
-
-            // Extract the version of the framework from the TestClassRunner base class
-            var frameworkType = instance?.GetType();
-            while (frameworkType?.IsAbstract == false)
+            var testSession = TestSession.Current;
+            if (testSession is null)
             {
-                if (frameworkType.BaseType is not null)
-                {
-                    frameworkType = frameworkType.BaseType;
-                }
-                else
-                {
-                    break;
-                }
+                Common.Log.Warning("Test session cannot be found.");
+                return CallTargetState.GetDefault();
             }
 
-            var testSuite = testSession.CreateSuite(testSuiteString, bundle: testBundleString, framework: "xUnit", frameworkVersion: frameworkType?.Assembly?.GetName().Version.ToString());
+            var testSuite = testSession.CreateSuite(classRunnerInstance.TestClass.Class.Name);
             return new CallTargetState(null, testSuite);
         }
 
@@ -79,8 +64,11 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         /// <returns>A response value, in an async scenario will be T of Task of T</returns>
         internal static TReturn OnAsyncMethodEnd<TTarget, TReturn>(TTarget instance, TReturn returnValue, Exception exception, in CallTargetState state)
         {
-            var testSuite = (TestSuite)state.State;
-            testSuite.Close();
+            if (state.State is TestSuite testSuite)
+            {
+                testSuite.Close();
+            }
+
             return returnValue;
         }
     }
