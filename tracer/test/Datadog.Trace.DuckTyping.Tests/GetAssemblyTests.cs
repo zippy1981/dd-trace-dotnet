@@ -52,7 +52,7 @@ namespace Datadog.Trace.DuckTyping.Tests
 #elif NETCOREAPP2_1
             Assert.Equal(1127, asmDuckTypes);
 #else
-            Assert.Equal(1128, asmDuckTypes);
+            Assert.Equal(1140, asmDuckTypes);
 #endif
         }
     }
