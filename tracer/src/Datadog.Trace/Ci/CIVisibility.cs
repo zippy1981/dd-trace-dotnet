@@ -77,6 +77,7 @@ namespace Datadog.Trace.Ci
 
         internal static void FlushSpans()
         {
+            Log.Warning("*** *** *** *** FLUSHING SPANS...");
             try
             {
                 var flushThread = new Thread(InternalFlush);

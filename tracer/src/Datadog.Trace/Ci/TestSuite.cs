@@ -167,9 +167,8 @@ namespace Datadog.Trace.Ci
         {
             EndDate = StartDate.Add(duration ?? StopwatchHelpers.GetElapsed(Stopwatch.GetTimestamp() - _timestamp));
             CurrentSuite.Value = null;
-            Log.Warning("##### Test Suite Closed: {name}.", Name);
             Session.RemoveSuite(Name);
-            CIVisibility.FlushSpans();
+            Log.Warning("##### Test Suite Closed: {name}.", Name);
         }
 
         /// <summary>

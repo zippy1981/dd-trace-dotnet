@@ -21,7 +21,7 @@ namespace Datadog.Trace.Ci
     /// </summary>
     public sealed class Test
     {
-        internal static readonly IDatadogLogger Log = Ci.CIVisibility.Log;
+        internal static readonly IDatadogLogger Log = CIVisibility.Log;
 
         private static readonly AsyncLocal<Test?> CurrentTest = new();
         private readonly Scope _scope;
@@ -99,14 +99,12 @@ namespace Datadog.Trace.Ci
                 }
             }
 
-            Ci.Coverage.CoverageReporter.Handler.StartSession();
+            Coverage.CoverageReporter.Handler.StartSession();
             if (startDate is null)
             {
                 // If a test doesn't have a fixed start time we reset it before running the test code
                 span.ResetStartTime();
             }
-
-            // Log.Warning("##### New Test Created: {name}.", Name);
         }
 
         /// <summary>
@@ -248,7 +246,7 @@ namespace Datadog.Trace.Ci
         {
             if (traits?.Count > 0)
             {
-                SetTag(TestTags.Traits, Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(traits));
+                SetTag(TestTags.Traits, Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(traits));
             }
         }
 
@@ -278,10 +276,10 @@ namespace Datadog.Trace.Ci
             duration ??= scope.Span.Context.TraceContext.ElapsedSince(scope.Span.StartTime);
 
             // Set coverage
-            var coverageSession = Ci.Coverage.CoverageReporter.Handler.EndSession();
+            var coverageSession = Coverage.CoverageReporter.Handler.EndSession();
             if (coverageSession is not null)
             {
-                scope.Span.SetTag("test.coverage", Datadog.Trace.Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(coverageSession));
+                scope.Span.SetTag("test.coverage", Vendors.Newtonsoft.Json.JsonConvert.SerializeObject(coverageSession));
             }
 
             // Set status
@@ -300,8 +298,6 @@ namespace Datadog.Trace.Ci
             }
 
             // Finish
-            // Log.Warning("##### Test Closed: {name}.", Name);
-
             scope.Span.Finish(duration.Value);
             scope.Dispose();
 

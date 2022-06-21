@@ -23,20 +23,23 @@ namespace Datadog.Trace.ClrProfiler.AutoInstrumentation.Testing.XUnit
         {
             string testSuiteString = runnerInstance.TestClass.ToString();
 
-            var testSession = CIVisibility.TestSession;
-            TestSuite testSuite;
-            lock (testSession)
+            // Get the test suite instance or create a new if is not found
+            var testSuite = TestSuite.Current;
+            if (testSuite is null || testSuite.Name != testSuiteString)
             {
-                testSuite = testSession.GetSuite(testSuiteString);
-                if (testSuite is null)
+                var testSession = CIVisibility.TestSession;
+                lock (testSession)
                 {
-                    string testBundleString = runnerInstance.TestClass.Assembly?.GetName().Name;
-                    testSuite = testSession.CreateSuite(testSuiteString, bundle: testBundleString, framework: "xUnit", frameworkVersion: targetType.Assembly?.GetName().Version.ToString());
+                    testSuite = testSession.GetSuite(testSuiteString);
+                    if (testSuite is null)
+                    {
+                        string testBundleString = runnerInstance.TestClass.Assembly?.GetName().Name;
+                        testSuite = testSession.CreateSuite(testSuiteString, bundle: testBundleString, framework: "xUnit", frameworkVersion: targetType.Assembly?.GetName().Version.ToString());
+                    }
                 }
             }
 
-            string testNameString = runnerInstance.TestMethod.Name;
-            var test = testSuite.CreateTest(testNameString);
+            var test = testSuite.CreateTest(runnerInstance.TestMethod.Name);
 
             // Get test parameters
             object[] testMethodArguments = runnerInstance.TestMethodArguments;
