@@ -83,7 +83,7 @@ internal partial class ITRClient
             return null;
         }
 
-        Log.Debug("Searching commits...");
+        Log.Debug("ITR: Searching commits...");
 
         var commitRequests = new CommitRequest[localCommits.Length];
         for (var i = 0; i < localCommits.Length; i++)
@@ -134,7 +134,7 @@ internal partial class ITRClient
 
     public async Task<long> SendObjectsPackFileAsync(string commitSha, string[] commitsExceptions)
     {
-        Log.Debug("Packing and sending delta of commits and tree objects...");
+        Log.Debug("ITR: Packing and sending delta of commits and tree objects...");
 
         var repository = await _getRepositoryUrlTask.ConfigureAwait(false);
         var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelopeWithMeta<CommitRequest>(new CommitRequest(commitSha), repository));
@@ -148,6 +148,7 @@ internal partial class ITRClient
         foreach (var packFile in packFiles)
         {
             // Send PackFile content
+            Log.Information("ITR: Sending {packFile}", packFile);
             totalUploadSize += await WithRetries(InternalSendObjectsPackFileAsync, packFile, MaxRetries).ConfigureAwait(false);
 
             // Delete temporal pack file
@@ -161,7 +162,7 @@ internal partial class ITRClient
             }
         }
 
-        Log.Information($"Total pack file upload: {totalUploadSize} bytes", totalUploadSize);
+        Log.Information("ITR: Total pack file upload: {totalUploadSize} bytes", totalUploadSize);
         return totalUploadSize;
 
         async Task<long> InternalSendObjectsPackFileAsync(string packFile, bool finalTry)
