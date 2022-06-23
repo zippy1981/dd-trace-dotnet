@@ -892,7 +892,7 @@ stages:
   condition: > 
     and(
       succeeded(), 
-      eq(variables['isScheduledBuild'], 'False'),
+      eq(variables['isBenchmarksOnlyBuild'], 'False'),
       eq(dependencies.generate_variables.outputs['generate_variables_job.generate_variables_step.IsProfilerChanged'], 'True')
     )
   dependsOn: [master_commit_id, generate_variables, build_windows_tracer, build_windows_profiler]
@@ -981,7 +981,7 @@ stages:
   condition: > 
     and(
       succeeded(), 
-      eq(variables['isScheduledBuild'], 'False'),
+      eq(variables['isBenchmarksOnlyBuild'], 'False'),
       eq(dependencies.generate_variables.outputs['generate_variables_job.generate_variables_step.IsProfilerChanged'], 'True')
     )
   dependsOn: [master_commit_id, generate_variables, build_windows_tracer, build_windows_profiler]
@@ -1402,7 +1402,7 @@ stages:
   condition: > 
     and(
       succeeded(), 
-      eq(variables['isScheduledBuild'], 'False'),
+      eq(variables['isBenchmarksOnlyBuild'], 'False'),
       eq(dependencies.generate_variables.outputs['generate_variables_job.generate_variables_step.IsProfilerChanged'], 'True')
     )
   dependsOn: [master_commit_id, generate_variables, build_linux_tracer, build_linux_profiler]
@@ -1487,7 +1487,7 @@ stages:
   condition: > 
     and(
       succeeded(), 
-      eq(variables['isScheduledBuild'], 'False'),
+      eq(variables['isBenchmarksOnlyBuild'], 'False'),
       eq(dependencies.generate_variables.outputs['generate_variables_job.generate_variables_step.IsProfilerChanged'], 'True')
     )
   dependsOn: [master_commit_id, generate_variables, build_linux_tracer, build_linux_profiler]
@@ -1570,7 +1570,7 @@ stages:
   condition: > 
     and(
       succeeded(), 
-      eq(variables['isScheduledBuild'], 'False'),
+      eq(variables['isBenchmarksOnlyBuild'], 'False'),
       eq(dependencies.generate_variables.outputs['generate_variables_job.generate_variables_step.IsProfilerChanged'], 'True')
     )
   dependsOn: [master_commit_id, generate_variables, build_linux_tracer, build_linux_profiler]
