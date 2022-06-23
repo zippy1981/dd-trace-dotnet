@@ -34,7 +34,7 @@ partial class Build : NukeBuild
                 var isNativeLoaderChanged = GenerateConditionVariableBasedOnGitChange("isNativeLoaderChanged", new[] { "tracer/src/Datadog.AutoInstrumentation.NativeLoader" }, new string[] { });
                 GenerateConditionVariableBasedOnGitChange("isTracerChanged", new[] { "tracer/src/Datadog.Trace/ClrProfiler/AutoInstrumentation", "tracer/src/Datadog.Trace.ClrProfiler.Native" }, new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" }, isNativeLoaderChanged);
                 GenerateConditionVariableBasedOnGitChange("isDebuggerChanged", new[] { "tracer/src/Datadog.Trace.ClrProfiler.Native/Debugger" }, new string[] { }, isNativeLoaderChanged);
-                GenerateConditionVariableBasedOnGitChange("isProfilerChanged", new[] { "profiler/src", "profiler/test" }, new string[] { }, isNativeLoaderChanged);
+                GenerateConditionVariableBasedOnGitChange("isProfilerChanged", new[] { "profiler" }, new string[] { }, isNativeLoaderChanged);
 
                 bool GenerateConditionVariableBasedOnGitChange(string variableName, string[] filters, string[] exclusionFilters, bool force = false)
                 {
