@@ -22,7 +22,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
     public class AspNetMvc5TestsQueryString : AspNetMvc5QueryStringTests
     {
         public AspNetMvc5TestsQueryString(IisFixture iisFixture, ITestOutputHelper output)
-            : base(iisFixture, output)
+            : base(iisFixture, output, true)
         {
         }
     }
@@ -31,21 +31,28 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
     public class AspNetMvc5TestsQueryStringDisabled : AspNetMvc5QueryStringTests
     {
         public AspNetMvc5TestsQueryStringDisabled(IisFixture iisFixture, ITestOutputHelper output)
-            : base(iisFixture, output)
+            : base(iisFixture, output, false)
         {
-            SetEnvironmentVariable(ConfigurationKeys.EnableQueryStringReporting, "false");
         }
     }
 
     [UsesVerify]
     public abstract class AspNetMvc5QueryStringTests : AspNetMvc5Tests
     {
-        protected AspNetMvc5QueryStringTests(IisFixture iisFixture, ITestOutputHelper output)
+        private readonly bool _enableQueryStringReporting;
+
+        protected AspNetMvc5QueryStringTests(IisFixture iisFixture, ITestOutputHelper output, bool enableQueryStringReporting)
             : base(iisFixture, output, false, true)
         {
+            _enableQueryStringReporting = enableQueryStringReporting;
+            SetEnvironmentVariable(ConfigurationKeys.EnableQueryStringReporting, _enableQueryStringReporting.ToString());
         }
 
         public static new TheoryData<string, int> Data() => new() { { "/?authentic1=val1&token=a0b21ce2-006f-4cc6-95d5-d7b550698482&key2=val2", 200 }, };
+
+        protected override string GetTestName()
+            => nameof(AspNetMvc5QueryStringTests)
+             + (_enableQueryStringReporting ? ".WithQueryString" : string.Empty);
     }
 }
 

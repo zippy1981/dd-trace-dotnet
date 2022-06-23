@@ -112,6 +112,11 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
     public abstract class AspNetMvc5Tests : TestHelper, IClassFixture<IisFixture>
     {
         private readonly IisFixture _iisFixture;
+        private readonly ITestOutputHelper _output;
+        private readonly bool _classicMode;
+        private readonly bool _enableRouteTemplateResourceNames;
+        private readonly bool _enableRouteTemplateExpansion;
+        private readonly bool _virtualApp;
         private readonly string _testName;
 
         protected AspNetMvc5Tests(IisFixture iisFixture, ITestOutputHelper output, bool classicMode, bool enableRouteTemplateResourceNames, bool enableRouteTemplateExpansion = false, bool virtualApp = false)
@@ -122,6 +127,11 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             SetEnvironmentVariable(ConfigurationKeys.ExpandRouteTemplatesEnabled, enableRouteTemplateExpansion.ToString());
 
             _iisFixture = iisFixture;
+            _output = output;
+            _classicMode = classicMode;
+            _enableRouteTemplateResourceNames = enableRouteTemplateResourceNames;
+            _enableRouteTemplateExpansion = enableRouteTemplateExpansion;
+            _virtualApp = virtualApp;
             _iisFixture.ShutdownPath = "/home/shutdown";
             if (virtualApp)
             {
@@ -129,11 +139,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
             }
 
             _iisFixture.TryStartIis(this, classicMode ? IisAppType.AspNetClassic : IisAppType.AspNetIntegrated);
-            _testName = nameof(AspNetMvc5Tests)
-                      + (virtualApp ? ".VirtualApp" : string.Empty)
-                      + (classicMode ? ".Classic" : ".Integrated")
-                      + (enableRouteTemplateExpansion ? ".WithExpansion" :
-                        (enableRouteTemplateResourceNames ?  ".WithFF" : ".NoFF"));
+            _testName = GetTestName();
         }
 
         public static TheoryData<string, int> Data() => new()
@@ -186,6 +192,13 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
                           .UseMethodName("_")
                           .UseTypeName(_testName);
         }
+
+        protected virtual string GetTestName() =>
+            nameof(AspNetMvc5Tests)
+          + (_virtualApp ? ".VirtualApp" : string.Empty)
+          + (_classicMode ? ".Classic" : ".Integrated")
+          + (_enableRouteTemplateExpansion     ? ".WithExpansion" :
+             _enableRouteTemplateResourceNames ? ".WithFF" : ".NoFF");
     }
 
     [UsesVerify]
