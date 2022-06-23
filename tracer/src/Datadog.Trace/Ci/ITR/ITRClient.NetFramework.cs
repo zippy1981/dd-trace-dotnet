@@ -21,6 +21,11 @@ internal partial class ITRClient
     private async Task<RawResponse> SendJsonDataAsync(Uri url, string inputJson)
     {
         var client = WebRequest.CreateHttp(url);
+        if (!string.IsNullOrEmpty(_settings.ApiKey))
+        {
+            client.Headers.Add(ApiKeyHeader, _settings.ApiKey);
+        }
+
         client.Method = "POST";
         client.ContentType = "application/json";
 
@@ -57,6 +62,11 @@ internal partial class ITRClient
         var boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
 
         var client = WebRequest.CreateHttp(url);
+        if (!string.IsNullOrEmpty(_settings.ApiKey))
+        {
+            client.Headers.Add(ApiKeyHeader, _settings.ApiKey);
+        }
+
         client.Method = "POST";
         client.ContentType = "multipart/form-data; boundary=" + boundary;
 

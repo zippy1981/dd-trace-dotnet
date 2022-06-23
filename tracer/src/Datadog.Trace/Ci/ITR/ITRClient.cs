@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
+using Datadog.Trace.Ci.Configuration;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Logging;
 using Datadog.Trace.Util;
@@ -24,20 +25,23 @@ namespace Datadog.Trace.Ci.ITR;
 internal partial class ITRClient
 {
     private const string BaseUrl = "https://git-api-ci-app-backend.us1.staging.dog";
+    private const string ApiKeyHeader = "dd-api-key";
     private const int MaxRetries = 3;
     private const int MaxPackFileSizeInMb = 3;
 
     private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ITRClient));
 
     private readonly GlobalSettings _globalSettings;
+    private readonly CIVisibilitySettings _settings;
     private readonly string _workingDirectory;
     private readonly Uri _searchCommitsUrl;
     private readonly Uri _packFileUrl;
     private readonly Task<string> _getRepositoryUrlTask;
 
-    public ITRClient(string workingDirectory)
+    public ITRClient(string workingDirectory, CIVisibilitySettings settings = null)
     {
         _globalSettings = GlobalSettings.FromDefaultSources();
+        _settings = settings ?? CIVisibility.Settings;
         _workingDirectory = workingDirectory;
         _getRepositoryUrlTask = GetRepositoryUrlAsync();
 
@@ -72,12 +76,14 @@ internal partial class ITRClient
         return await SendObjectsPackFileAsync(localCommits[0], remoteCommitsData).ConfigureAwait(false);
     }
 
-    public async Task<string[]> SearchCommitAsync(string[] localCommits)
+    private async Task<string[]> SearchCommitAsync(string[] localCommits)
     {
         if (localCommits is null)
         {
             return null;
         }
+
+        Log.Debug("Searching commits...");
 
         var commitRequests = new CommitRequest[localCommits.Length];
         for (var i = 0; i < localCommits.Length; i++)
@@ -128,6 +134,8 @@ internal partial class ITRClient
 
     public async Task<long> SendObjectsPackFileAsync(string commitSha, string[] commitsExceptions)
     {
+        Log.Debug("Packing and sending delta of commits and tree objects...");
+
         var repository = await _getRepositoryUrlTask.ConfigureAwait(false);
         var jsonPushedSha = JsonConvert.SerializeObject(new DataEnvelopeWithMeta<CommitRequest>(new CommitRequest(commitSha), repository));
         var packFiles = await GetObjectsPackFileFromWorkingDirectoryAsync(commitsExceptions).ConfigureAwait(false);
@@ -153,6 +161,7 @@ internal partial class ITRClient
             }
         }
 
+        Log.Information($"Total pack file upload: {totalUploadSize} bytes", totalUploadSize);
         return totalUploadSize;
 
         async Task<long> InternalSendObjectsPackFileAsync(string packFile, bool finalTry)

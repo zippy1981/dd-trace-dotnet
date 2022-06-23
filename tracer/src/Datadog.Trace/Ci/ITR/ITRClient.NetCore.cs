@@ -25,6 +25,11 @@ internal partial class ITRClient
     private async Task<RawResponse> SendJsonDataAsync(Uri url, string inputJson)
     {
         using var content = new StringContent(inputJson, Encoding.UTF8, "application/json");
+        if (!string.IsNullOrEmpty(_settings.ApiKey))
+        {
+            content.Headers.Add(ApiKeyHeader, _settings.ApiKey);
+        }
+
         var response = await _client.PostAsync(url, content).ConfigureAwait(false);
         var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         return new RawResponse((int)response.StatusCode, responseContent);
@@ -33,6 +38,10 @@ internal partial class ITRClient
     private async Task<RawResponse> SendMultipartJsonWithFileAsync(Uri url, string jsonName, string jsonContent, string fileName, string filePath)
     {
         using var formDataContent = new MultipartFormDataContent();
+        if (!string.IsNullOrEmpty(_settings.ApiKey))
+        {
+            formDataContent.Headers.Add(ApiKeyHeader, _settings.ApiKey);
+        }
 
         // First Content
         formDataContent.Add(new StringContent(jsonContent, Encoding.UTF8, "application/json"), jsonName);

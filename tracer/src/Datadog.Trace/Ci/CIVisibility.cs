@@ -63,6 +63,11 @@ namespace Datadog.Trace.Ci
                 tracerSettings.ServiceName = GetServiceNameFromRepository(CIEnvironmentValues.Instance.Repository);
             }
 
+            // Update and upload git tree metadata.
+            Log.Information("Update and uploading git tree metadata.");
+            var itrClient = new ITR.ITRClient(CIEnvironmentValues.Instance.WorkspacePath, _settings);
+            _ = itrClient.UploadRepositoryChangesAsync();
+
             // Initialize Tracer
             Log.Information("Initialize Test Tracer instance");
             TracerManager.ReplaceGlobalManager(tracerSettings.Build(), new CITracerManagerFactory(_settings));

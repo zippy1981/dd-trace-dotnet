@@ -8,11 +8,15 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Datadog.Trace.Logging;
+using Datadog.Trace.Vendors.Serilog;
 
 namespace Datadog.Trace.Util
 {
     internal static class ProcessHelpers
     {
+        private static readonly IDatadogLogger Log = DatadogLogging.GetLoggerFor(typeof(ProcessHelpers));
+
         /// <summary>
         /// Wrapper around <see cref="Process.GetCurrentProcess"/> and <see cref="Process.ProcessName"/>
         ///
@@ -82,6 +86,7 @@ namespace Datadog.Trace.Util
         /// <returns>Task with the content of the standard output</returns>
         public static async Task<string> RunCommandAsync(Command command, string input = null)
         {
+            Log.Information("Running command: {command} {args}", command.Cmd, command.Arguments);
             var processStartInfo = GetProcessStartInfo(command);
             if (input is not null)
             {
