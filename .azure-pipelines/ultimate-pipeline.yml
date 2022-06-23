@@ -70,7 +70,6 @@ pr:
       - LICENSE
       - LICENSE-3rdparty.csv
       - NOTICE
-      - profiler/
 
 schedules:
   - cron: "0 3 * * *"
