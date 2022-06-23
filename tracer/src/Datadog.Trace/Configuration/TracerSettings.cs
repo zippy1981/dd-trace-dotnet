@@ -305,7 +305,7 @@ namespace Datadog.Trace.Configuration
         public IDictionary<string, string> HeaderTags { get; set; }
 
         /// <summary>
-        /// Gets or sets a custom request header configured to read the ip from. For backward compatibility, it fallbacks on DD_APPSEC_IPHEADER
+        /// Gets or sets a custom request header configured to read the ip from with DD_TRACE_CLIENT_IP_HEADER. For backward compatibility, it fallbacks on DD_APPSEC_IPHEADER
         /// </summary>
         public string IpHeader { get; set; }
 
