@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Threading;
 using Datadog.Trace.AppSec;
 using Datadog.Trace.Ci;
+using Datadog.Trace.Ci.Configuration;
 using Datadog.Trace.ClrProfiler.ServerlessInstrumentation;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.DiagnosticListeners;
@@ -66,6 +67,14 @@ namespace Datadog.Trace.ClrProfiler
             if (Interlocked.Exchange(ref _firstInitialization, 0) != 1)
             {
                 // Initialize() was already called before
+                return;
+            }
+
+            if (CIVisibility.Settings.Enabled && !CIVisibility.Enabled)
+            {
+                // If CI Visibility is enabled by configuration
+                // we check if is the testhost.dll process
+                // we avoid instrumenting other process started from dotnet test.
                 return;
             }
 

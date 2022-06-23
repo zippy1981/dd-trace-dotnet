@@ -12,6 +12,7 @@ using Datadog.Trace.Ci.Configuration;
 using Datadog.Trace.Configuration;
 using Datadog.Trace.Logging;
 using Datadog.Trace.PDBs;
+using Datadog.Trace.Util;
 
 namespace Datadog.Trace.Ci
 {
@@ -50,6 +51,8 @@ namespace Datadog.Trace.Ci
             }
 
             Log.Information("Initializing CI Visibility");
+
+            Log.Information("Environment.CommandLine: {cmd}", Environment.CommandLine);
 
             LifetimeManager.Instance.AddAsyncShutdownTask(ShutdownAsync);
 
@@ -163,12 +166,6 @@ namespace Datadog.Trace.Ci
 
         private static bool InternalEnabled()
         {
-            if (_settings.Enabled)
-            {
-                Log.Information("CI Visibility Enabled by Configuration");
-                return true;
-            }
-
             // Try to autodetect based in the domain name.
             string domainName = AppDomain.CurrentDomain.FriendlyName;
             if (domainName != null &&
@@ -191,6 +188,18 @@ namespace Datadog.Trace.Ci
                 }
 
                 return true;
+            }
+
+            // By configuration
+            if (_settings.Enabled)
+            {
+                // When is enabled by configuration we only enable it to the testhost child process.
+                if (Environment.CommandLine.IndexOf("testhost.dll", StringComparison.OrdinalIgnoreCase) != -1)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             // Try to autodetect based in the process name.
