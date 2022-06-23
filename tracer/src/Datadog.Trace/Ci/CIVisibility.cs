@@ -166,6 +166,22 @@ namespace Datadog.Trace.Ci
 
         private static bool InternalEnabled()
         {
+            var processName = ProcessHelpers.GetCurrentProcessName();
+
+            // By configuration
+            if (_settings.Enabled)
+            {
+                // When is enabled by configuration we only enable it to the testhost child process if the process name is dotnet.
+                if (processName?.Equals("dotnet", StringComparison.OrdinalIgnoreCase) == true && Environment.CommandLine.IndexOf("testhost.dll", StringComparison.OrdinalIgnoreCase) == -1)
+                {
+                    Log.Information("CI Visibility disabled because the commandline doesn't contains testhost.dll when the process name is dotnet: {cmdline}", Environment.CommandLine);
+                    return false;
+                }
+
+                Log.Information("CI Visibility Enabled by Configuration");
+                return true;
+            }
+
             // Try to autodetect based in the domain name.
             string domainName = AppDomain.CurrentDomain.FriendlyName;
             if (domainName != null &&
@@ -190,20 +206,8 @@ namespace Datadog.Trace.Ci
                 return true;
             }
 
-            // By configuration
-            if (_settings.Enabled)
-            {
-                // When is enabled by configuration we only enable it to the testhost child process.
-                if (Environment.CommandLine.IndexOf("testhost.dll", StringComparison.OrdinalIgnoreCase) != -1)
-                {
-                    return true;
-                }
-
-                return false;
-            }
-
             // Try to autodetect based in the process name.
-            if (Process.GetCurrentProcess()?.ProcessName?.StartsWith("testhost.") == true)
+            if (processName?.StartsWith("testhost.") == true)
             {
                 Log.Information("CI Visibility Enabled by Process name whitelist");
 
