@@ -648,11 +648,12 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::Shutdown(void)
     Log::Info("CorProfilerCallback::Shutdown()");
 
     // A final .pprof should be generated before exiting
-    // All providers should be stopped and flushed before the aggregator
-    // sends the last samples to the exporter
+    // The aggregator must be stopped before the provider, since it will call them to get the last samples
     _pStackSamplerLoopManager->Stop();
 
-    // Calling Stop on providers transforms the last raw samples
+    _pSamplesAggregator->Stop();
+
+    // Calling Stop on providers
     _pWallTimeProvider->Stop();
     if (_pCpuTimeProvider != nullptr)
     {
@@ -662,10 +663,6 @@ HRESULT STDMETHODCALLTYPE CorProfilerCallback::Shutdown(void)
     {
         _pExceptionsProvider->Stop();
     }
-
-    // It is now time to aggregate the remaining samples and export the last .pprof
-    _pSamplesAggregator->Stop();
-
 
     // dump all threads time
     _pThreadsCpuManager->LogCpuTimes();
