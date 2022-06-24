@@ -52,7 +52,7 @@ namespace Datadog.Trace.ClrProfiler.IntegrationTests
 
         protected override string GetTestName()
             => nameof(AspNetMvc5QueryStringTests)
-             + (_enableQueryStringReporting ? ".WithQueryString" : string.Empty);
+             + (_enableQueryStringReporting ? ".WithQueryString" : ".WithoutQueryString");
     }
 }
 
