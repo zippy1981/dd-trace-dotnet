@@ -46,7 +46,7 @@ namespace Datadog.Profiler.IntegrationTests.CpuProfiler
             CheckCpuProfiles(runner, true);
         }
 
-        private static int GetCpuSamplesCount(string file)
+        private int GetCpuSamplesCount(string file)
         {
             using var s = File.OpenRead(file);
             var profile = Profile.Parser.ParseFrom(s);
@@ -57,6 +57,13 @@ namespace Datadog.Profiler.IntegrationTests.CpuProfiler
                 {
                     cpuSampleCount++;
                 }
+            }
+
+            _output.WriteLine($"pprof file '{file}': contains {profile.Sample.Count} samples with {cpuSampleCount} in CpuValueSlot {CpuValueSlot}");
+
+            if(cpuSampleCount == 0)
+            {
+                _output.WriteLine($"pprof file '{file}': {profile.ToString()}");
             }
 
             return cpuSampleCount;
@@ -78,7 +85,7 @@ namespace Datadog.Profiler.IntegrationTests.CpuProfiler
 
             if (isEnabled)
             {
-                Assert.True(cpuSamplesCount > 0);
+                Assert.True(cpuSamplesCount > 0, "When CpuProfiling is enabled we should have samples");
             }
             else
             {
