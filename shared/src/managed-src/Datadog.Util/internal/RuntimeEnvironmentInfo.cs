@@ -180,9 +180,9 @@ namespace Datadog.Util
             {
                 runtimeName = ".NET Core";
             }
-            else if (frameworkDescription.StartsWith(".NET 5", StringComparison.OrdinalIgnoreCase))
+            else if (frameworkDescription.StartsWith(".NET", StringComparison.OrdinalIgnoreCase))
             {
-                runtimeName = ".NET 5";
+                runtimeName = ".NET";
             }
 #endif
             if (runtimeName == null)
