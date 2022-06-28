@@ -256,6 +256,20 @@ partial class Build
 
             try
             {
+                // don't run the CPU profiling tests in parallel 
+                DotNetTest(config => config
+                        .SetConfiguration(BuildConfiguration)
+                        .SetTargetPlatform(MSBuildTargetPlatform.x64)
+                        .EnableNoRestore()
+                        .EnableNoBuild()
+                        .SetFilter("CpuProfiling=true")
+                        .SetProperty("ParallelizeTestCollections", "false")
+                        .SetProcessEnvironmentVariable("DD_TESTING_OUPUT_DIR", ProfilerBuildDataDirectory)
+                        .SetProcessEnvironmentVariable("MonitoringHomeDirectory", MonitoringHomeDirectory)
+                        .CombineWith(integrationTestProjects, (s, project) => s
+                            .EnableTrxLogOutput(ProfilerBuildDataDirectory / "results" / project.Name)
+                            .SetProjectFile(project)));
+
                 // Run these ones in parallel
                 // Always x64
                 DotNetTest(config => config
@@ -271,19 +285,6 @@ partial class Build
                             .SetProjectFile(project)),
                     degreeOfParallelism: 2);
 
-                // don't run the CPU profiling tests in parallel 
-                DotNetTest(config => config
-                        .SetConfiguration(BuildConfiguration)
-                        .SetTargetPlatform(MSBuildTargetPlatform.x64)
-                        .EnableNoRestore()
-                        .EnableNoBuild()
-                        .SetFilter("CpuProfiling=true")
-                        .SetProperty("ParallelizeTestCollections", "false")
-                        .SetProcessEnvironmentVariable("DD_TESTING_OUPUT_DIR", ProfilerBuildDataDirectory)
-                        .SetProcessEnvironmentVariable("MonitoringHomeDirectory", MonitoringHomeDirectory)
-                        .CombineWith(integrationTestProjects, (s, project) => s
-                            .EnableTrxLogOutput(ProfilerBuildDataDirectory / "results" / project.Name)
-                            .SetProjectFile(project)));
             }
             finally
             {
