@@ -98,7 +98,7 @@ namespace Datadog.Trace.PlatformHelpers
         {
             string host = request.Host.Value;
             string httpMethod = request.Method?.ToUpperInvariant() ?? "UNKNOWN";
-            var url = request.GetUrlWithQueryString(tracer.Settings.EnableQueryStringReporting);
+            var url = request.GetUrlWithQueryString(tracer.Settings.EnableQueryStringReporting, tracer.Settings.ObfuscationQueryStringRegex);
             var userAgent = request.Headers[HttpHeaderNames.UserAgent];
             resourceName ??= GetDefaultResourceName(request);
 
