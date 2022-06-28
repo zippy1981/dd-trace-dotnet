@@ -12,6 +12,9 @@ using Xunit.Abstractions;
 
 namespace Datadog.Profiler.IntegrationTests.CpuProfiler
 {
+    [CollectionDefinition(nameof(CpuProfilerTest), DisableParallelization = true)]
+    [Collection(nameof(CpuProfilerTest))]
+    [Trait("CpuProfiling", "true")]
     public class CpuProfilerTest
     {
         private const string CmdLine = "--timeout 10"; // default scenario is PI computation to run for 10 seconds
